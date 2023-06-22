@@ -1,4 +1,4 @@
-use interpreter_monkey::lexer::lexer::{Lexer, Token};
+use interpreter_monkey::{Lexer, Token};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::io::stdin().lines().for_each(|line| {
