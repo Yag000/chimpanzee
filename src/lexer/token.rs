@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)] // I should find a way of avoiding this thanks to lifetimes, but
+                                   // not for now (the issue is with the parser...)
 pub enum Token {
     Illegal,
     Eof,
