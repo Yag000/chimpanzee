@@ -1,289 +1,221 @@
-use std::error::Error;
+use crate::Token;
+use std::fmt::Display;
 
-use crate::{Lexer, Token};
+use super::parser::Parser;
 
-struct Program {
-    statements: Vec<Statement>,
+pub struct Program {
+    pub statements: Vec<Statement>,
+}
+
+impl Display for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut program = String::new();
+        for statement in &self.statements {
+            program.push_str(&format!("{}\n", statement));
+        }
+        write!(f, "{}", program)
+    }
 }
 
 #[derive(PartialEq, Debug)]
-enum Expression {
-    Temporary,
+pub enum Expression {
+    Temporary, // TODO: remove this
+    Identifier(Identifier),
     IntegerLiteral(i64),
+    Prefix(PrefixOperator),
+    Infix(InfixOperator),
+}
+
+impl Display for Expression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expression::Temporary => write!(f, "Temporary"),
+            Expression::Identifier(x) => write!(f, "{}", x),
+            Expression::IntegerLiteral(x) => write!(f, "{}", x),
+            Expression::Prefix(x) => write!(f, "{}", x),
+            Expression::Infix(x) => write!(f, "{}", x),
+        }
+    }
+}
+
+impl Expression {
+    pub fn parse(parser: &mut Parser, precedence: Precedence) -> Result<Self, String> {
+        let mut left_exp = match parser.current_token.clone() {
+            Token::Ident(_) => (Identifier::parse(parser)).map(Expression::Identifier),
+            Token::Int(x) => match x.parse::<i64>() {
+                Ok(x) => Ok(Expression::IntegerLiteral(x)),
+                Err(_) => Err("Error: expected a number, found an incopatible string".to_string()),
+            },
+            Token::Bang | Token::Minus => PrefixOperator::parse(parser).map(Expression::Prefix),
+            _ => Err(format!(
+                "There is no prefix parser for the token {:?}",
+                parser.current_token
+            )),
+        }?;
+
+        while !parser.peek_token_is(&Token::Semicolon) && precedence < parser.peek_precedence() {
+            match &parser.peek_token {
+                Token::Plus
+                | Token::Minus
+                | Token::Slash
+                | Token::Asterisk
+                | Token::Equal
+                | Token::NotEqual
+                | Token::LT
+                | Token::GT => {
+                    parser.next_token(); // TODO: Solve this.
+                                         //  This is absolutely awful, I need to peek the next token
+                                         //  only if a infix operator is found, I want to also
+                                         //  avoid a double match
+                    left_exp = Expression::Infix(match InfixOperator::parse(parser, left_exp) {
+                        Ok(x) => x,
+                        Err(x) => return Err(x),
+                    });
+                }
+
+                _ => return Ok(left_exp),
+            }
+        }
+
+        return Ok(left_exp);
+    }
 }
 
 #[derive(PartialEq, Debug)]
-enum Statement {
+pub struct PrefixOperator {
+    pub token: Token,
+    pub right: Box<Expression>,
+}
+
+impl PrefixOperator {
+    pub fn new(token: Token, rigth: Expression) -> Self {
+        PrefixOperator {
+            token,
+            right: Box::new(rigth),
+        }
+    }
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        let token = parser.current_token.clone();
+        parser.next_token();
+        let right = Expression::parse(parser, Precedence::Prefix)?;
+        Ok(PrefixOperator::new(token, right))
+    }
+}
+impl Display for PrefixOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}{})", self.token, self.right)
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct InfixOperator {
+    pub token: Token,
+    pub left: Box<Expression>,
+    pub right: Box<Expression>,
+}
+
+impl InfixOperator {
+    pub fn new(token: Token, left: Expression, right: Expression) -> Self {
+        InfixOperator {
+            token,
+            left: Box::new(left),
+            right: Box::new(right),
+        }
+    }
+
+    fn parse(parser: &mut Parser, left: Expression) -> Result<Self, String> {
+        let token = parser.current_token.clone();
+        let precedence = parser.current_precedence();
+        parser.next_token();
+        let right = Expression::parse(parser, precedence)?;
+        Ok(InfixOperator::new(token, left, right))
+    }
+}
+
+impl Display for InfixOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({} {} {})", self.left, self.token, self.right)
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
+    Expression(Expression),
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Statement::Let(statement) => write!(f, "{}", statement),
+            Statement::Return(statement) => write!(f, "{}", statement),
+            Statement::Expression(expression) => write!(f, "{}", expression),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
-struct LetStatement {
-    name: Identifier,
-    value: Expression,
+pub struct LetStatement {
+    pub name: Identifier,
+    pub value: Expression,
+}
+
+impl Display for LetStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "let {} = {};", self.name, self.value)
+    }
 }
 
 #[derive(PartialEq, Debug)]
-struct Identifier {
-    token: Token,
-    value: String,
+pub struct Identifier {
+    pub token: Token,
+    pub value: String,
+}
+
+impl Display for Identifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", &self.value)
+    }
+}
+
+impl Identifier {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        return Ok(Identifier{token:parser.current_token.clone(), value:match parser.current_token.clone(){ // TODO: Improve this with lifetimes
+           Token::Ident(s) => s,
+           _=> panic!("This should be a Token::Ident, if not the function has not been properly called"),
+        }});
+    }
 }
 
 #[derive(PartialEq, Debug)]
-struct ReturnStatement {
-    return_value: Expression,
+pub struct ReturnStatement {
+    pub return_value: Expression,
 }
 
-struct Parser {
-    lexer: Lexer,
-
-    errors: Vec<String>,
-    current_token: Token,
-    peek_token: Token,
-}
-
-impl Parser {
-    fn new(lexer: Lexer) -> Parser {
-        let mut parser = Parser {
-            lexer,
-            errors: Vec::new(),
-            current_token: Token::Illegal,
-            peek_token: Token::Illegal,
-        };
-
-        parser.next_token();
-        parser.next_token();
-
-        parser
-    }
-
-    fn next_token(&mut self) {
-        self.current_token = self.peek_token.clone();
-        self.peek_token = self.lexer.next_token();
-    }
-
-    fn parse_program(&mut self) -> Program {
-        let mut program = Program {
-            statements: Vec::new(),
-        };
-
-        while self.current_token != Token::Eof {
-            let statement = self.parse_statement();
-            match statement {
-                Some(statement) => program.statements.push(statement),
-                None => (),
-            }
-            self.next_token();
-        }
-
-        program
-    }
-
-    fn parse_statement(&mut self) -> Option<Statement> {
-        match self.current_token {
-            Token::Let => self.parse_let_statement().map(Statement::Let),
-            Token::Return => self.parse_return_statement().map(Statement::Return),
-            _ => None, //TODO: Handle this error
-        }
-    }
-
-    fn parse_let_statement(&mut self) -> Option<LetStatement> {
-        if !self.expect_peek(&Token::Ident("".to_string())) {
-            return None;
-        }
-
-        let name = match self.current_token.clone() {
-            Token::Ident(value) => Identifier {
-                token: self.current_token.clone(),
-                value,
-            },
-            _ => unreachable!("This should never happen, we already checked for Ident"),
-        };
-
-        if !self.expect_peek(&Token::Assign) {
-            return None;
-        }
-        // TODO: Parse the expression, for now we just skip until semicolon and set the field to
-        // Temporary
-        while !self.current_token_is(&Token::Semicolon) {
-            self.next_token();
-        }
-
-        return Some(LetStatement {
-            name,
-            value: Expression::Temporary,
-        });
-    }
-
-    fn parse_return_statement(&mut self) -> Option<ReturnStatement> {
-        self.next_token();
-
-        //TODO: Parse the expression, for now we just skip until semicolon and set the field to
-        //Temporary
-        while !self.current_token_is(&Token::Semicolon) {
-            self.next_token();
-        }
-
-        return Some(ReturnStatement {
-            return_value: Expression::Temporary,
-        });
-    }
-
-    fn current_token_is(&self, token: &Token) -> bool {
-        // TODO: This is a hack, we need to implement PartialEq correctly for Token
-        match self.current_token {
-            Token::Ident(_) => match token {
-                Token::Ident(_) => true,
-                _ => false,
-            },
-            Token::Int(_) => match token {
-                Token::Int(_) => true,
-                _ => false,
-            },
-            _ => &self.current_token == token,
-        }
-    }
-
-    fn peek_token_is(&self, token: &Token) -> bool {
-        match self.peek_token {
-            Token::Ident(_) => match token {
-                Token::Ident(_) => true,
-                _ => false,
-            },
-            Token::Int(_) => match token {
-                Token::Int(_) => true,
-                _ => false,
-            },
-            _ => &self.peek_token == token,
-        }
-    }
-
-    fn expect_peek(&mut self, token: &Token) -> bool {
-        if self.peek_token_is(token) {
-            self.next_token();
-            return true;
-        } else {
-            self.peek_error(token);
-            return false;
-        }
-    }
-
-    fn peek_error(&mut self, token: &Token) {
-        self.errors.push(format!(
-            "Expected next token to be {:?}, got {:?} instead",
-            token, self.peek_token
-        ));
+impl Display for ReturnStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "return {};", &self.return_value)
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[derive(PartialEq, PartialOrd)]
+pub enum Precedence {
+    Lowest = 0,
+    Equals = 1,      // ==
+    LessGreater = 2, // > or <
+    Sum = 3,         // +
+    Product = 4,     // *
+    Prefix = 5,      // -X or !X
+    Call = 6,        // myFunction(X)
+}
 
-    #[test]
-    fn test_let_statements() {
-        let input = r#"let x = 5;
-        let y = 10;
-        let foobar = 838383;
-        "#;
-
-        let lexer = Lexer::new(input.to_string());
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        let expected_statemets = vec![
-            Statement::Let(LetStatement {
-                name: Identifier {
-                    token: Token::Ident("x".to_string()),
-                    value: "x".to_string(),
-                },
-                value: Expression::Temporary,
-            }),
-            Statement::Let(LetStatement {
-                name: Identifier {
-                    token: Token::Ident("y".to_string()),
-                    value: "y".to_string(),
-                },
-                value: Expression::Temporary,
-            }),
-            Statement::Let(LetStatement {
-                name: Identifier {
-                    token: Token::Ident("foobar".to_string()),
-                    value: "foobar".to_string(),
-                },
-                value: Expression::Temporary,
-            }),
-        ];
-
-        assert_eq!(program.statements.len(), 3);
-
-        for (i, expected) in expected_statemets.iter().enumerate() {
-            assert_eq!(program.statements[i], *expected);
-        }
-
-        test_errors(&parser);
-    }
-
-    #[test]
-    fn test_return_statements() {
-        let input = r#"
-        return 5;
-        return 10;
-        return 993322;
-        "#;
-
-        let lexer = Lexer::new(input.to_string());
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        let expected = vec![
-            Statement::Return(ReturnStatement {
-                return_value: Expression::Temporary,
-            }),
-            Statement::Return(ReturnStatement {
-                return_value: Expression::Temporary,
-            }),
-            Statement::Return(ReturnStatement {
-                return_value: Expression::Temporary,
-            }),
-        ];
-
-        assert_eq!(program.statements.len(), 3);
-
-        for (i, expected) in expected.iter().enumerate() {
-            assert_eq!(program.statements[i], *expected);
-        }
-
-        test_errors(&parser);
-    }
-
-    fn test_errors(parser: &Parser) {
-        let len = parser.errors.len();
-
-        if len > 0 {
-            println!("Parser has {} errors", parser.errors.len());
-            for error in parser.errors.iter() {
-                println!("Parser error: {}", error);
-            }
-        }
-        assert_eq!(len, 0);
-    }
-
-    #[test]
-    fn test_errors_number() {
-        let input = r#"
-        let x 5;
-        let = 10;
-        let 838383;
-        let x = 838383;
-        "#;
-
-        let lexer = Lexer::new(input.to_string());
-        let mut parser = Parser::new(lexer);
-
-        parser.parse_program();
-
-        assert_eq!(parser.errors.len(), 3);
+pub fn precedence_of(token: &Token) -> Precedence {
+    match token {
+        Token::Equal | Token::NotEqual => Precedence::Equals,
+        Token::LT | Token::GT => Precedence::LessGreater,
+        Token::Plus | Token::Minus => Precedence::Sum,
+        Token::Slash | Token::Asterisk => Precedence::Product,
+        _ => Precedence::Lowest,
     }
 }
