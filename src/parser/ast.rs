@@ -21,7 +21,7 @@ impl Display for Program {
 pub enum Expression {
     Temporary, // TODO: remove this
     Identifier(Identifier),
-    IntegerLiteral(i64),
+    Primitive(Primitive),
     Prefix(PrefixOperator),
     Infix(InfixOperator),
 }
@@ -31,7 +31,7 @@ impl Display for Expression {
         match self {
             Expression::Temporary => write!(f, "Temporary"),
             Expression::Identifier(x) => write!(f, "{}", x),
-            Expression::IntegerLiteral(x) => write!(f, "{}", x),
+            Expression::Primitive(x) => write!(f, "{}", x),
             Expression::Prefix(x) => write!(f, "{}", x),
             Expression::Infix(x) => write!(f, "{}", x),
         }
@@ -42,10 +42,9 @@ impl Expression {
     pub fn parse(parser: &mut Parser, precedence: Precedence) -> Result<Self, String> {
         let mut left_exp = match parser.current_token.clone() {
             Token::Ident(_) => (Identifier::parse(parser)).map(Expression::Identifier),
-            Token::Int(x) => match x.parse::<i64>() {
-                Ok(x) => Ok(Expression::IntegerLiteral(x)),
-                Err(_) => Err("Error: expected a number, found an incopatible string".to_string()),
-            },
+            Token::Int(_) | Token::False | Token::True => {
+                Primitive::parse(parser).map(Expression::Primitive)
+            }
             Token::Bang | Token::Minus => PrefixOperator::parse(parser).map(Expression::Prefix),
             _ => Err(format!(
                 "There is no prefix parser for the token {:?}",
@@ -78,6 +77,38 @@ impl Expression {
         }
 
         return Ok(left_exp);
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Primitive {
+    IntegerLiteral(i64),
+    BooleanLiteral(bool),
+}
+
+impl Primitive {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        match parser.current_token.clone() {
+            Token::Int(x) => match x.parse::<i64>() {
+                Ok(x) => Ok(Primitive::IntegerLiteral(x)),
+                Err(_) => Err("Error: expected a number, found an incopatible string".to_string()),
+            },
+            Token::True => Ok(Primitive::BooleanLiteral(true)),
+            Token::False => Ok(Primitive::BooleanLiteral(false)),
+            _ => Err(format!(
+                "There is no primitive parser for the token {:?}",
+                parser.current_token
+            )),
+        }
+    }
+}
+
+impl Display for Primitive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Primitive::IntegerLiteral(x) => write!(f, "{}", x),
+            Primitive::BooleanLiteral(x) => write!(f, "{}", x),
+        }
     }
 }
 
@@ -217,5 +248,39 @@ pub fn precedence_of(token: &Token) -> Precedence {
         Token::Plus | Token::Minus => Precedence::Sum,
         Token::Slash | Token::Asterisk => Precedence::Product,
         _ => Precedence::Lowest,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_string_conversion() {
+        let program = Program {
+            statements: vec![
+                Statement::Let(LetStatement {
+                    name: Identifier {
+                        token: Token::Ident("myVar".to_string()),
+                        value: "myVar".to_string(),
+                    },
+                    value: Expression::Identifier(Identifier {
+                        token: Token::Ident("anotherVar".to_string()),
+                        value: "anotherVar".to_string(),
+                    }),
+                }),
+                Statement::Return(ReturnStatement {
+                    return_value: Expression::Identifier(Identifier {
+                        token: Token::Ident("myVar".to_string()),
+                        value: "myVar".to_string(),
+                    }),
+                }),
+            ],
+        };
+
+        assert_eq!(
+            program.to_string(),
+            "let myVar = anotherVar;\nreturn myVar;\n"
+        );
     }
 }

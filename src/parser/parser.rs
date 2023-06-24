@@ -278,35 +278,6 @@ mod tests {
     }
 
     #[test]
-    fn test_string_conversion() {
-        let program = Program {
-            statements: vec![
-                Statement::Let(LetStatement {
-                    name: Identifier {
-                        token: Token::Ident("myVar".to_string()),
-                        value: "myVar".to_string(),
-                    },
-                    value: Expression::Identifier(Identifier {
-                        token: Token::Ident("anotherVar".to_string()),
-                        value: "anotherVar".to_string(),
-                    }),
-                }),
-                Statement::Return(ReturnStatement {
-                    return_value: Expression::Identifier(Identifier {
-                        token: Token::Ident("myVar".to_string()),
-                        value: "myVar".to_string(),
-                    }),
-                }),
-            ],
-        };
-
-        assert_eq!(
-            program.to_string(),
-            "let myVar = anotherVar;\nreturn myVar;\n"
-        );
-    }
-
-    #[test]
     fn test_identifier_expression() {
         let input = "foobar;";
         let lexer = Lexer::new(input.to_string());
@@ -341,13 +312,18 @@ mod tests {
         let statement = &program.statements[0];
         assert_eq!(
             statement,
-            &Statement::Expression(Expression::IntegerLiteral(5))
+            &Statement::Expression(Expression::Primitive(Primitive::IntegerLiteral(5)))
         )
     }
 
     #[test]
     fn test_parsing_prefix_expressions() {
-        let tests = vec![("!5", "!", 5), ("-15", "-", 15)];
+        let tests = vec![
+            ("!5", "!", "5"),
+            ("-15", "-", "15"),
+            ("!true;", "!", "true"),
+            ("!false;", "!", "false"),
+        ];
 
         for (input, operator, value) in tests {
             let lexer = Lexer::new(input.to_string());
@@ -358,13 +334,9 @@ mod tests {
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
-                Statement::Expression(exp) => match exp {
-                    Expression::Prefix(p) => {
-                        assert_eq!(operator, p.token.to_string());
-                        assert_eq!(p.right.as_ref(), &Expression::IntegerLiteral(value));
-                    }
-                    _ => assert!(false, "It is not an prefix operator"),
-                },
+                Statement::Expression(exp) => {
+                    check_prefix_expression(exp, operator, value)
+                }
                 _ => assert!(false, "It is not an expression statement"),
             }
         }
@@ -373,14 +345,17 @@ mod tests {
     #[test]
     fn test_parsing_infix_expressions() {
         let tests = vec![
-            ("5 + 5;", 5, "+", 5),
-            ("5 - 5;", 5, "-", 5),
-            ("5 * 5;", 5, "*", 5),
-            ("5 / 5;", 5, "/", 5),
-            ("5 > 5;", 5, ">", 5),
-            ("5 < 5;", 5, "<", 5),
-            ("5 == 5;", 5, "==", 5),
-            ("5 != 5;", 5, "!=", 5),
+            ("5 + 5;", "5", "+", "5"),
+            ("5 - 5;", "5", "-", "5"),
+            ("5 * 5;", "5", "*", "5"),
+            ("5 / 5;", "5", "/", "5"),
+            ("5 > 5;", "5", ">", "5"),
+            ("5 < 5;", "5", "<", "5"),
+            ("5 == 5;", "5", "==", "5"),
+            ("5 != 5;", "5", "!=", "5"),
+            ("true == true", "true", "==", "true"),
+            ("true != false", "true", "!=", "false"),
+            ("false == false", "false", "==", "false"),
         ];
 
         for (input, left, operator, right) in tests {
@@ -392,14 +367,7 @@ mod tests {
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
-                Statement::Expression(exp) => match exp {
-                    Expression::Infix(p) => {
-                        assert_eq!(p.left.as_ref(), &Expression::IntegerLiteral(left));
-                        assert_eq!(operator, p.token.to_string());
-                        assert_eq!(p.right.as_ref(), &Expression::IntegerLiteral(right));
-                    }
-                    _ => assert!(false, "It is not an prefix operator"),
-                },
+                Statement::Expression(exp) => check_infix_expression(exp, left, operator, right),
                 _ => assert!(false, "It is not an expression statement"),
             }
         }
@@ -423,6 +391,10 @@ mod tests {
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))\n",
             ),
+            ("true", "true\n"),
+            ("false", "false\n"),
+            ("3 > 5 == false", "((3 > 5) == false)\n"),
+            ("3 < 5 == true", "((3 < 5) == true)\n"),
         ];
 
         for (input, expected) in test {
@@ -434,6 +406,64 @@ mod tests {
             print!("{}", program.to_string());
             assert_ne!(program.statements.len(), 0);
             assert_eq!(program.to_string(), expected);
+        }
+    }
+
+    #[test]
+    fn test_boolean_expression() {
+        let tests = vec![("true;", true), ("false;", false)];
+
+        for (input, expected) in tests {
+            let lexer = Lexer::new(input.to_string());
+
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parse_errors(&parser);
+
+            assert_eq!(program.statements.len(), 1);
+            match &program.statements[0] {
+                Statement::Expression(exp) => check_primitive_literal(exp, &expected.to_string()),
+                _ => assert!(false, "It is not an expression statement"),
+            }
+        }
+    }
+
+    fn check_identifier(exp: &Expression, value: &str) {
+        match exp {
+            Expression::Identifier(i) => assert_eq!(i.to_string(), value),
+            _ => assert!(false, "It is not an identifier"),
+        }
+    }
+
+    fn check_prefix_expression(exp: &Expression, operator: &str, right: &str) {
+        match exp {
+            Expression::Prefix(p) => {
+                assert_eq!(p.token.to_string(), operator);
+                assert_eq!(p.right.to_string(), right);
+            }
+            _ => assert!(false, "It is not an prefix operator"),
+        }
+    }
+
+    fn check_primitive_literal(exp: &Expression, value: &str) {
+        match exp {
+            Expression::Primitive(p) => match p {
+                Primitive::IntegerLiteral(i) => assert_eq!(i.to_string(), value),
+                Primitive::BooleanLiteral(b) => assert_eq!(b.to_string(), value),
+            },
+            _ => assert!(false, "It is not a literal"),
+        }
+    }
+
+    fn check_infix_expression(exp: &Expression, left: &str, operator: &str, right: &str) {
+        match exp {
+            Expression::Infix(p) => {
+                check_primitive_literal(p.left.as_ref(), left);
+                assert_eq!(operator, p.token.to_string());
+                check_primitive_literal(p.right.as_ref(), right);
+            }
+            _ => assert!(false, "It is not an infix expression"),
         }
     }
 }

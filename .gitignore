@@ -1,3 +1,4 @@
 /target
-writing_an_interpreter_in_go_1.7
+writing_an_interpreter_in_go_1.7/
+*.pdf
 *.zip
