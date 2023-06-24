@@ -17,6 +17,7 @@ fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
+#[allow(dead_code)]
 fn rppl() -> Result<(), Box<dyn std::error::Error>> {
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
@@ -43,7 +44,7 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
                 print_parse_errors(parser.errors);
             }
 
-            let evaluated = eval_program(program);
+            let evaluated = eval_program(&program);
             if let Some(evaluated) = evaluated {
                 println!("{}", evaluated);
             }
