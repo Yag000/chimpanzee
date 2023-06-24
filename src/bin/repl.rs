@@ -1,4 +1,4 @@
-use interpreter_monkey::{Lexer, Parser, Token};
+use interpreter_monkey::{evaluator::evaluator::eval_program, Lexer, Parser, Token};
 
 #[allow(dead_code)]
 fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,6 +33,25 @@ fn rppl() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 
+fn repl() -> Result<(), Box<dyn std::error::Error>> {
+    std::io::stdin().lines().for_each(|line| {
+        if let Ok(line) = line {
+            let lexer = Lexer::new(line);
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            if parser.errors.len() != 0 {
+                print_parse_errors(parser.errors);
+            }
+
+            let evaluated = eval_program(program);
+            if let Some(evaluated) = evaluated {
+                println!("{}", evaluated);
+            }
+        }
+    });
+    return Ok(());
+}
+
 fn print_parse_errors(errors: Vec<String>) {
     let monkey_face: String = r#"
             __,__
@@ -46,7 +65,8 @@ fn print_parse_errors(errors: Vec<String>) {
        \   \ '~' /   /
         '._ '-=-' _.'
            '-----'
-"#.to_string();
+"#
+    .to_string();
     println!("{}", monkey_face);
     println!("Woops! We ran into some monkey business here!");
     println!(" parser errors:");
@@ -56,5 +76,5 @@ fn print_parse_errors(errors: Vec<String>) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    rppl()
+    repl()
 }
