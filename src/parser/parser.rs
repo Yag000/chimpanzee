@@ -47,7 +47,7 @@ impl Parser {
         program
     }
 
-    fn parse_statement(&mut self) -> Option<Statement> {
+    pub fn parse_statement(&mut self) -> Option<Statement> {
         match self.current_token {
             Token::Let => self.parse_let_statement().map(Statement::Let),
             Token::Return => self.parse_return_statement().map(Statement::Return),
@@ -106,13 +106,16 @@ impl Parser {
         match expression {
             Ok(expression) => Some(expression),
             Err(s) => {
-                self.errors.push(s);
+                if s != "" {
+                    self.errors.push(s);
+                }
+
                 None
             }
         }
     }
 
-    fn current_token_is(&self, token: &Token) -> bool {
+    pub fn current_token_is(&self, token: &Token) -> bool {
         // TODO: This is a hack, we need to implement PartialEq correctly for Token
         match self.current_token {
             Token::Ident(_) => match token {
@@ -141,7 +144,7 @@ impl Parser {
         }
     }
 
-    fn expect_peek(&mut self, token: &Token) -> bool {
+    pub fn expect_peek(&mut self, token: &Token) -> bool {
         if self.peek_token_is(token) {
             self.next_token();
             return true;
@@ -334,9 +337,7 @@ mod tests {
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
-                Statement::Expression(exp) => {
-                    check_prefix_expression(exp, operator, value)
-                }
+                Statement::Expression(exp) => check_prefix_expression(exp, operator, value),
                 _ => assert!(false, "It is not an expression statement"),
             }
         }
@@ -376,25 +377,30 @@ mod tests {
     #[test]
     fn test_operator_precedence_parsing() {
         let test = vec![
-            ("-a * b", "((-a) * b)\n"),
-            ("!-a", "(!(-a))\n"),
-            ("a + b + c", "((a + b) + c)\n"),
-            ("a + b - c", "((a + b) - c)\n"),
-            ("a * b * c", "((a * b) * c)\n"),
-            ("a * b / c", "((a * b) / c)\n"),
-            ("a + b / c", "(a + (b / c))\n"),
-            ("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)\n"),
-            ("3 + 4; -5 * 5", "(3 + 4)\n((-5) * 5)\n"),
-            ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))\n"),
-            ("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))\n"),
+            ("-a * b", "((-a) * b)"),
+            ("!-a", "(!(-a))"),
+            ("a + b + c", "((a + b) + c)"),
+            ("a + b - c", "((a + b) - c)"),
+            ("a * b * c", "((a * b) * c)"),
+            ("a * b / c", "((a * b) / c)"),
+            ("a + b / c", "(a + (b / c))"),
+            ("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
+            ("3 + 4; -5 * 5", "(3 + 4)\n((-5) * 5)"),
+            ("5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"),
+            ("5 < 4 != 3 > 4", "((5 < 4) != (3 > 4))"),
             (
                 "3 + 4 * 5 == 3 * 1 + 4 * 5",
-                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))\n",
+                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             ),
-            ("true", "true\n"),
-            ("false", "false\n"),
-            ("3 > 5 == false", "((3 > 5) == false)\n"),
-            ("3 < 5 == true", "((3 < 5) == true)\n"),
+            ("true", "true"),
+            ("false", "false"),
+            ("3 > 5 == false", "((3 > 5) == false)"),
+            ("3 < 5 == true", "((3 < 5) == true)"),
+            ("1 + (2 + 3) + 4", "((1 + (2 + 3)) + 4)"),
+            ("(5 + 5) * 2", "((5 + 5) * 2)"),
+            ("2 / (5 + 5)", "(2 / (5 + 5))"),
+            ("-(5 + 5)", "(-(5 + 5))"),
+            ("!(true == true)", "(!(true == true))"),
         ];
 
         for (input, expected) in test {
@@ -405,7 +411,7 @@ mod tests {
             check_parse_errors(&parser);
             print!("{}", program.to_string());
             assert_ne!(program.statements.len(), 0);
-            assert_eq!(program.to_string(), expected);
+            assert_eq!(program.to_string(), format!("{expected}\n"));
         }
     }
 
@@ -426,6 +432,43 @@ mod tests {
                 Statement::Expression(exp) => check_primitive_literal(exp, &expected.to_string()),
                 _ => assert!(false, "It is not an expression statement"),
             }
+        }
+    }
+
+    #[test]
+    fn test_if_statement() {
+        let (input, condition, consequence, alternative) = ("if (x < y) { x }", "x < y", "x", None);
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => {
+                check_conditional_expression(&exp, condition, consequence, alternative)
+            }
+            _ => assert!(false, "It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_if_else_statement() {
+        let (input, condition, consequence, alternative) =
+            ("if (x < y) { x } else {y}", "x < y", "x", Some("y"));
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => {
+                check_conditional_expression(&exp, condition, consequence, alternative)
+            }
+            _ => assert!(false, "It is not an expression statement"),
         }
     }
 
@@ -465,5 +508,28 @@ mod tests {
             }
             _ => assert!(false, "It is not an infix expression"),
         }
+    }
+
+    fn check_conditional_expression(
+        exp: &Expression,
+        condition: &str,
+        consequence: &str,
+        alternative: Option<&str>,
+    ) {
+        match exp {
+            Expression::Conditional(p) => {
+                assert_eq!(format!("({condition})"), p.condition.as_ref().to_string());
+                check_block_statement(&p.consequence, consequence);
+                match alternative {
+                    Some(a) => check_block_statement(&p.alternative.as_ref().unwrap(), a),
+                    None => assert!(p.alternative.is_none()),
+                }
+            }
+            _ => assert!(false, "It is not a conditional expression"),
+        }
+    }
+
+    fn check_block_statement(statement: &BlockStatement, expected: &str) {
+        assert_eq!(statement.to_string(), format!("{expected}\n"));
     }
 }

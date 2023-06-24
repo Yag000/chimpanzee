@@ -1,5 +1,5 @@
 use crate::Token;
-use std::fmt::Display;
+use std::{borrow::Borrow, fmt::Display};
 
 use super::parser::Parser;
 
@@ -24,6 +24,7 @@ pub enum Expression {
     Primitive(Primitive),
     Prefix(PrefixOperator),
     Infix(InfixOperator),
+    Conditional(Conditional),
 }
 
 impl Display for Expression {
@@ -34,6 +35,7 @@ impl Display for Expression {
             Expression::Primitive(x) => write!(f, "{}", x),
             Expression::Prefix(x) => write!(f, "{}", x),
             Expression::Infix(x) => write!(f, "{}", x),
+            Expression::Conditional(x) => write!(f, "{}", x),
         }
     }
 }
@@ -46,6 +48,8 @@ impl Expression {
                 Primitive::parse(parser).map(Expression::Primitive)
             }
             Token::Bang | Token::Minus => PrefixOperator::parse(parser).map(Expression::Prefix),
+            Token::LParen => Self::parse_grouped_expression(parser),
+            Token::If => Conditional::parse(parser).map(Expression::Conditional),
             _ => Err(format!(
                 "There is no prefix parser for the token {:?}",
                 parser.current_token
@@ -77,6 +81,16 @@ impl Expression {
         }
 
         return Ok(left_exp);
+    }
+
+    fn parse_grouped_expression(parser: &mut Parser) -> Result<Expression, String> {
+        parser.next_token();
+        let exp = Expression::parse(parser, Precedence::Lowest);
+        if !parser.expect_peek(&Token::RParen) {
+            Err("".to_string())
+        } else {
+            exp
+        }
     }
 }
 
@@ -166,6 +180,92 @@ impl InfixOperator {
 impl Display for InfixOperator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} {} {})", self.left, self.token, self.right)
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Conditional {
+    pub condition: Box<Expression>,
+    pub consequence: BlockStatement,
+    pub alternative: Option<BlockStatement>,
+}
+
+impl Display for Conditional {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut exp = String::new();
+        exp.push_str(&format!(
+            "if {}{{{}}}",
+            self.condition.as_ref(),
+            self.consequence
+        ));
+        match &self.alternative {
+            Some(alternative) => exp.push_str(&format!(" else {{{}}}", alternative)),
+            None => (),
+        }
+        write!(f, "{}", exp)
+    }
+}
+
+impl Conditional {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        if !parser.expect_peek(&Token::LParen) {
+            return Err("".to_string());
+        }
+        parser.next_token();
+        let condition = Expression::parse(parser, Precedence::Lowest)?;
+        if !parser.expect_peek(&Token::RParen) {
+            return Err("".to_string());
+        }
+        if !parser.expect_peek(&Token::LSquirly) {
+            return Err("".to_string());
+        }
+        let consequence = BlockStatement::parse(parser)?;
+        let mut alternative = None;
+
+        if parser.peek_token_is(&Token::Else) {
+            parser.next_token();
+            if !parser.expect_peek(&Token::LSquirly) {
+                return Err("".to_string());
+            }
+
+            alternative = BlockStatement::parse(parser).ok();
+        }
+
+        Ok(Conditional {
+            condition: Box::new(condition),
+            consequence,
+            alternative,
+        })
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct BlockStatement {
+    pub statements: Vec<Statement>,
+}
+
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut statements = String::new();
+        for statement in &self.statements {
+            statements.push_str(&format!("{}\n", statement));
+        }
+        write!(f, "{}", statements)
+    }
+}
+
+impl BlockStatement {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        parser.next_token();
+        let mut statements: Vec<Statement> = Vec::new();
+        while !parser.current_token_is(&Token::RSquirly) && !parser.current_token_is(&Token::Eof) {
+            match parser.parse_statement() {
+                Some(x) => statements.push(x),
+                None => (),
+            }
+            parser.next_token();
+        }
+        Ok(BlockStatement { statements })
     }
 }
 
