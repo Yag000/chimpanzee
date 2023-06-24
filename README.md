@@ -1,2 +1,2 @@
 # Interpreter-Monkey
-Interpreter for Monekey (following [Thorsten's book](https://interpreterbook.com/))
+Interpreter for Monekey in rust (following [Thorsten's book](https://interpreterbook.com/))
