@@ -71,30 +71,40 @@ impl Parser {
         if !self.expect_peek(&Token::Assign) {
             return None;
         }
-        // TODO: Parse the expression, for now we just skip until semicolon and set the field to
-        // Temporary
-        while !self.current_token_is(&Token::Semicolon) {
+
+        self.next_token();
+
+        let value = match Expression::parse(self, Precedence::Lowest) {
+            Ok(x) => x,
+            Err(s) => {
+                self.push_error(s);
+                return None;
+            }
+        };
+
+        if self.peek_token_is(&Token::Semicolon) {
             self.next_token();
         }
 
-        return Some(LetStatement {
-            name,
-            value: Expression::Temporary,
-        });
+        return Some(LetStatement { name, value });
     }
 
     fn parse_return_statement(&mut self) -> Option<ReturnStatement> {
         self.next_token();
 
-        //TODO: Parse the expression, for now we just skip until semicolon and set the field to
-        //Temporary
-        while !self.current_token_is(&Token::Semicolon) {
+        let return_value = match Expression::parse(self, Precedence::Lowest) {
+            Ok(x) => x,
+            Err(s) => {
+                self.push_error(s);
+                return None;
+            }
+        };
+
+        if self.peek_token_is(&Token::Semicolon) {
             self.next_token();
         }
 
-        return Some(ReturnStatement {
-            return_value: Expression::Temporary,
-        });
+        return Some(ReturnStatement { return_value });
     }
 
     fn parse_expression_statement(&mut self) -> Option<Expression> {
@@ -106,10 +116,7 @@ impl Parser {
         match expression {
             Ok(expression) => Some(expression),
             Err(s) => {
-                if s != "" {
-                    self.errors.push(s);
-                }
-
+                self.push_error(s);
                 None
             }
         }
@@ -168,6 +175,12 @@ impl Parser {
     pub fn current_precedence(&mut self) -> Precedence {
         precedence_of(&self.current_token)
     }
+
+    fn push_error(&mut self, message: String) {
+        if message != "" {
+            self.errors.push(message);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -177,8 +190,8 @@ mod tests {
     #[test]
     fn test_let_statements() {
         let input = r#"let x = 5;
-        let y = 10;
-        let foobar = 838383;
+        let y = true;
+        let foobar = y;
         "#;
 
         let lexer = Lexer::new(input.to_string());
@@ -191,27 +204,31 @@ mod tests {
                     token: Token::Ident("x".to_string()),
                     value: "x".to_string(),
                 },
-                value: Expression::Temporary,
+                value: Expression::Primitive(Primitive::IntegerLiteral(5)),
             }),
             Statement::Let(LetStatement {
                 name: Identifier {
                     token: Token::Ident("y".to_string()),
                     value: "y".to_string(),
                 },
-                value: Expression::Temporary,
+                value: Expression::Primitive(Primitive::BooleanLiteral(true)),
             }),
             Statement::Let(LetStatement {
                 name: Identifier {
                     token: Token::Ident("foobar".to_string()),
                     value: "foobar".to_string(),
                 },
-                value: Expression::Temporary,
+                value: Expression::Identifier(Identifier {
+                    token: Token::Ident("y".to_string()),
+                    value: "y".to_string(),
+                }),
             }),
         ];
 
-        assert_eq!(program.statements.len(), 3);
+        assert_eq!(program.statements.len(), expected_statemets.len());
 
         for (i, expected) in expected_statemets.iter().enumerate() {
+            println!("{} | {} | {} ", i, expected, program.statements[i]);
             assert_eq!(program.statements[i], *expected);
         }
 
@@ -222,8 +239,8 @@ mod tests {
     fn test_return_statements() {
         let input = r#"
         return 5;
-        return 10;
-        return 993322;
+        return true;
+        return y;
         "#;
 
         let lexer = Lexer::new(input.to_string());
@@ -232,13 +249,16 @@ mod tests {
 
         let expected = vec![
             Statement::Return(ReturnStatement {
-                return_value: Expression::Temporary,
+                return_value: Expression::Primitive(Primitive::IntegerLiteral(5)),
             }),
             Statement::Return(ReturnStatement {
-                return_value: Expression::Temporary,
+                return_value: Expression::Primitive(Primitive::BooleanLiteral(true)),
             }),
             Statement::Return(ReturnStatement {
-                return_value: Expression::Temporary,
+                return_value: Expression::Identifier(Identifier {
+                    token: Token::Ident("y".to_string()),
+                    value: "y".to_string(),
+                }),
             }),
         ];
 
@@ -401,6 +421,15 @@ mod tests {
             ("2 / (5 + 5)", "(2 / (5 + 5))"),
             ("-(5 + 5)", "(-(5 + 5))"),
             ("!(true == true)", "(!(true == true))"),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            (
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            ),
+            (
+                "add(a + b + c * d / f + g)",
+                "add((((a + b) + ((c * d) / f)) + g))",
+            ),
         ];
 
         for (input, expected) in test {
@@ -505,7 +534,55 @@ mod tests {
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
-                Statement::Expression(exp) => check_function_literal(exp, expected, ""), // TODO: I do not like random \n
+                Statement::Expression(exp) => check_function_literal(exp, expected, ""),
+                _ => assert!(false, "It is not an expression statement"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_function_call_parsing() {
+        let (input, name, argumnets) = (
+            "add(1, 2 * 3, 4 + 5);",
+            "add",
+            vec!["1", "(2 * 3)", "(4 + 5)"],
+        );
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => check_function_call(exp, name, argumnets),
+            _ => assert!(false, "It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_function_call_parameter_parsing() {
+        let tests = vec![
+            ("add();", "add", vec![]),
+            ("add(1);", "add", vec!["1"]),
+            (
+                "add(1, 2 * 3, 4 + 5);",
+                "add",
+                vec!["1", "(2 * 3)", "(4 + 5)"],
+            ),
+        ];
+
+        for (input, name, argumnets) in tests {
+            let lexer = Lexer::new(input.to_string());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parse_errors(&parser);
+
+            assert_eq!(program.statements.len(), 1);
+            match &program.statements[0] {
+                Statement::Expression(exp) => check_function_call(exp, name, argumnets),
                 _ => assert!(false, "It is not an expression statement"),
             }
         }
@@ -584,6 +661,19 @@ mod tests {
                 check_block_statement(&p.body, body);
             }
             _ => assert!(false, "It is not a function literal"),
+        }
+    }
+
+    fn check_function_call(exp: &Expression, name: &str, arguments: Vec<&str>) {
+        match exp {
+            Expression::FunctionCall(p) => {
+                assert_eq!(p.function.to_string(), name);
+                assert_eq!(p.arguments.len(), arguments.len());
+                for (i, arg) in arguments.iter().enumerate() {
+                    assert_eq!(p.arguments[i].to_string(), arg.to_owned().to_string());
+                }
+            }
+            _ => assert!(false, "It is not a function call"),
         }
     }
 }

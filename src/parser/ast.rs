@@ -26,6 +26,7 @@ pub enum Expression {
     Infix(InfixOperator),
     Conditional(Conditional),
     FunctionLiteral(FunctionLiteral),
+    FunctionCall(FunctionCall),
 }
 
 impl Display for Expression {
@@ -38,6 +39,7 @@ impl Display for Expression {
             Expression::Infix(x) => write!(f, "{}", x),
             Expression::Conditional(x) => write!(f, "{}", x),
             Expression::FunctionLiteral(x) => write!(f, "{}", x),
+            Expression::FunctionCall(x) => write!(f, "{}", x),
         }
     }
 }
@@ -54,7 +56,7 @@ impl Expression {
             Token::If => Conditional::parse(parser).map(Expression::Conditional),
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             _ => Err(format!(
-                "There is no prefix parser for the token {:?}",
+                "There is no prefix parser for the token {}",
                 parser.current_token
             )),
         }?;
@@ -77,6 +79,14 @@ impl Expression {
                         Ok(x) => x,
                         Err(x) => return Err(x),
                     });
+                }
+                Token::LParen => {
+                    parser.next_token();
+                    left_exp =
+                        Expression::FunctionCall(match FunctionCall::parse(parser, left_exp) {
+                            Ok(x) => x,
+                            Err(x) => return Err(x),
+                        });
                 }
 
                 _ => return Ok(left_exp),
@@ -113,7 +123,7 @@ impl Primitive {
             Token::True => Ok(Primitive::BooleanLiteral(true)),
             Token::False => Ok(Primitive::BooleanLiteral(false)),
             _ => Err(format!(
-                "There is no primitive parser for the token {:?}",
+                "There is no primitive parser for the token {}",
                 parser.current_token
             )),
         }
@@ -285,7 +295,7 @@ impl Display for FunctionLiteral {
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
-        write!(f, "fn({}){{{}}}", parameters.join(","), self.body)
+        write!(f, "fn({}){{{}}}", parameters.join(", "), self.body)
     }
 }
 
@@ -327,6 +337,58 @@ impl FunctionLiteral {
         }
 
         Ok(identifiers)
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub struct FunctionCall {
+    pub function: Box<Expression>,
+    pub arguments: Vec<Expression>,
+}
+
+impl Display for FunctionCall {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let arguments = self
+            .arguments
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        write!(f, "{}({})", self.function, arguments.join(", "))
+    }
+}
+
+impl FunctionCall {
+    fn parse(parser: &mut Parser, function: Expression) -> Result<Self, String> {
+        let arguments = FunctionCall::parse_call_arguments(parser)?;
+
+        Ok(FunctionCall {
+            function: Box::new(function),
+            arguments,
+        })
+    }
+
+    fn parse_call_arguments(parser: &mut Parser) -> Result<Vec<Expression>, String> {
+        let mut args: Vec<Expression> = Vec::new();
+
+        if parser.peek_token_is(&Token::RParen) {
+            parser.next_token();
+            return Ok(args);
+        }
+
+        parser.next_token();
+        args.push(Expression::parse(parser, Precedence::Lowest)?);
+
+        while parser.peek_token_is(&Token::Comma) {
+            parser.next_token();
+            parser.next_token();
+            args.push(Expression::parse(parser, Precedence::Lowest)?);
+        }
+
+        if !parser.expect_peek(&Token::RParen) {
+            return Err("".to_string());
+        }
+
+        return Ok(args);
     }
 }
 
@@ -374,10 +436,7 @@ impl Display for Identifier {
 impl Identifier {
     fn new(token: Token) -> Self {
         match token.clone() {
-            Token::Ident(s) => Identifier {
-                token,
-                value: s,
-            },
+            Token::Ident(s) => Identifier { token, value: s },
             _ => panic!(
                 "This should be a Token::Ident; if not, the function has not been properly called."
             ),
@@ -426,6 +485,7 @@ pub fn precedence_of(token: &Token) -> Precedence {
         Token::LT | Token::GT => Precedence::LessGreater,
         Token::Plus | Token::Minus => Precedence::Sum,
         Token::Slash | Token::Asterisk => Precedence::Product,
+        Token::LParen => Precedence::Call,
         _ => Precedence::Lowest,
     }
 }
