@@ -1,6 +1,7 @@
-use interpreter_monkey::{Lexer, Token};
+use interpreter_monkey::{Lexer, Parser, Token};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[allow(dead_code)]
+fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
             let mut lexer = Lexer::new(line);
@@ -14,4 +15,46 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     return Ok(());
+}
+
+fn rppl() -> Result<(), Box<dyn std::error::Error>> {
+    std::io::stdin().lines().for_each(|line| {
+        if let Ok(line) = line {
+            let lexer = Lexer::new(line);
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            if parser.errors.len() != 0 {
+                print_parse_errors(parser.errors);
+            } else {
+                println!("{}", program);
+            }
+        }
+    });
+    return Ok(());
+}
+
+fn print_parse_errors(errors: Vec<String>) {
+    let monkey_face: String = r#"
+            __,__
+   .--.  .-"     "-.  .--.
+  / .. \/  .-. .-.  \/ .. \
+ | |  '|  /   Y   \  |'  | |
+ | \   \  \ 0 | 0 /  /   / |
+  \ '- ,\.-"""""""-./, -' /
+   ''-' /_   ^ ^   _\ '-''
+       |  \._   _./  |
+       \   \ '~' /   /
+        '._ '-=-' _.'
+           '-----'
+"#.to_string();
+    println!("{}", monkey_face);
+    println!("Woops! We ran into some monkey business here!");
+    println!(" parser errors:");
+    for error in errors {
+        println!("\t{}\n", error);
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    rppl()
 }
