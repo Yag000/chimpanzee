@@ -1,5 +1,5 @@
 use crate::Token;
-use std::{borrow::Borrow, fmt::Display};
+use std::fmt::Display;
 
 use super::parser::Parser;
 
@@ -25,6 +25,7 @@ pub enum Expression {
     Prefix(PrefixOperator),
     Infix(InfixOperator),
     Conditional(Conditional),
+    FunctionLiteral(FunctionLiteral),
 }
 
 impl Display for Expression {
@@ -36,6 +37,7 @@ impl Display for Expression {
             Expression::Prefix(x) => write!(f, "{}", x),
             Expression::Infix(x) => write!(f, "{}", x),
             Expression::Conditional(x) => write!(f, "{}", x),
+            Expression::FunctionLiteral(x) => write!(f, "{}", x),
         }
     }
 }
@@ -50,6 +52,7 @@ impl Expression {
             Token::Bang | Token::Minus => PrefixOperator::parse(parser).map(Expression::Prefix),
             Token::LParen => Self::parse_grouped_expression(parser),
             Token::If => Conditional::parse(parser).map(Expression::Conditional),
+            Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             _ => Err(format!(
                 "There is no prefix parser for the token {:?}",
                 parser.current_token
@@ -270,6 +273,64 @@ impl BlockStatement {
 }
 
 #[derive(PartialEq, Debug)]
+pub struct FunctionLiteral {
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+}
+
+impl Display for FunctionLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let parameters = self
+            .parameters
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        write!(f, "fn({}){{{}}}", parameters.join(","), self.body)
+    }
+}
+
+impl FunctionLiteral {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        if !parser.expect_peek(&Token::LParen) {
+            return Err("".to_string());
+        }
+        let parameters = Self::parse_function_parameters(parser)?;
+        if !parser.expect_peek(&Token::LSquirly) {
+            return Err("".to_string());
+        }
+        let body = BlockStatement::parse(parser)?;
+        Ok(FunctionLiteral { parameters, body })
+    }
+
+    fn parse_function_parameters(parser: &mut Parser) -> Result<Vec<Identifier>, String> {
+        let mut identifiers: Vec<Identifier> = Vec::new();
+
+        if parser.peek_token_is(&Token::RParen) {
+            parser.next_token();
+            return Ok(identifiers);
+        }
+
+        parser.next_token();
+
+        let mut identifier = Identifier::new(parser.current_token.clone());
+        identifiers.push(identifier);
+
+        while parser.peek_token_is(&Token::Comma) {
+            parser.next_token();
+            parser.next_token();
+            identifier = Identifier::new(parser.current_token.clone());
+            identifiers.push(identifier);
+        }
+
+        if !parser.expect_peek(&Token::RParen) {
+            return Err("".to_string());
+        }
+
+        Ok(identifiers)
+    }
+}
+
+#[derive(PartialEq, Debug)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
@@ -311,11 +372,29 @@ impl Display for Identifier {
 }
 
 impl Identifier {
+    fn new(token: Token) -> Self {
+        match token.clone() {
+            Token::Ident(s) => Identifier {
+                token,
+                value: s,
+            },
+            _ => panic!(
+                "This should be a Token::Ident; if not, the function has not been properly called."
+            ),
+        }
+    }
+
     fn parse(parser: &mut Parser) -> Result<Self, String> {
-        return Ok(Identifier{token:parser.current_token.clone(), value:match parser.current_token.clone(){ // TODO: Improve this with lifetimes
-           Token::Ident(s) => s,
-           _=> panic!("This should be a Token::Ident, if not the function has not been properly called"),
-        }});
+        match parser.current_token.clone() {
+            Token::Ident(s) => Ok(Identifier {
+                token: parser.current_token.clone(),
+                value: s,
+            }),
+            _ => Err(format!(
+                "Expected an identifier, got {}",
+                parser.current_token
+            )),
+        }
     }
 }
 

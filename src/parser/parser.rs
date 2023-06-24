@@ -156,7 +156,7 @@ impl Parser {
 
     fn peek_error(&mut self, token: &Token) {
         self.errors.push(format!(
-            "Expected next token to be {:?}, got {:?} instead",
+            "Expected next token to be {}, got {} instead",
             token, self.peek_token
         ));
     }
@@ -472,11 +472,47 @@ mod tests {
         }
     }
 
-    fn check_identifier(exp: &Expression, value: &str) {
-        match exp {
-            Expression::Identifier(i) => assert_eq!(i.to_string(), value),
-            _ => assert!(false, "It is not an identifier"),
+    #[test]
+    fn test_function_literal_parsing() {
+        let input = "fn(x, y) { x + y; }";
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => check_function_literal(exp, vec!["x", "y"], "(x + y)"),
+            _ => assert!(false, "It is not an expression statement"),
         }
+    }
+
+    #[test]
+    fn test_parse_funtion_arguments() {
+        let tests = vec![
+            ("fn() {}", Vec::new()),
+            ("fn(x) {}", vec!["x"]),
+            ("fn(x,y,z) {}", vec!["x", "y", "z"]),
+        ];
+
+        for (input, expected) in tests {
+            let lexer = Lexer::new(input.to_string());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parse_errors(&parser);
+
+            assert_eq!(program.statements.len(), 1);
+            match &program.statements[0] {
+                Statement::Expression(exp) => check_function_literal(exp, expected, ""), // TODO: I do not like random \n
+                _ => assert!(false, "It is not an expression statement"),
+            }
+        }
+    }
+
+    fn check_identifier(exp: &Identifier, value: &str) {
+        assert_eq!(exp.value, value);
     }
 
     fn check_prefix_expression(exp: &Expression, operator: &str, right: &str) {
@@ -530,6 +566,24 @@ mod tests {
     }
 
     fn check_block_statement(statement: &BlockStatement, expected: &str) {
-        assert_eq!(statement.to_string(), format!("{expected}\n"));
+        if expected == "" {
+            assert_eq!(statement.to_string(), ""); // Empty block statement does not contain a
+                                                   // newline
+        } else {
+            assert_eq!(statement.to_string(), format!("{expected}\n"));
+        }
+    }
+
+    fn check_function_literal(exp: &Expression, params: Vec<&str>, body: &str) {
+        match exp {
+            Expression::FunctionLiteral(p) => {
+                assert_eq!(p.parameters.len(), params.len());
+                for (i, param) in params.iter().enumerate() {
+                    check_identifier(&p.parameters[i], param);
+                }
+                check_block_statement(&p.body, body);
+            }
+            _ => assert!(false, "It is not a function literal"),
+        }
     }
 }
