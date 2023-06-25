@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use crate::parser::ast::{BlockStatement, Identifier};
 
@@ -43,7 +43,7 @@ impl Object {
 pub struct FunctionObject {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
-    pub environment: Environment,
+    pub environment: Rc<RefCell<Environment>>,
 }
 
 impl Display for FunctionObject {

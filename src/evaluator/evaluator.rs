@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     evaluator::object::Object,
     parser::ast::{BlockStatement, Conditional, Expression, Identifier, Primitive, Statement},
@@ -11,13 +13,13 @@ const FALSE: Object = Object::BOOLEAN(false);
 const NULL: Object = Object::NULL;
 
 pub struct Evaluator {
-    env: Environment,
+    env: Rc<RefCell<Environment>>,
 }
 
 impl Evaluator {
     pub fn new() -> Self {
         Evaluator {
-            env: Environment::new(),
+            env: Rc::new(RefCell::new(Environment::new())),
         }
     }
 
@@ -61,7 +63,7 @@ impl Evaluator {
                 if self.is_error(&value) {
                     return value;
                 }
-                self.env.set(x.name.to_string(), value.clone()); // FIXME: this is a problem, we need to use references
+                self.env.borrow_mut().set(x.name.to_string(), value.clone()); // FIXME: this is a problem, we need to use references
                 value
             }
         }
@@ -96,7 +98,7 @@ impl Evaluator {
                 return Object::FUNCTION(FunctionObject {
                     parameters: parameters.clone(),
                     body: body.clone(),
-                    environment: self.env.clone(), // TODO: this is a problem, we need to use references
+                    environment: Rc::clone(&self.env), // TODO: this is a problem, we need to use references
                 });
             }
             Expression::FunctionCall(x) => {
@@ -111,7 +113,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_primitive_expression(&mut self, expression: &Primitive) -> Object {
+    fn eval_primitive_expression(&self, expression: &Primitive) -> Object {
         match expression {
             Primitive::IntegerLiteral(x) => Object::INTEGER(x.clone()),
             Primitive::BooleanLiteral(x) => {
@@ -132,7 +134,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_bang_operator_expression(&mut self, right: &Object) -> Object {
+    fn eval_bang_operator_expression(&self, right: &Object) -> Object {
         match right {
             Object::BOOLEAN(true) => FALSE,
             Object::BOOLEAN(false) => TRUE,
@@ -141,14 +143,14 @@ impl Evaluator {
         }
     }
 
-    fn eval_minus_operator_expression(&mut self, right: &Object) -> Object {
+    fn eval_minus_operator_expression(&self, right: &Object) -> Object {
         match right {
             Object::INTEGER(x) => Object::INTEGER(-x),
             _ => Object::ERROR(format!("unknown operator: -{}", right)),
         }
     }
 
-    fn eval_infix_expression(&mut self, operator: &Token, left: &Object, right: &Object) -> Object {
+    fn eval_infix_expression(&self, operator: &Token, left: &Object, right: &Object) -> Object {
         match (left, right) {
             (Object::INTEGER(x), Object::INTEGER(y)) => {
                 self.eval_integer_infix_expression(operator, x, y)
@@ -165,12 +167,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_integer_infix_expression(
-        &mut self,
-        operator: &Token,
-        left: &i64,
-        right: &i64,
-    ) -> Object {
+    fn eval_integer_infix_expression( &self, operator: &Token, left: &i64, right: &i64,) -> Object {
         match operator {
             Token::Plus => Object::INTEGER(left + right),
             Token::Minus => Object::INTEGER(left - right),
@@ -184,12 +181,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_boolean_infix_expression(
-        &mut self,
-        operator: &Token,
-        left: &bool,
-        right: &bool,
-    ) -> Object {
+    fn eval_boolean_infix_expression( &self, operator: &Token, left: &bool, right: &bool,) -> Object {
         match operator {
             Token::Equal => Object::BOOLEAN(left == right),
             Token::NotEqual => Object::BOOLEAN(left != right),
@@ -211,7 +203,7 @@ impl Evaluator {
         }
     }
 
-    fn is_truthy(&mut self, object: &Object) -> bool {
+    fn is_truthy(&self, object: &Object) -> bool {
         match object {
             Object::NULL => false,
             Object::BOOLEAN(x) => *x,
@@ -219,15 +211,15 @@ impl Evaluator {
         }
     }
 
-    fn is_error(&mut self, object: &Object) -> bool {
+    fn is_error(&self, object: &Object) -> bool {
         match object {
             Object::ERROR(_) => true,
             _ => false,
         }
     }
 
-    fn eval_identifier(&mut self, identifier: &Identifier) -> Object {
-        match self.env.get(&identifier.to_string()) {
+    fn eval_identifier(&self, identifier: &Identifier) -> Object {
+        match self.env.borrow().get(&identifier.to_string()) {
             Some(x) => x.clone(),
             None => Object::ERROR(format!("identifier not found: {}", identifier)),
         }
@@ -248,9 +240,9 @@ impl Evaluator {
     fn apply_function(&mut self, function: &Object, args: &[Object]) -> Object {
         match function {
             Object::FUNCTION(function) => {
-                let mut extended_env = self.extend_function_env(function, args);
-                let env = self.env.clone();
-                self.env = extended_env;
+                let extended_env = self.extend_function_env(function, args);
+                let env = Rc::clone(&self.env);
+                self.env = Rc::new(RefCell::new(extended_env));
                 let evaluated = self.eval_block_statemet(&function.body);
                 self.env = env;
                 return evaluated;
@@ -259,7 +251,7 @@ impl Evaluator {
         }
     }
 
-    fn extend_function_env(&mut self, function: &FunctionObject, args: &[Object]) -> Environment {
+    fn extend_function_env(&self, function: &FunctionObject, args: &[Object]) -> Environment {
         let mut env = Environment::new_enclosed_environment(function.environment.clone());
         for (param, arg) in function.parameters.iter().zip(args) {
             env.set(param.to_string(), arg.clone());
