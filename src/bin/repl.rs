@@ -1,5 +1,5 @@
 use interpreter_monkey::{
-    evaluator::{enviroment::Environment, evaluator:: Evaluator},
+    evaluator::{enviroment::Environment, Evaluator, },
     Lexer, Parser, Token,
 };
 

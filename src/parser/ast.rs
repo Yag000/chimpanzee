@@ -1,7 +1,6 @@
-use crate::Token;
+use crate::{Token, Parser};
 use std::fmt::Display;
 
-use super::parser::Parser;
 
 pub struct Program {
     pub statements: Vec<Statement>,
