@@ -48,7 +48,8 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
                 print_parse_errors(parser.errors);
             }
             let mut evaluator = Evaluator::new();
-            let evaluated = evaluator.eval_program(&program, &mut enviroment);
+            let evaluated = evaluator.eval_program(&program);// FIXME: Use the same environment all
+                                                             // the time (another way of doing it)
             println!("{}", evaluated);
         }
     });
