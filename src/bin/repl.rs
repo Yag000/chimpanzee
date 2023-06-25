@@ -1,4 +1,7 @@
-use interpreter_monkey::{evaluator::evaluator::eval_program, Lexer, Parser, Token};
+use interpreter_monkey::{
+    evaluator::{enviroment::Environment, evaluator::eval_program},
+    Lexer, Parser, Token,
+};
 
 #[allow(dead_code)]
 fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,6 +38,7 @@ fn rppl() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn repl() -> Result<(), Box<dyn std::error::Error>> {
+    let mut enviroment = Environment::new();
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
             let lexer = Lexer::new(line);
@@ -44,7 +48,7 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
                 print_parse_errors(parser.errors);
             }
 
-            let evaluated = eval_program(&program);
+            let evaluated = eval_program(&program, &mut enviroment);
             if let Some(evaluated) = evaluated {
                 println!("{}", evaluated);
             }

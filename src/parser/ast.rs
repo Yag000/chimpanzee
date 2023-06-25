@@ -17,9 +17,8 @@ impl Display for Program {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
-    Temporary, // TODO: remove this
     Identifier(Identifier),
     Primitive(Primitive),
     Prefix(PrefixOperator),
@@ -32,7 +31,6 @@ pub enum Expression {
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::Temporary => write!(f, "Temporary"),
             Expression::Identifier(x) => write!(f, "{}", x),
             Expression::Primitive(x) => write!(f, "{}", x),
             Expression::Prefix(x) => write!(f, "{}", x),
@@ -107,7 +105,7 @@ impl Expression {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Primitive {
     IntegerLiteral(i64),
     BooleanLiteral(bool),
@@ -139,7 +137,7 @@ impl Display for Primitive {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct PrefixOperator {
     pub token: Token,
     pub right: Box<Expression>,
@@ -165,7 +163,7 @@ impl Display for PrefixOperator {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct InfixOperator {
     pub token: Token,
     pub left: Box<Expression>,
@@ -196,7 +194,7 @@ impl Display for InfixOperator {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Conditional {
     pub condition: Box<Expression>,
     pub consequence: BlockStatement,
@@ -252,7 +250,7 @@ impl Conditional {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
@@ -282,7 +280,7 @@ impl BlockStatement {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct FunctionLiteral {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
@@ -340,7 +338,7 @@ impl FunctionLiteral {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct FunctionCall {
     pub function: Box<Expression>,
     pub arguments: Vec<Expression>,
@@ -392,7 +390,7 @@ impl FunctionCall {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
@@ -409,7 +407,7 @@ impl Display for Statement {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct LetStatement {
     pub name: Identifier,
     pub value: Expression,
@@ -421,7 +419,7 @@ impl Display for LetStatement {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Identifier {
     pub token: Token,
     pub value: String,
@@ -457,7 +455,7 @@ impl Identifier {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ReturnStatement {
     pub return_value: Expression,
 }
