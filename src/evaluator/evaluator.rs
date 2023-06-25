@@ -10,241 +10,264 @@ const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
 const NULL: Object = Object::NULL;
 
-pub fn eval_program(program: &Program, env: &mut Environment) -> Object {
-    let mut result = NULL;
-    for statement in program.statements.iter() {
-        result = eval_statement(&statement, env);
-        match result {
-            Object::RETURN(x) => return *x,
-            Object::ERROR(x) => return Object::ERROR(x),
-            _ => (),
-        }
-    }
-    result
-}
+pub struct Evaluator {}
 
-fn eval_block_statemet(block: &BlockStatement, env: &mut Environment) -> Object {
-    let mut result = NULL;
-    for statement in block.statements.iter() {
-        result = eval_statement(&statement, env);
-        match result {
-            Object::RETURN(_) | Object::ERROR(_) => return result,
-            _ => (),
-        }
+impl Evaluator {
+    pub fn new() -> Self {
+        Evaluator {}
     }
-    result
-}
 
-fn eval_statement(statement: &Statement, env: &mut Environment) -> Object {
-    match statement {
-        Statement::Expression(x) => eval_expression(x, env),
-        Statement::Return(x) => {
-            let value = eval_expression(&x.return_value, env);
-            if is_error(&value) {
-                return value;
+    pub fn eval_program(&mut self, program: &Program, env: &mut Environment) -> Object {
+        let mut result = NULL;
+        for statement in program.statements.iter() {
+            result = self.eval_statement(&statement, env);
+            match result {
+                Object::RETURN(x) => return *x,
+                Object::ERROR(x) => return Object::ERROR(x),
+                _ => (),
             }
-            Object::RETURN(Box::new(value))
         }
-        Statement::Let(x) => {
-            let value = eval_expression(&x.value, env);
-            if is_error(&value) {
-                return value;
+        result
+    }
+
+    fn eval_block_statemet(&mut self, block: &BlockStatement, env: &mut Environment) -> Object {
+        let mut result = NULL;
+        for statement in block.statements.iter() {
+            result = self.eval_statement(&statement, env);
+            match result {
+                Object::RETURN(_) | Object::ERROR(_) => return result,
+                _ => (),
             }
-            env.set(x.name.to_string(), value.clone()); // FIXME: this is a problem, we need to use references
-            value
+        }
+        result
+    }
+
+    fn eval_statement(&mut self, statement: &Statement, env: &mut Environment) -> Object {
+        match statement {
+            Statement::Expression(x) => self.eval_expression(x, env),
+            Statement::Return(x) => {
+                let value = self.eval_expression(&x.return_value, env);
+                if self.is_error(&value) {
+                    return value;
+                }
+                Object::RETURN(Box::new(value))
             }
-    }
-}
-
-fn eval_expression(expression: &Expression, env: &mut Environment) ->  Object {
-    match expression {
-        Expression::Primitive(x) => eval_primitive_expression(x),
-        Expression::Prefix(operator) => {
-            let right = eval_expression(&operator.right, env);
-            if is_error(&right) {
-                return right;
+            Statement::Let(x) => {
+                let value = self.eval_expression(&x.value, env);
+                if self.is_error(&value) {
+                    return value;
+                }
+                env.set(x.name.to_string(), value.clone()); // FIXME: this is a problem, we need to use references
+                value
             }
-            eval_prefix_expression(&operator.token, &right)
         }
-        Expression::Infix(operator) => {
-            let left = eval_expression(&operator.left, env);
-            if is_error(&left) {
-                return left;
+    }
+
+    fn eval_expression(&mut self, expression: &Expression, env: &mut Environment) -> Object {
+        match expression {
+            Expression::Primitive(x) => self.eval_primitive_expression(x),
+            Expression::Prefix(operator) => {
+                let right = self.eval_expression(&operator.right, env);
+                if self.is_error(&right) {
+                    return right;
+                }
+                self.eval_prefix_expression(&operator.token, &right)
             }
-            let right = eval_expression(&operator.right, env);
-            if is_error(&right) {
-                return right;
+            Expression::Infix(operator) => {
+                let left = self.eval_expression(&operator.left, env);
+                if self.is_error(&left) {
+                    return left;
+                }
+                let right = self.eval_expression(&operator.right, env);
+                if self.is_error(&right) {
+                    return right;
+                }
+                self.eval_infix_expression(&operator.token, &left, &right)
             }
-            eval_infix_expression(&operator.token, &left, &right)
-        }
-        Expression::Conditional(conditional) => eval_conditional_expression(conditional, env),
-        Expression::Identifier(x) => eval_identifier(&x, env),
-        Expression::FunctionLiteral(x) => {
-            let parameters = &x.parameters;
-            let body = &x.body;
-            return Object::FUNCTION(FunctionObject {
-                parameters: parameters.clone(),
-                body: body.clone(),
-                environment: env.clone(), // TODO: this is a problem, we need to use references
-            });
-        }
-        Expression::FunctionCall(x) => {
-            let function = eval_expression(&x.function, env);
-            if is_error(&function) {}
-            let args = eval_expressions(&x.arguments, env);
-            if args.len() == 1 && is_error(&args[0]) {
-                return args[0].clone();
+            Expression::Conditional(conditional) => self.eval_conditional_expression(conditional, env),
+            Expression::Identifier(x) => self.eval_identifier(&x, env),
+            Expression::FunctionLiteral(x) => {
+                let parameters = &x.parameters;
+                let body = &x.body;
+                return Object::FUNCTION(FunctionObject {
+                    parameters: parameters.clone(),
+                    body: body.clone(),
+                    environment: env.clone(), // TODO: this is a problem, we need to use references
+                });
             }
-            return apply_function(&function, &args);
+            Expression::FunctionCall(x) => {
+                let function = self.eval_expression(&x.function, env);
+                if self.is_error(&function) {}
+                let args = self.eval_expressions(&x.arguments, env);
+                if args.len() == 1 && self.is_error(&args[0]) {
+                    return args[0].clone();
+                }
+                return self.apply_function(&function, &args);
+            }
         }
     }
-}
 
-fn eval_primitive_expression(expression: &Primitive) ->  Object {
-    match expression {
-        Primitive::IntegerLiteral(x) => Object::INTEGER(x.clone()),
-        Primitive::BooleanLiteral(x) => if *x { TRUE } else { FALSE },
-    }
-}
-
-fn eval_prefix_expression(operator: &Token, right: &Object) ->  Object {
-    match operator {
-        Token::Bang => eval_bang_operator_expression(right),
-        Token::Minus => eval_minus_operator_expression(right),
-        _ => Object::ERROR(format!(
-            "unknown operator: {}{}",
-            operator, right
-        )),
-    }
-}
-
-fn eval_bang_operator_expression(right: &Object) ->  Object {
-    match right {
-        Object::BOOLEAN(true) => FALSE,
-        Object::BOOLEAN(false) => TRUE,
-        Object::NULL => TRUE,
-        _ => FALSE,
-    }
-}
-
-fn eval_minus_operator_expression(right: &Object) ->  Object {
-    match right {
-        Object::INTEGER(x) => Object::INTEGER(-x),
-        _ => Object::ERROR(format!("unknown operator: -{}", right)),
-    }
-}
-
-fn eval_infix_expression(operator: &Token, left: &Object, right: &Object) ->  Object {
-    match (left, right) {
-        (Object::INTEGER(x), Object::INTEGER(y)) => eval_integer_infix_expression(operator, x, y),
-        (Object::BOOLEAN(x), Object::BOOLEAN(y)) => eval_boolean_infix_expression(operator, x, y),
-        _ => Object::ERROR(format!(
-            "type mismatch: {} {} {}",
-            left.get_type(),
-            operator,
-            right.get_type()
-        )),
-    }
-}
-
-fn eval_integer_infix_expression(operator: &Token, left: &i64, right: &i64) ->  Object {
-    match operator {
-        Token::Plus => Object::INTEGER(left + right),
-        Token::Minus => Object::INTEGER(left - right),
-        Token::Asterisk => Object::INTEGER(left * right),
-        Token::Slash => Object::INTEGER(left / right),
-        Token::LT => Object::BOOLEAN(left < right),
-        Token::GT => Object::BOOLEAN(left > right),
-        Token::Equal => Object::BOOLEAN(left == right),
-        Token::NotEqual => Object::BOOLEAN(left != right),
-        _ => Object::ERROR(format!(
-            "unknown operator: INTEGER {} INTEGER",
-            operator
-        )),
-    }
-}
-
-fn eval_boolean_infix_expression(operator: &Token, left: &bool, right: &bool) ->  Object {
-    match operator {
-        Token::Equal => Object::BOOLEAN(left == right),
-        Token::NotEqual => Object::BOOLEAN(left != right),
-        _ => Object::ERROR(format!(
-            "unknown operator: BOOLEAN {} BOOLEAN",
-            operator
-        )),
-    }
-}
-
-fn eval_conditional_expression(conditional: &Conditional, env: &mut Environment) ->  Object {
-    let condition = eval_expression(&conditional.condition, env);
-    if is_error(&condition) {
-        return condition;
-    }
-    if is_truthy(&condition) {
-        eval_block_statemet(&conditional.consequence, env)
-    } else if let Some(alternative) = &conditional.alternative {
-        eval_block_statemet(alternative, env)
-    } else {
-        NULL
-    }
-}
-
-fn is_truthy(object: &Object) -> bool {
-    match object {
-        Object::NULL => false,
-        Object::BOOLEAN(x) => *x,
-        _ => true,
-    }
-}
-
-fn is_error(object: &Object) -> bool {
-    match object {
-        Object::ERROR(_) => true,
-        _ => false,
-    }
-}
-
-fn eval_identifier(identifier: &Identifier, env: &mut Environment) ->  Object {
-    match env.get(&identifier.to_string()) {
-        Some(x) => x.clone(),
-        None => Object::ERROR(format!(
-            "identifier not found: {}",
-            identifier
-        )),
-    }
-}
-
-fn eval_expressions(expressions: &[Expression], env: &mut Environment) -> Vec<Object> {
-    let mut result = vec![];
-    for expression in expressions {
-        let evaluated = eval_expression(expression, env);
-        if is_error(&evaluated) {
-            return vec![evaluated];
+    fn eval_primitive_expression(&mut self, expression: &Primitive) -> Object {
+        match expression {
+            Primitive::IntegerLiteral(x) => Object::INTEGER(x.clone()),
+            Primitive::BooleanLiteral(x) => {
+                if *x {
+                    TRUE
+                } else {
+                    FALSE
+                }
+            }
         }
-        result.push(evaluated);
     }
-    result
-}
 
-fn apply_function(function: &Object, args: &[Object]) ->  Object {
-    match function {
-        Object::FUNCTION(function) => {
-            let mut extended_env = extend_function_env(function, args);
-            let evaluated = eval_block_statemet(&function.body, &mut extended_env);
-            return evaluated;
+    fn eval_prefix_expression(&mut self, operator: &Token, right: &Object) -> Object {
+        match operator {
+            Token::Bang => self.eval_bang_operator_expression(right),
+            Token::Minus => self.eval_minus_operator_expression(right),
+            _ => Object::ERROR(format!("unknown operator: {}{}", operator, right)),
         }
-        _ => Object::ERROR(format!("not a function: {}", function)),
+    }
+
+    fn eval_bang_operator_expression(&mut self, right: &Object) -> Object {
+        match right {
+            Object::BOOLEAN(true) => FALSE,
+            Object::BOOLEAN(false) => TRUE,
+            Object::NULL => TRUE,
+            _ => FALSE,
+        }
+    }
+
+    fn eval_minus_operator_expression(&mut self, right: &Object) -> Object {
+        match right {
+            Object::INTEGER(x) => Object::INTEGER(-x),
+            _ => Object::ERROR(format!("unknown operator: -{}", right)),
+        }
+    }
+
+    fn eval_infix_expression(&mut self, operator: &Token, left: &Object, right: &Object) -> Object {
+        match (left, right) {
+            (Object::INTEGER(x), Object::INTEGER(y)) => {
+                self.eval_integer_infix_expression(operator, x, y)
+            }
+            (Object::BOOLEAN(x), Object::BOOLEAN(y)) => {
+                self.eval_boolean_infix_expression(operator, x, y)
+            }
+            _ => Object::ERROR(format!(
+                "type mismatch: {} {} {}",
+                left.get_type(),
+                operator,
+                right.get_type()
+            )),
+        }
+    }
+
+    fn eval_integer_infix_expression(
+        &mut self,
+        operator: &Token,
+        left: &i64,
+        right: &i64,
+    ) -> Object {
+        match operator {
+            Token::Plus => Object::INTEGER(left + right),
+            Token::Minus => Object::INTEGER(left - right),
+            Token::Asterisk => Object::INTEGER(left * right),
+            Token::Slash => Object::INTEGER(left / right),
+            Token::LT => Object::BOOLEAN(left < right),
+            Token::GT => Object::BOOLEAN(left > right),
+            Token::Equal => Object::BOOLEAN(left == right),
+            Token::NotEqual => Object::BOOLEAN(left != right),
+            _ => Object::ERROR(format!("unknown operator: INTEGER {} INTEGER", operator)),
+        }
+    }
+
+    fn eval_boolean_infix_expression(
+        &mut self,
+        operator: &Token,
+        left: &bool,
+        right: &bool,
+    ) -> Object {
+        match operator {
+            Token::Equal => Object::BOOLEAN(left == right),
+            Token::NotEqual => Object::BOOLEAN(left != right),
+            _ => Object::ERROR(format!("unknown operator: BOOLEAN {} BOOLEAN", operator)),
+        }
+    }
+
+    fn eval_conditional_expression(
+        &mut self,
+        conditional: &Conditional,
+        env: &mut Environment,
+    ) -> Object {
+        let condition = self.eval_expression(&conditional.condition, env);
+        if self.is_error(&condition) {
+            return condition;
+        }
+        if self.is_truthy(&condition) {
+            self.eval_block_statemet(&conditional.consequence, env)
+        } else if let Some(alternative) = &conditional.alternative {
+            self.eval_block_statemet(alternative, env)
+        } else {
+            NULL
+        }
+    }
+
+    fn is_truthy(&mut self, object: &Object) -> bool {
+        match object {
+            Object::NULL => false,
+            Object::BOOLEAN(x) => *x,
+            _ => true,
+        }
+    }
+
+    fn is_error(&mut self, object: &Object) -> bool {
+        match object {
+            Object::ERROR(_) => true,
+            _ => false,
+        }
+    }
+
+    fn eval_identifier(&mut self, identifier: &Identifier, env: &mut Environment) -> Object {
+        match env.get(&identifier.to_string()) {
+            Some(x) => x.clone(),
+            None => Object::ERROR(format!("identifier not found: {}", identifier)),
+        }
+    }
+
+    fn eval_expressions(
+        &mut self,
+        expressions: &[Expression],
+        env: &mut Environment,
+    ) -> Vec<Object> {
+        let mut result = vec![];
+        for expression in expressions {
+            let evaluated = self.eval_expression(expression, env);
+            if self.is_error(&evaluated) {
+                return vec![evaluated];
+            }
+            result.push(evaluated);
+        }
+        result
+    }
+
+    fn apply_function(&mut self, function: &Object, args: &[Object]) -> Object {
+        match function {
+            Object::FUNCTION(function) => {
+                let mut extended_env = self.extend_function_env(function, args);
+                let evaluated = self.eval_block_statemet(&function.body, &mut extended_env);
+                return evaluated;
+            }
+            _ => Object::ERROR(format!("not a function: {}", function)),
+        }
+    }
+
+    fn extend_function_env(&mut self, function: &FunctionObject, args: &[Object]) -> Environment {
+        let mut env = Environment::new_enclosed_environment(function.environment.clone());
+        for (param, arg) in function.parameters.iter().zip(args) {
+            env.set(param.to_string(), arg.clone());
+        }
+        env
     }
 }
-
-fn extend_function_env(function: &FunctionObject, args: &[Object]) -> Environment {
-    let mut env = Environment::new_enclosed_environment(function.environment.clone());
-    for (param, arg) in function.parameters.iter().zip(args) {
-        env.set(param.to_string(), arg.clone());
-    }
-    env
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -462,7 +485,8 @@ return 1;
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
         let mut env = Environment::new();
-        eval_program(&program, &mut env)
+        let mut evaluator = Evaluator::new();
+        evaluator.eval_program(&program, &mut env)
     }
 
     fn test_integer_object(object: Object, expected: i64) {

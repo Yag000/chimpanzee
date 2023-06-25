@@ -1,5 +1,5 @@
 use interpreter_monkey::{
-    evaluator::{enviroment::Environment, evaluator::eval_program},
+    evaluator::{enviroment::Environment, evaluator:: Evaluator},
     Lexer, Parser, Token,
 };
 
@@ -47,8 +47,8 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
             if parser.errors.len() != 0 {
                 print_parse_errors(parser.errors);
             }
-
-            let evaluated = eval_program(&program, &mut enviroment);
+            let mut evaluator = Evaluator::new();
+            let evaluated = evaluator.eval_program(&program, &mut enviroment);
             println!("{}", evaluated);
         }
     });
