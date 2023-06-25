@@ -49,9 +49,7 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             let evaluated = eval_program(&program, &mut enviroment);
-            if let Some(evaluated) = evaluated {
-                println!("{}", evaluated);
-            }
+            println!("{}", evaluated);
         }
     });
     return Ok(());
