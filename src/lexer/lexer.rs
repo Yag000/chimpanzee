@@ -73,7 +73,7 @@ impl Lexer {
                     "if" => Token::If,
                     "else" => Token::Else,
                     "return" => Token::Return,
-                    _ => Token::Ident(String::from(ident_string)),
+                    _ => Token::Ident(ident_string),
                 };
             }
             '0'..='9' => return Token::Int(self.read_number()),
@@ -91,10 +91,10 @@ impl Lexer {
 
     fn peek_char(&self) -> char {
         if self.read_position >= self.input.len() {
-            return '\0';
+            '\0'
         } else {
-            return self.input[self.read_position];
-        };
+            self.input[self.read_position]
+        }
     }
 
     fn read_identifier(&mut self) -> String {

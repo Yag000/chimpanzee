@@ -91,7 +91,7 @@ impl Expression {
             }
         }
 
-        return Ok(left_exp);
+        Ok(left_exp)
     }
 
     fn parse_grouped_expression(parser: &mut Parser) -> Result<Expression, String> {
@@ -270,9 +270,8 @@ impl BlockStatement {
         parser.next_token();
         let mut statements: Vec<Statement> = Vec::new();
         while !parser.current_token_is(&Token::RSquirly) && !parser.current_token_is(&Token::Eof) {
-            match parser.parse_statement() {
-                Some(x) => statements.push(x),
-                None => (),
+            if let Some(x) = parser.parse_statement() {
+                statements.push(x);
             }
             parser.next_token();
         }
@@ -386,7 +385,7 @@ impl FunctionCall {
             return Err("".to_string());
         }
 
-        return Ok(args);
+        Ok(args)
     }
 }
 

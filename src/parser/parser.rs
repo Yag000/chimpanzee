@@ -36,10 +36,8 @@ impl Parser {
         };
 
         while self.current_token != Token::Eof {
-            let statement = self.parse_statement();
-            match statement {
-                Some(statement) => program.statements.push(statement),
-                None => (),
+            if let Some(statement) = self.parse_statement() {
+                program.statements.push(statement);
             }
             self.next_token();
         }
@@ -86,7 +84,7 @@ impl Parser {
             self.next_token();
         }
 
-        return Some(LetStatement { name, value });
+        Some(LetStatement { name, value })
     }
 
     fn parse_return_statement(&mut self) -> Option<ReturnStatement> {
@@ -104,7 +102,7 @@ impl Parser {
             self.next_token();
         }
 
-        return Some(ReturnStatement { return_value });
+        Some(ReturnStatement { return_value })
     }
 
     fn parse_expression_statement(&mut self) -> Option<Expression> {
@@ -125,28 +123,16 @@ impl Parser {
     pub fn current_token_is(&self, token: &Token) -> bool {
         // TODO: This is a hack, we need to implement PartialEq correctly for Token
         match self.current_token {
-            Token::Ident(_) => match token {
-                Token::Ident(_) => true,
-                _ => false,
-            },
-            Token::Int(_) => match token {
-                Token::Int(_) => true,
-                _ => false,
-            },
+            Token::Ident(_) => matches!(token, Token::Ident(_)),
+            Token::Int(_) => matches!(token, Token::Int(_)),
             _ => &self.current_token == token,
         }
     }
 
     pub fn peek_token_is(&self, token: &Token) -> bool {
         match self.peek_token {
-            Token::Ident(_) => match token {
-                Token::Ident(_) => true,
-                _ => false,
-            },
-            Token::Int(_) => match token {
-                Token::Int(_) => true,
-                _ => false,
-            },
+            Token::Ident(_) => matches!(token, Token::Ident(_)),
+            Token::Int(_) => matches!(token, Token::Int(_)),
             _ => &self.peek_token == token,
         }
     }
@@ -154,10 +140,10 @@ impl Parser {
     pub fn expect_peek(&mut self, token: &Token) -> bool {
         if self.peek_token_is(token) {
             self.next_token();
-            return true;
+            true
         } else {
             self.peek_error(token);
-            return false;
+            false
         }
     }
 
@@ -177,7 +163,7 @@ impl Parser {
     }
 
     fn push_error(&mut self, message: String) {
-        if message != "" {
+        if !message.is_empty() {
             self.errors.push(message);
         }
     }

@@ -17,7 +17,7 @@ fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     });
-    return Ok(());
+    Ok(())
 }
 
 #[allow(dead_code)]
@@ -27,14 +27,14 @@ fn rppl() -> Result<(), Box<dyn std::error::Error>> {
             let lexer = Lexer::new(line);
             let mut parser = Parser::new(lexer);
             let program = parser.parse_program();
-            if parser.errors.len() != 0 {
+            if !parser.errors.is_empty() {
                 print_parse_errors(parser.errors);
             } else {
                 println!("{}", program);
             }
         }
     });
-    return Ok(());
+    Ok(())
 }
 
 fn repl() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,7 +44,7 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
             let lexer = Lexer::new(line);
             let mut parser = Parser::new(lexer);
             let program = parser.parse_program();
-            if parser.errors.len() != 0 {
+            if !parser.errors.is_empty() {
                 print_parse_errors(parser.errors);
             }
             let mut evaluator = Evaluator::new();
@@ -53,7 +53,7 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", evaluated);
         }
     });
-    return Ok(());
+    Ok(())
 }
 
 fn print_parse_errors(errors: Vec<String>) {

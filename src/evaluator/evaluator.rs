@@ -16,6 +16,12 @@ pub struct Evaluator {
     env: Rc<RefCell<Environment>>,
 }
 
+impl Default for Evaluator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Evaluator {
     pub fn new() -> Self {
         Evaluator {
@@ -26,7 +32,7 @@ impl Evaluator {
     pub fn eval_program(&mut self, program: &Program) -> Object {
         let mut result = NULL;
         for statement in program.statements.iter() {
-            result = self.eval_statement(&statement);
+            result = self.eval_statement(statement);
             match result {
                 Object::RETURN(x) => return *x,
                 Object::ERROR(x) => return Object::ERROR(x),
@@ -39,7 +45,7 @@ impl Evaluator {
     fn eval_block_statemet(&mut self, block: &BlockStatement) -> Object {
         let mut result = NULL;
         for statement in block.statements.iter() {
-            result = self.eval_statement(&statement);
+            result = self.eval_statement(statement);
             match result {
                 Object::RETURN(_) | Object::ERROR(_) => return result,
                 _ => (),
@@ -91,15 +97,15 @@ impl Evaluator {
                 self.eval_infix_expression(&operator.token, &left, &right)
             }
             Expression::Conditional(conditional) => self.eval_conditional_expression(conditional),
-            Expression::Identifier(x) => self.eval_identifier(&x),
+            Expression::Identifier(x) => self.eval_identifier(x),
             Expression::FunctionLiteral(x) => {
                 let parameters = &x.parameters;
                 let body = &x.body;
-                return Object::FUNCTION(FunctionObject {
+                Object::FUNCTION(FunctionObject {
                     parameters: parameters.clone(),
                     body: body.clone(),
                     environment: Rc::clone(&self.env), // TODO: this is a problem, we need to use references
-                });
+                })
             }
             Expression::FunctionCall(x) => {
                 let function = self.eval_expression(&x.function);
@@ -108,14 +114,14 @@ impl Evaluator {
                 if args.len() == 1 && self.is_error(&args[0]) {
                     return args[0].clone();
                 }
-                return self.apply_function(&function, &args);
+                self.apply_function(&function, &args)
             }
         }
     }
 
     fn eval_primitive_expression(&self, expression: &Primitive) -> Object {
         match expression {
-            Primitive::IntegerLiteral(x) => Object::INTEGER(x.clone()),
+            Primitive::IntegerLiteral(x) => Object::INTEGER(*x),
             Primitive::BooleanLiteral(x) => {
                 if *x {
                     TRUE
@@ -212,15 +218,12 @@ impl Evaluator {
     }
 
     fn is_error(&self, object: &Object) -> bool {
-        match object {
-            Object::ERROR(_) => true,
-            _ => false,
-        }
+        matches!(object, Object::ERROR(_))
     }
 
     fn eval_identifier(&self, identifier: &Identifier) -> Object {
         match self.env.borrow().get(&identifier.to_string()) {
-            Some(x) => x.clone(),
+            Some(x) => x,
             None => Object::ERROR(format!("identifier not found: {}", identifier)),
         }
     }
@@ -245,7 +248,7 @@ impl Evaluator {
                 self.env = Rc::new(RefCell::new(extended_env));
                 let evaluated = self.eval_block_statemet(&function.body);
                 self.env = env;
-                return evaluated;
+                evaluated
             }
             _ => Object::ERROR(format!("not a function: {}", function)),
         }

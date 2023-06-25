@@ -44,7 +44,7 @@ pub enum Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        return match self {
+        match self {
             Token::Ident(x) => write!(f, "{}", x),
             Token::Int(x) => write!(f, "{}", x),
             Token::Illegal => write!(f, "Illegal"),
@@ -72,6 +72,6 @@ impl Display for Token {
             Token::If => write!(f, "if"),
             Token::Else => write!(f, "else"),
             Token::Return => write!(f, "return"),
-        };
+        }
     }
 }
