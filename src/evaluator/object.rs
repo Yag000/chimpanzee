@@ -7,6 +7,7 @@ use super::enviroment::Environment;
 pub enum Object {
     INTEGER(i64),
     BOOLEAN(bool),
+    STRING(String),
     RETURN(Box<Object>),
     ERROR(String),
     FUNCTION(FunctionObject),
@@ -18,6 +19,7 @@ impl Display for Object {
         match self {
             Object::INTEGER(i) => write!(f, "{}", i),
             Object::BOOLEAN(b) => write!(f, "{}", b),
+            Object::STRING(s) => write!(f, "\"{}\"", s),
             Object::RETURN(o) => write!(f, "{}", o),
             Object::FUNCTION(o) => write!(f, "{}", o),
             Object::ERROR(s) => write!(f, "ERROR: {}", s),
@@ -31,6 +33,7 @@ impl Object {
         match self {
             Object::INTEGER(_) => String::from("INTEGER"),
             Object::BOOLEAN(_) => String::from("BOOLEAN"),
+            Object::STRING(_) => String::from("STRING"),
             Object::RETURN(_) => String::from("RETURN"),
             Object::ERROR(_) => String::from("ERROR"),
             Object::FUNCTION(_) => String::from("FUNCTION"),

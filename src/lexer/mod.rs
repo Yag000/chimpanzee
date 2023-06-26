@@ -65,6 +65,10 @@ impl Lexer {
             ',' => Token::Comma,
             '{' => Token::LSquirly,
             '}' => Token::RSquirly,
+            '"' => {
+                let string = self.read_string();
+                Token::String(string)
+            }
             '\0' => Token::Eof,
             'a'..='z' | 'A'..='Z' | '_' => {
                 let ident_string = self.read_identifier();
@@ -112,6 +116,17 @@ impl Lexer {
         let position = self.position;
         while self.ch.is_numeric() {
             self.read_char();
+        }
+        String::from_iter(self.input[position..self.position].iter())
+    }
+
+    fn read_string(&mut self) -> String {
+        let position = self.position + 1;
+        loop {
+            self.read_char();
+            if self.ch == '"' || self.ch == '\0' {
+                break; // TODO: handle unterminated string
+            }
         }
         String::from_iter(self.input[position..self.position].iter())
     }
@@ -169,6 +184,8 @@ mod tests {
             10 == 10;
             10 != 9;
 
+            "foobar"
+            "foo bar"
         "#;
 
         let mut lexer = Lexer::new(input.into());
@@ -251,11 +268,15 @@ mod tests {
             Token::Int(String::from("9")),
             Token::Semicolon,
             //
+            Token::String(String::from("foobar")),
+            Token::String(String::from("foo bar")),
+            //
             Token::Eof,
         ];
 
         for expected_token in expected {
             let token = lexer.next_token();
+            println!("{:?}", token);
             assert_eq!(token, expected_token);
         }
     }

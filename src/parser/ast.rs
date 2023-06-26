@@ -45,7 +45,7 @@ impl Expression {
     pub fn parse(parser: &mut Parser, precedence: Precedence) -> Result<Self, String> {
         let mut left_exp = match parser.current_token.clone() {
             Token::Ident(_) => (Identifier::parse(parser)).map(Expression::Identifier),
-            Token::Int(_) | Token::False | Token::True => {
+            Token::Int(_) | Token::False | Token::True  | Token::String(_) => {
                 Primitive::parse(parser).map(Expression::Primitive)
             }
             Token::Bang | Token::Minus => PrefixOperator::parse(parser).map(Expression::Prefix),
@@ -108,6 +108,7 @@ impl Expression {
 pub enum Primitive {
     IntegerLiteral(i64),
     BooleanLiteral(bool),
+    StringLiteral(String),
 }
 
 impl Primitive {
@@ -119,6 +120,7 @@ impl Primitive {
             },
             Token::True => Ok(Primitive::BooleanLiteral(true)),
             Token::False => Ok(Primitive::BooleanLiteral(false)),
+            Token::String(x) => Ok(Primitive::StringLiteral(x)),
             _ => Err(format!(
                 "There is no primitive parser for the token {}",
                 parser.current_token
@@ -132,6 +134,7 @@ impl Display for Primitive {
         match self {
             Primitive::IntegerLiteral(x) => write!(f, "{}", x),
             Primitive::BooleanLiteral(x) => write!(f, "{}", x),
+            Primitive::StringLiteral(x) => write!(f, "{}", x),
         }
     }
 }

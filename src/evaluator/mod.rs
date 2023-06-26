@@ -1,5 +1,5 @@
-pub mod object;
 pub mod enviroment;
+pub mod object;
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -8,8 +8,10 @@ use crate::{
     Program, Token,
 };
 
-use self::{object::{Object, FunctionObject}, enviroment::Environment};
-
+use self::{
+    enviroment::Environment,
+    object::{FunctionObject, Object},
+};
 
 const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
@@ -72,7 +74,7 @@ impl Evaluator {
                 if self.is_error(&value) {
                     return value;
                 }
-                self.env.borrow_mut().set(x.name.to_string(), value.clone()); 
+                self.env.borrow_mut().set(x.name.to_string(), value.clone());
                 value
             }
         }
@@ -107,7 +109,7 @@ impl Evaluator {
                 Object::FUNCTION(FunctionObject {
                     parameters: parameters.clone(),
                     body: body.clone(),
-                    environment: Rc::clone(&self.env), 
+                    environment: Rc::clone(&self.env),
                 })
             }
             Expression::FunctionCall(x) => {
@@ -132,6 +134,7 @@ impl Evaluator {
                     FALSE
                 }
             }
+            Primitive::StringLiteral(s) => Object::STRING(s.clone()),
         }
     }
 
@@ -167,6 +170,9 @@ impl Evaluator {
             (Object::BOOLEAN(x), Object::BOOLEAN(y)) => {
                 self.eval_boolean_infix_expression(operator, x, y)
             }
+            (Object::STRING(x), Object::STRING(y)) => {
+                self.eval_string_infix_expression(operator, x, y)
+            }
             _ => Object::ERROR(format!(
                 "type mismatch: {} {} {}",
                 left.get_type(),
@@ -176,7 +182,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_integer_infix_expression( &self, operator: &Token, left: &i64, right: &i64,) -> Object {
+    fn eval_integer_infix_expression(&self, operator: &Token, left: &i64, right: &i64) -> Object {
         match operator {
             Token::Plus => Object::INTEGER(left + right),
             Token::Minus => Object::INTEGER(left - right),
@@ -190,11 +196,18 @@ impl Evaluator {
         }
     }
 
-    fn eval_boolean_infix_expression( &self, operator: &Token, left: &bool, right: &bool,) -> Object {
+    fn eval_boolean_infix_expression(&self, operator: &Token, left: &bool, right: &bool) -> Object {
         match operator {
             Token::Equal => Object::BOOLEAN(left == right),
             Token::NotEqual => Object::BOOLEAN(left != right),
             _ => Object::ERROR(format!("unknown operator: BOOLEAN {} BOOLEAN", operator)),
+        }
+    }
+
+    fn eval_string_infix_expression(&self, operator: &Token, left: &str, right: &str) -> Object {
+        match operator {
+            Token::Plus => Object::STRING(format!("{}{}", left, right)),
+            _ => Object::ERROR(format!("unknown operator: STRING {} STRING", operator)),
         }
     }
 
@@ -406,6 +419,7 @@ return 1;
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
             ("foobar", "identifier not found: foobar"),
+            (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
         ];
 
         for (input, expected) in tests {
@@ -477,6 +491,24 @@ return 1;
         test_integer_object(test_eval(input.to_string()), 4);
     }
 
+    #[test]
+    fn test_string_literal() {
+        let input = "\"Hello World!\"".to_string();
+
+        let evaluated = test_eval(input.clone());
+
+        test_string_object(evaluated, "Hello World!".to_string());
+    }
+
+    #[test]
+    fn test_string_concatenationm() {
+        let input = "\"Hello\" + \" \" + \"World!\"".to_string();
+
+        let evaluated = test_eval(input.clone());
+
+        test_string_object(evaluated, "Hello World!".to_string());
+    }
+
     fn test_eval(input: String) -> Object {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -512,6 +544,11 @@ return 1;
             _ => assert!(false, "The object is not an  error"),
         }
     }
+
+    fn test_string_object(object: Object, expected: String) {
+        match object {
+            Object::STRING(s) => assert_eq!(format!("{s}"), expected),
+            _ => assert!(false, "The object is not an string"),
+        }
+    }
 }
-
-

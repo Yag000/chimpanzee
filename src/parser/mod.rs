@@ -1,4 +1,4 @@
-use crate::{Program, Token, lexer::Lexer};
+use crate::{lexer::Lexer, Program, Token};
 
 use self::ast::*;
 
@@ -574,6 +574,23 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_string_literal_expression() {
+        let input = "\"hello world\";";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => check_primitive_literal(exp, "hello world"),
+            _ => assert!(false, "It is not an expression statement"),
+        }
+    }
+
     fn check_identifier(exp: &Identifier, value: &str) {
         assert_eq!(exp.value, value);
     }
@@ -593,6 +610,7 @@ mod tests {
             Expression::Primitive(p) => match p {
                 Primitive::IntegerLiteral(i) => assert_eq!(i.to_string(), value),
                 Primitive::BooleanLiteral(b) => assert_eq!(b.to_string(), value),
+                Primitive::StringLiteral(s) => assert_eq!(s, value),
             },
             _ => assert!(false, "It is not a literal"),
         }

@@ -10,6 +10,7 @@ pub enum Token {
     // Identifiers + literals
     Ident(String), // add, foobar, x, y, ...
     Int(String),
+    String(String),
 
     // Operators
     Assign,
@@ -47,6 +48,7 @@ impl Display for Token {
         match self {
             Token::Ident(x) => write!(f, "{}", x),
             Token::Int(x) => write!(f, "{}", x),
+            Token::String(x) => write!(f, "{}", x),
             Token::Illegal => write!(f, "Illegal"),
             Token::Eof => write!(f, "Eof"),
             Token::Assign => write!(f, "="),

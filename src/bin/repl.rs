@@ -52,7 +52,7 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
             if !parser.errors.is_empty() {
                 print_parse_errors(parser.errors);
             }
-            let evaluated = evaluator.eval(&program); 
+            let evaluated = evaluator.eval(&program);
             println!("{}", evaluated);
 
             print_entry_header();
