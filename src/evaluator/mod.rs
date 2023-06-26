@@ -482,7 +482,7 @@ return 1;
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
         let mut evaluator = Evaluator::new();
-        evaluator.eval_program(&program)
+        evaluator.eval(&program)
     }
 
     fn test_integer_object(object: Object, expected: i64) {
