@@ -72,7 +72,7 @@ impl Evaluator {
                 if self.is_error(&value) {
                     return value;
                 }
-                self.env.borrow_mut().set(x.name.to_string(), value.clone()); // FIXME: this is a problem, we need to use references
+                self.env.borrow_mut().set(x.name.to_string(), value.clone()); 
                 value
             }
         }
@@ -107,7 +107,7 @@ impl Evaluator {
                 Object::FUNCTION(FunctionObject {
                     parameters: parameters.clone(),
                     body: body.clone(),
-                    environment: Rc::clone(&self.env), // TODO: this is a problem, we need to use references
+                    environment: Rc::clone(&self.env), 
                 })
             }
             Expression::FunctionCall(x) => {
@@ -117,7 +117,7 @@ impl Evaluator {
                 if args.len() == 1 && self.is_error(&args[0]) {
                     return args[0].clone();
                 }
-                self.apply_function(&function, &args)
+                self.apply_function(&function, args)
             }
         }
     }
@@ -243,7 +243,7 @@ impl Evaluator {
         result
     }
 
-    fn apply_function(&mut self, function: &Object, args: &[Object]) -> Object {
+    fn apply_function(&mut self, function: &Object, args: Vec<Object>) -> Object {
         match function {
             Object::FUNCTION(function) => {
                 let extended_env = self.extend_function_env(function, args);
@@ -257,10 +257,10 @@ impl Evaluator {
         }
     }
 
-    fn extend_function_env(&self, function: &FunctionObject, args: &[Object]) -> Environment {
-        let mut env = Environment::new_enclosed_environment(function.environment.clone());
+    fn extend_function_env(&self, function: &FunctionObject, args: Vec<Object>) -> Environment {
+        let mut env = Environment::new_enclosed_environment(Rc::clone(&function.environment));
         for (param, arg) in function.parameters.iter().zip(args) {
-            env.set(param.to_string(), arg.clone());
+            env.set(param.to_string(), arg);
         }
         env
     }
