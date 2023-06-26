@@ -32,7 +32,7 @@ impl Evaluator {
         }
     }
 
-    pub fn eval_program(&mut self, program: &Program) -> Object {
+    pub fn eval(&mut self, program: &Program) -> Object {
         let mut result = NULL;
         for statement in program.statements.iter() {
             result = self.eval_statement(statement);

@@ -1,10 +1,9 @@
-use interpreter_monkey::{
-    evaluator::{enviroment::Environment, Evaluator, },
-    Lexer, Parser, Token,
-};
+use interpreter_monkey::{evaluator::Evaluator, Lexer, Parser, Token};
+use std::io::{self, Write};
 
 #[allow(dead_code)]
 fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
+    print_entry_header();
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
             let mut lexer = Lexer::new(line);
@@ -16,12 +15,15 @@ fn rlpl() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{} ", token);
             }
         }
+        print_entry_header();
     });
     Ok(())
 }
 
 #[allow(dead_code)]
 fn rppl() -> Result<(), Box<dyn std::error::Error>> {
+    greeting_message();
+    print_entry_header();
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
             let lexer = Lexer::new(line);
@@ -33,12 +35,15 @@ fn rppl() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", program);
             }
         }
+        print_entry_header();
     });
     Ok(())
 }
 
 fn repl() -> Result<(), Box<dyn std::error::Error>> {
-    let mut enviroment = Environment::new();
+    greeting_message();
+    print_entry_header();
+    let mut evaluator = Evaluator::new();
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
             let lexer = Lexer::new(line);
@@ -47,35 +52,70 @@ fn repl() -> Result<(), Box<dyn std::error::Error>> {
             if !parser.errors.is_empty() {
                 print_parse_errors(parser.errors);
             }
-            let mut evaluator = Evaluator::new();
-            let evaluated = evaluator.eval_program(&program);// FIXME: Use the same environment all
-                                                             // the time (another way of doing it)
+            let evaluated = evaluator.eval(&program); 
             println!("{}", evaluated);
+
+            print_entry_header();
         }
     });
     Ok(())
 }
 
+fn greeting_message() {
+    let greeting = r#"
+                                  @@@@@@@@@@@@
+                                @@%#+-:...:-=*@@@
+                              @@*:    .:::.    -%@
+                             @#.  :+%@@@@@@@#=   #@
+                            @#   *@@@@@@@@@@@@#   *@
+                            @.  +@@@@@@@*:  :*@%:  -@@
+                           @%   ##%@@@@@ -*+. +@@+   +%@@
+                    @@@%%@@@%    ..:%@@@%@@@* :@@@%=   -#@@@
+                  @@*:  *@@@#= .:  =@@@@%..  +@@@@@@*:  .+%@@
+                 @%=    .#@@@@@:   :%@@@@@*+*%@@@@@@@@@#=   -*@@
+               @%=    -*@@@@@#.     .:+@@@@@@@@@@@@@@@@@@@+.  :*@@
+              @*    -#@@@@@@@#         .@@#=:.  .-#@@@@@@@@@*.  .*@@
+            @@-   .#@@@@@@@@@@%. .*+    *-  .=+*+-.#@@@@@@@@@@+   :%@
+           @%.   =@@@@@@@@@@@@@@#+:        *@@@@@@@@@@@@@@@@@@@%.   *@
+          @%.   +@@@@@@@%@@@@@@@@%*+=--.  +@@@@@@@@@@@@@@@@@@@@@@:   #@
+          @:   +@@@@@@@+.@@@@@@@@@@@@@@=  #@@@@@@@@@@@@@@@@@@@@@@@:   %@
+         @=   =@@@@@@@@- %@@@@@@@@@@@@@+  *@@@@@@@@@@@@@@@@@@@@@@@%.  :@
+        @%   .@@@@@@@#=  *@@@@@@@@@@@@@#  +@@@@@@@@@%@@@@@@@@@@@@@@*   #@
+        @=   +@@@@@@+    :@@@@@@@@@@@@@=  +@@@@@@#-  *@@@@@@@@@@@@@@.  -@
+        @:   %@@@@@@+     +@@@@@@@@@@@=   =@@@@@@. :%@@@@@@@@@@@@@@@=  .@@
+        @   .@@@@@@@@*     :=*%@@@@@@-    =@@@@@#  *@@@@@@@@@@@@@@@@*   %@
+        @   :@@@@@@@@@#-::     .:-=-      =@@@@@#  +@@@@@@@@@@@@@@@@#   %@
+        @.  .@@@@@@@@@@@@@#=.       .=*#. =@@@@@#    -#@@@@@@@@@@@@@*   %@
+        @:   %@@@@@@@@@@@@@@@#=   .#@@@@. =@@@@@*  =:  .*@@@@@@@@@@@=  .@
+        @*   +@@@@@@@@@@@@@@@@%   %@@@@*  *@@@@@= .@@%-  +@@@@@@@@@@.  =@
+         @.  .@@@@@@@@@@@@@@@@%   #@@@#  -@@@@@*  *@@@@#.+@@@@@@@@@+   %@
+         @*   -@@@@@@@@@@@@@@@@=   #@#  :@@@@%-  *@@@@@@@@@@@@@@@@%   =@
+          @=   =@@@@@@@@@@@@@@@@-   -  =@@@@+  :%@@@@@@@@@@@@@@@@%.  :@
+           @-   =@@@@@@@@@@@@@@@@*.   *@@@*. .*@@@@@@@@@@@@@@@@@%.  :@
+            @=   :%@@@@@@@@@@@@@@%. -%@@#: .+@@@@@@@@@@@@@*+@@@*   :@
+             @*    +@@@@@@@@@@@@= .*@@#:   -#@@@@@@@@@@@@@: -%-   =@
+              @%-   :*@@*=-+*#+..*@@#: .+*-   :=*%@@@@@@%=      .#@
+               @@#:   ..  .     :+-. :*@@@@@#+-    .:::.      .+@@
+                 @@#-    :+#+-:.  .=%@@@@@@@@@@#            :*@@
+                   @@%+:    :=+*#@@@@@@@@@@#+-.          .=#@@
+                     @@%*-.     .::-=++++=          .:+#@@@
+                       @@@@%*+-:              ..-=*#@@@@
+                           @@@@@@@%##*****##%@@@@@@@
+                                  @@@@@@@@@@@     
+"#;
+    println!("{}", greeting);
+    println!("Welcome to the Monkey programming language!");
+    println!("Feel free to type in commands\n");
+}
+
+fn print_entry_header() {
+    print!(">> ");
+    io::stdout().flush().unwrap();
+}
+
 fn print_parse_errors(errors: Vec<String>) {
-    let monkey_face: String = r#"
-            __,__
-   .--.  .-"     "-.  .--.
-  / .. \/  .-. .-.  \/ .. \
- | |  '|  /   Y   \  |'  | |
- | \   \  \ 0 | 0 /  /   / |
-  \ '- ,\.-"""""""-./, -' /
-   ''-' /_   ^ ^   _\ '-''
-       |  \._   _./  |
-       \   \ '~' /   /
-        '._ '-=-' _.'
-           '-----'
-"#
-    .to_string();
-    println!("{}", monkey_face);
-    println!("Woops! We ran into some monkey business here!");
-    println!(" parser errors:");
     for error in errors {
-        println!("\t{}\n", error);
+        println!("{error}\n");
     }
 }
 
