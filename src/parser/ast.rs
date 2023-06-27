@@ -1,6 +1,5 @@
-use crate::{Token, Parser};
+use crate::{Parser, Token};
 use std::fmt::Display;
-
 
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -25,6 +24,8 @@ pub enum Expression {
     Conditional(Conditional),
     FunctionLiteral(FunctionLiteral),
     FunctionCall(FunctionCall),
+    ArrayLiteral(ArrayLiteral),
+    IndexExpression(IndexExpression),
 }
 
 impl Display for Expression {
@@ -37,6 +38,8 @@ impl Display for Expression {
             Expression::Conditional(x) => write!(f, "{}", x),
             Expression::FunctionLiteral(x) => write!(f, "{}", x),
             Expression::FunctionCall(x) => write!(f, "{}", x),
+            Expression::ArrayLiteral(x) => write!(f, "{}", x),
+            Expression::IndexExpression(x) => write!(f, "{}", x),
         }
     }
 }
@@ -45,13 +48,14 @@ impl Expression {
     pub fn parse(parser: &mut Parser, precedence: Precedence) -> Result<Self, String> {
         let mut left_exp = match parser.current_token.clone() {
             Token::Ident(_) => (Identifier::parse(parser)).map(Expression::Identifier),
-            Token::Int(_) | Token::False | Token::True  | Token::String(_) => {
+            Token::Int(_) | Token::False | Token::True | Token::String(_) => {
                 Primitive::parse(parser).map(Expression::Primitive)
             }
             Token::Bang | Token::Minus => PrefixOperator::parse(parser).map(Expression::Prefix),
             Token::LParen => Self::parse_grouped_expression(parser),
             Token::If => Conditional::parse(parser).map(Expression::Conditional),
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
+            Token::LSquare => ArrayLiteral::parse(parser).map(Expression::ArrayLiteral),
             _ => Err(format!(
                 "There is no prefix parser for the token {}",
                 parser.current_token
@@ -72,20 +76,17 @@ impl Expression {
                                          //  This is absolutely awful, I need to peek the next token
                                          //  only if a infix operator is found, I want to also
                                          //  avoid a double match
-                    left_exp = Expression::Infix(match InfixOperator::parse(parser, left_exp) {
-                        Ok(x) => x,
-                        Err(x) => return Err(x),
-                    });
+                    left_exp = Expression::Infix(InfixOperator::parse(parser, left_exp)?);
                 }
                 Token::LParen => {
                     parser.next_token();
-                    left_exp =
-                        Expression::FunctionCall(match FunctionCall::parse(parser, left_exp) {
-                            Ok(x) => x,
-                            Err(x) => return Err(x),
-                        });
+                    left_exp = Expression::FunctionCall(FunctionCall::parse(parser, left_exp)?);
                 }
-
+                Token::LSquare => {
+                    parser.next_token();
+                    left_exp =
+                        Expression::IndexExpression(IndexExpression::parse(parser, left_exp)?);
+                }
                 _ => return Ok(left_exp),
             }
         }
@@ -101,6 +102,26 @@ impl Expression {
         } else {
             exp
         }
+    }
+
+    fn parse_expression_list(parser: &mut Parser, end: &Token) -> Result<Vec<Expression>, String> {
+        let mut list = Vec::new();
+        if parser.peek_token_is(end) {
+            parser.next_token();
+            return Ok(list);
+        }
+
+        parser.next_token();
+        list.push(Expression::parse(parser, Precedence::Lowest)?);
+        while parser.peek_token_is(&Token::Comma) {
+            parser.next_token();
+            parser.next_token();
+            list.push(Expression::parse(parser, Precedence::Lowest)?);
+        }
+        if !parser.expect_peek(end) {
+            return Err("".to_string());
+        }
+        Ok(list)
     }
 }
 
@@ -358,36 +379,12 @@ impl Display for FunctionCall {
 
 impl FunctionCall {
     fn parse(parser: &mut Parser, function: Expression) -> Result<Self, String> {
-        let arguments = FunctionCall::parse_call_arguments(parser)?;
+        let arguments = Expression::parse_expression_list(parser, &Token::RParen)?;
 
         Ok(FunctionCall {
             function: Box::new(function),
             arguments,
         })
-    }
-
-    fn parse_call_arguments(parser: &mut Parser) -> Result<Vec<Expression>, String> {
-        let mut args: Vec<Expression> = Vec::new();
-
-        if parser.peek_token_is(&Token::RParen) {
-            parser.next_token();
-            return Ok(args);
-        }
-
-        parser.next_token();
-        args.push(Expression::parse(parser, Precedence::Lowest)?);
-
-        while parser.peek_token_is(&Token::Comma) {
-            parser.next_token();
-            parser.next_token();
-            args.push(Expression::parse(parser, Precedence::Lowest)?);
-        }
-
-        if !parser.expect_peek(&Token::RParen) {
-            return Err("".to_string());
-        }
-
-        Ok(args)
     }
 }
 
@@ -467,6 +464,57 @@ impl Display for ReturnStatement {
     }
 }
 
+#[derive(PartialEq, Debug, Clone)]
+pub struct ArrayLiteral {
+    pub elements: Vec<Expression>,
+}
+
+impl Display for ArrayLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let elements = self
+            .elements
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+        write!(f, "[{}]", elements.join(", "))
+    }
+}
+
+impl ArrayLiteral {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        let expresssions = Expression::parse_expression_list(parser, &Token::RSquare)?;
+        Ok(ArrayLiteral {
+            elements: expresssions,
+        })
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct IndexExpression {
+    pub left: Box<Expression>,
+    pub index: Box<Expression>,
+}
+
+impl Display for IndexExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}[{}])", self.left, self.index)
+    }
+}
+
+impl IndexExpression {
+    fn parse(parser: &mut Parser, left: Expression) -> Result<Self, String> {
+        parser.next_token();
+        let index = Expression::parse(parser, Precedence::Lowest)?;
+        if !parser.expect_peek(&Token::RSquare) {
+            return Err("".to_string());
+        }
+        Ok(IndexExpression {
+            left: Box::new(left),
+            index: Box::new(index),
+        })
+    }
+}
+
 #[derive(PartialEq, PartialOrd)]
 pub enum Precedence {
     Lowest = 0,
@@ -476,6 +524,7 @@ pub enum Precedence {
     Product = 4,     // *
     Prefix = 5,      // -X or !X
     Call = 6,        // myFunction(X)
+    Index = 7,       // array[index]
 }
 
 pub fn precedence_of(token: &Token) -> Precedence {
@@ -485,6 +534,7 @@ pub fn precedence_of(token: &Token) -> Precedence {
         Token::Plus | Token::Minus => Precedence::Sum,
         Token::Slash | Token::Asterisk => Precedence::Product,
         Token::LParen => Precedence::Call,
+        Token::LSquare => Precedence::Index,
         _ => Precedence::Lowest,
     }
 }

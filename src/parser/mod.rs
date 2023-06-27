@@ -416,6 +416,14 @@ mod tests {
                 "add(a + b + c * d / f + g)",
                 "add((((a + b) + ((c * d) / f)) + g))",
             ),
+            (
+                "a * [1, 2, 3, 4][b * c] * d",
+                "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            ),
+            (
+                "add(a * b[2], b[1], 2 * [1, 2][1])",
+                "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+            ),
         ];
 
         for (input, expected) in test {
@@ -591,6 +599,79 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_array_literal() {
+        let input = "[1,2*2,3+3]";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        let expressions = match &program.statements[0] {
+            Statement::Expression(exp) => match exp {
+                Expression::ArrayLiteral(a) => &a.elements,
+                _ => panic!("It is not an array literal"),
+            },
+            _ => panic!("It is not an expression statement"),
+        };
+
+        assert_eq!(expressions.len(), 3);
+        check_primitive_literal(&expressions[0], "1");
+        check_infix_expression(&expressions[1], "2", "*", "2");
+        check_infix_expression(&expressions[2], "3", "+", "3");
+    }
+
+    #[test]
+    fn test_parsing_index_expression_complete() {
+        let input = "myArray[1+1]";
+
+        let lexer = Lexer::new(input.to_string());
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => match exp {
+                Expression::IndexExpression(i) => {
+                    assert_eq!(i.left.to_string(), "myArray");
+                    check_infix_expression(&i.index, "1", "+", "1");
+                }
+                _ => panic!("It is not an index expression"),
+            },
+            _ => panic!("It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_parsing_index_expression_string_conversion() {
+        let tests = vec![
+            ("myArray[1]", "myArray", "1"),
+            ("myArray[\"hello\"]", "myArray", "hello"),
+            ("[1,2,3,4][2]", "[1, 2, 3, 4]", "2"),
+            ("test()[call()]", "test()", "call()"),
+        ];
+
+        for (input, left, index) in tests {
+            let lexer = Lexer::new(input.to_string());
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+
+            check_parse_errors(&parser);
+
+            assert_eq!(program.statements.len(), 1);
+            match &program.statements[0] {
+                Statement::Expression(exp) => check_index_expression(exp, left, index),
+
+                _ => panic!("It is not an expression statement"),
+            }
+        }
+    }
+
     fn check_identifier(exp: &Identifier, value: &str) {
         assert_eq!(exp.value, value);
     }
@@ -678,6 +759,16 @@ mod tests {
                 }
             }
             _ => assert!(false, "It is not a function call"),
+        }
+    }
+
+    fn check_index_expression(exp: &Expression, left: &str, index: &str) {
+        match exp {
+            Expression::IndexExpression(p) => {
+                assert_eq!(p.left.to_string(), left);
+                assert_eq!(p.index.to_string(), index);
+            }
+            _ => assert!(false, "It is not an index expression"),
         }
     }
 }

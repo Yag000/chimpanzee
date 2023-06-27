@@ -32,6 +32,8 @@ pub enum Token {
     RParen,   // )
     LSquirly, // {
     RSquirly, // }
+    LSquare,  // [
+    RSquare,  // ]
 
     // Keywords
     Function,
@@ -67,6 +69,8 @@ impl Display for Token {
             Token::RParen => write!(f, ")"),
             Token::LSquirly => write!(f, "{{"),
             Token::RSquirly => write!(f, "}}"),
+            Token::LSquare => write!(f, "["),
+            Token::RSquare => write!(f, "]"),
             Token::Function => write!(f, "fn"),
             Token::Let => write!(f, "let"),
             Token::True => write!(f, "true"),

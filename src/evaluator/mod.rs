@@ -4,13 +4,15 @@ pub mod object;
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    parser::ast::{BlockStatement, Conditional, Expression, Identifier, Primitive, Statement},
+    parser::ast::{
+        BlockStatement, Conditional, Expression, Identifier, IndexExpression, Primitive, Statement,
+    },
     Program, Token,
 };
 
 use self::{
     enviroment::Environment,
-    object::{FunctionObject, Object},
+    object::{BuiltinFunction, FunctionObject, Object},
 };
 
 const TRUE: Object = Object::BOOLEAN(true);
@@ -120,6 +122,16 @@ impl Evaluator {
                     return args[0].clone();
                 }
                 self.apply_function(&function, args)
+            }
+            Expression::ArrayLiteral(array) => {
+                let elements = self.eval_expressions(&array.elements);
+                if elements.len() == 1 && self.is_error(&elements[0]) {
+                    return elements[0].clone();
+                }
+                Object::ARRAY(elements)
+            }
+            Expression::IndexExpression(index_expression) => {
+                self.eval_index_expression(index_expression)
             }
         }
     }
@@ -240,7 +252,10 @@ impl Evaluator {
     fn eval_identifier(&self, identifier: &Identifier) -> Object {
         match self.env.borrow().get(&identifier.to_string()) {
             Some(x) => x,
-            None => Object::ERROR(format!("identifier not found: {}", identifier)),
+            None => match BuiltinFunction::get_builtin(&identifier.to_string()) {
+                Some(x) => x,
+                None => Object::ERROR(format!("identifier not found: {}", identifier)),
+            },
         }
     }
 
@@ -266,6 +281,7 @@ impl Evaluator {
                 self.env = env;
                 evaluated
             }
+            Object::BUILTIN(function) => function.call(args),
             _ => Object::ERROR(format!("not a function: {}", function)),
         }
     }
@@ -276,6 +292,30 @@ impl Evaluator {
             env.set(param.to_string(), arg);
         }
         env
+    }
+
+    fn eval_index_expression(&mut self, index_expression: &IndexExpression) -> Object {
+        let left = self.eval_expression(&index_expression.left);
+        if self.is_error(&left) {
+            return left;
+        }
+        let index = self.eval_expression(&index_expression.index);
+        if self.is_error(&index) {
+            return index;
+        }
+        match (&left, &index) {
+            (Object::ARRAY(x), Object::INTEGER(y)) => {
+                if *y < 0 || *y >= x.len() as i64 {
+                    return NULL;
+                }
+                x[*y as usize].clone()
+            }
+            _ => Object::ERROR(format!(
+                "index operator not supported: {}[{}]",
+                left.get_type(),
+                index.get_type()
+            )),
+        }
     }
 }
 #[cfg(test)]
@@ -509,6 +549,186 @@ return 1;
         test_string_object(evaluated, "Hello World!".to_string());
     }
 
+    #[test]
+    fn test_builttin_len_function() {
+        let tests_striung = vec![
+            (r#"len("")"#, 0),
+            (r#"len("four")"#, 4),
+            (r#"len("hello world")"#, 11),
+            (r#"len([1,2,3,4,5])"#, 5),
+        ];
+
+        for (input, expected) in tests_striung {
+            test_integer_object(test_eval(input.to_string()), expected)
+        }
+    }
+
+    #[test]
+    fn test_builttin_len_function_errors() {
+        let tests_striung = vec![
+            (r#"len(1)"#, "argument to `len` not supported, got INTEGER"),
+            (
+                r#"len("one", "two")"#,
+                "wrong number of arguments. got=2, want=1",
+            ),
+        ];
+
+        for (input, expected) in tests_striung {
+            test_error_object(test_eval(input.to_string()), expected.to_string());
+        }
+    }
+
+    #[test]
+    fn test_array_literals() {
+        let input = "[1, 2 * 2, 3 + 3]";
+
+        let evaluated = test_eval(input.to_string());
+
+        match evaluated {
+            Object::ARRAY(x) => {
+                assert_eq!(x.len(), 3);
+                test_integer_object(x[0].clone(), 1);
+                test_integer_object(x[1].clone(), 4);
+                test_integer_object(x[2].clone(), 6);
+            }
+            _ => assert!(false, "The object is not an array"),
+        }
+    }
+
+    #[test]
+    fn test_array_index_expression() {
+        let tests = vec![
+            ("[1, 2, 3][0]", Some(1)),
+            ("[1, 2, 3][1]", Some(2)),
+            ("[1, 2, 3][2]", Some(3)),
+            ("let i = 0; [1][i];", Some(1)),
+            ("[1, 2, 3][1 + 1];", Some(3)),
+            ("let myArray = [1, 2, 3]; myArray[2];", Some(3)),
+            (
+                "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                Some(6),
+            ),
+            (
+                "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+                Some(2),
+            ),
+            ("[1, 2, 3][3]", None),
+            ("[1, 2, 3][-1]", None),
+        ];
+
+        for (input, expected) in tests {
+            match expected {
+                Some(x) => test_integer_object(test_eval(input.to_string()), x),
+                None => test_null_object(test_eval(input.to_string())),
+            }
+        }
+    }
+
+    #[test]
+    fn test_first_function() {
+        let tests = vec![
+            ("first([1, 2, 3])", Some(1)),
+            ("first([1])", Some(1)),
+            ("first([])", None),
+            ("first(1)", None),
+            ("first([1, 2, 3], [4, 5, 6])", None),
+        ];
+
+        for (input, expected) in tests {
+            println!("{}", input);
+            match expected {
+                Some(x) => test_integer_object(test_eval(input.to_string()), x),
+                None => test_null_object(test_eval(input.to_string())),
+            }
+        }
+    }
+
+    #[test]
+    fn test_last_function() {
+        let tests = vec![
+            ("last([1, 2, 3])", Some(3)),
+            ("last([1])", Some(1)),
+            ("last([])", None),
+            ("last(1)", None),
+            ("last([1, 2, 3], [4, 5, 6])", None),
+        ];
+
+        for (input, expected) in tests {
+            println!("{}", input);
+            match expected {
+                Some(x) => test_integer_object(test_eval(input.to_string()), x),
+                None => test_null_object(test_eval(input.to_string())),
+            }
+        }
+    }
+
+    #[test]
+    fn test_rest_function() {
+        let tests = vec![
+            ("rest([1, 2, 3])", Some(vec![2, 3])),
+            ("rest([1])", Some(Vec::new())),
+            ("rest([])", None),
+            ("rest(1)", None),
+            ("rest([1, 2, 3], [4, 5, 6])", None),
+        ];
+
+        for (input, expected) in tests {
+            println!("{}", input);
+            match expected {
+                Some(x) => {
+                    let evaluated = test_eval(input.to_string());
+                    test_array_object(evaluated, x);
+                }
+                None => test_null_object(test_eval(input.to_string())),
+            }
+        }
+    }
+
+    #[test]
+    fn test_push_function() {
+        let tests = vec![
+            ("push([], 1)", Some(vec![1])),
+            ("push([1], 2)", Some(vec![1, 2])),
+            ("push([1,2], 3)", Some(vec![1, 2, 3])),
+            ("push(1, 1)", None),
+            ("push([1,2], 3, 4)", None),
+        ];
+
+        for (input, expected) in tests {
+            println!("{}", input);
+            match expected {
+                Some(x) => test_array_object(test_eval(input.to_string()), x),
+                None => test_null_object(test_eval(input.to_string())),
+            }
+        }
+    }
+
+#[test]
+fn test_array_functions_together(){
+
+    let input  = r#"
+        let map = fn(arr, f) {
+            let iter = fn(arr, accumulated) {
+                if (len(arr) == 0) {
+                    accumulated
+                } else {
+                    iter(rest(arr), push(accumulated, f(first(arr))));
+                }
+            };
+            iter(arr, []);
+        };
+        let a = [1, 2, 3, 4];
+        let double = fn(x) { x * 2 };
+        map(a, double);
+        "#;
+    
+        let expected = vec![2, 4, 6, 8];
+
+        test_array_object(test_eval(input.to_string()), expected);
+
+}
+
+
     fn test_eval(input: String) -> Object {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -533,7 +753,8 @@ return 1;
 
     fn test_null_object(object: Object) {
         match object {
-            Object::NULL => (),
+            Object::NULL | Object::ERROR(_) => (),
+
             _ => assert!(false, "The object is not null"),
         }
     }
@@ -549,6 +770,18 @@ return 1;
         match object {
             Object::STRING(s) => assert_eq!(format!("{s}"), expected),
             _ => assert!(false, "The object is not an string"),
+        }
+    }
+
+    fn test_array_object(object: Object, expected: Vec<i64>) {
+        match object {
+            Object::ARRAY(x) => {
+                assert_eq!(x.len(), expected.len());
+                for (i, v) in x.iter().enumerate() {
+                    test_integer_object(v.clone(), expected[i]);
+                }
+            }
+            _ => assert!(false, "The object is not an array"),
         }
     }
 }
