@@ -12,7 +12,7 @@ use crate::{
 
 use self::{
     enviroment::Environment,
-    object::{BuiltinFunction, FunctionObject, Object},
+    object::{BuiltinFunction, Function, Object},
 };
 
 const TRUE: Object = Object::BOOLEAN(true);
@@ -38,7 +38,7 @@ impl Evaluator {
 
     pub fn eval(&mut self, program: &Program) -> Object {
         let mut result = NULL;
-        for statement in program.statements.iter() {
+        for statement in &program.statements {
             result = self.eval_statement(statement);
             match result {
                 Object::RETURN(x) => return *x,
@@ -51,7 +51,7 @@ impl Evaluator {
 
     fn eval_block_statemet(&mut self, block: &BlockStatement) -> Object {
         let mut result = NULL;
-        for statement in block.statements.iter() {
+        for statement in &block.statements {
             result = self.eval_statement(statement);
             match result {
                 Object::RETURN(_) | Object::ERROR(_) => return result,
@@ -66,14 +66,14 @@ impl Evaluator {
             Statement::Expression(x) => self.eval_expression(x),
             Statement::Return(x) => {
                 let value = self.eval_expression(&x.return_value);
-                if self.is_error(&value) {
+                if Self::is_error(&value) {
                     return value;
                 }
                 Object::RETURN(Box::new(value))
             }
             Statement::Let(x) => {
                 let value = self.eval_expression(&x.value);
-                if self.is_error(&value) {
+                if Self::is_error(&value) {
                     return value;
                 }
                 self.env.borrow_mut().set(x.name.to_string(), value.clone());
@@ -84,31 +84,31 @@ impl Evaluator {
 
     fn eval_expression(&mut self, expression: &Expression) -> Object {
         match expression {
-            Expression::Primitive(x) => self.eval_primitive_expression(x),
+            Expression::Primitive(x) => Self::eval_primitive_expression(x),
             Expression::Prefix(operator) => {
                 let right = self.eval_expression(&operator.right);
-                if self.is_error(&right) {
+                if Self::is_error(&right) {
                     return right;
                 }
-                self.eval_prefix_expression(&operator.token, &right)
+                Self::eval_prefix_expression(&operator.token, &right)
             }
             Expression::Infix(operator) => {
                 let left = self.eval_expression(&operator.left);
-                if self.is_error(&left) {
+                if Self::is_error(&left) {
                     return left;
                 }
                 let right = self.eval_expression(&operator.right);
-                if self.is_error(&right) {
+                if Self::is_error(&right) {
                     return right;
                 }
-                self.eval_infix_expression(&operator.token, &left, &right)
+                Self::eval_infix_expression(&operator.token, &left, &right)
             }
             Expression::Conditional(conditional) => self.eval_conditional_expression(conditional),
             Expression::Identifier(x) => self.eval_identifier(x),
             Expression::FunctionLiteral(x) => {
                 let parameters = &x.parameters;
                 let body = &x.body;
-                Object::FUNCTION(FunctionObject {
+                Object::FUNCTION(Function {
                     parameters: parameters.clone(),
                     body: body.clone(),
                     environment: Rc::clone(&self.env),
@@ -116,16 +116,16 @@ impl Evaluator {
             }
             Expression::FunctionCall(x) => {
                 let function = self.eval_expression(&x.function);
-                if self.is_error(&function) {}
+                if Self::is_error(&function) {}
                 let args = self.eval_expressions(&x.arguments);
-                if args.len() == 1 && self.is_error(&args[0]) {
+                if args.len() == 1 && Self::is_error(&args[0]) {
                     return args[0].clone();
                 }
                 self.apply_function(&function, args)
             }
             Expression::ArrayLiteral(array) => {
                 let elements = self.eval_expressions(&array.elements);
-                if elements.len() == 1 && self.is_error(&elements[0]) {
+                if elements.len() == 1 && Self::is_error(&elements[0]) {
                     return elements[0].clone();
                 }
                 Object::ARRAY(elements)
@@ -136,7 +136,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_primitive_expression(&self, expression: &Primitive) -> Object {
+    fn eval_primitive_expression(expression: &Primitive) -> Object {
         match expression {
             Primitive::IntegerLiteral(x) => Object::INTEGER(*x),
             Primitive::BooleanLiteral(x) => {
@@ -150,40 +150,38 @@ impl Evaluator {
         }
     }
 
-    fn eval_prefix_expression(&mut self, operator: &Token, right: &Object) -> Object {
+    fn eval_prefix_expression(operator: &Token, right: &Object) -> Object {
         match operator {
-            Token::Bang => self.eval_bang_operator_expression(right),
-            Token::Minus => self.eval_minus_operator_expression(right),
-            _ => Object::ERROR(format!("unknown operator: {}{}", operator, right)),
+            Token::Bang => Self::eval_bang_operator_expression(right),
+            Token::Minus => Self::eval_minus_operator_expression(right),
+            _ => Object::ERROR(format!("unknown operator: {operator}{right}")),
         }
     }
 
-    fn eval_bang_operator_expression(&self, right: &Object) -> Object {
+    fn eval_bang_operator_expression(right: &Object) -> Object {
         match right {
-            Object::BOOLEAN(true) => FALSE,
-            Object::BOOLEAN(false) => TRUE,
-            Object::NULL => TRUE,
+            Object::BOOLEAN(false) | Object::NULL => TRUE,
             _ => FALSE,
         }
     }
 
-    fn eval_minus_operator_expression(&self, right: &Object) -> Object {
+    fn eval_minus_operator_expression(right: &Object) -> Object {
         match right {
             Object::INTEGER(x) => Object::INTEGER(-x),
-            _ => Object::ERROR(format!("unknown operator: -{}", right)),
+            _ => Object::ERROR(format!("unknown operator: -{right}")),
         }
     }
 
-    fn eval_infix_expression(&self, operator: &Token, left: &Object, right: &Object) -> Object {
+    fn eval_infix_expression(operator: &Token, left: &Object, right: &Object) -> Object {
         match (left, right) {
             (Object::INTEGER(x), Object::INTEGER(y)) => {
-                self.eval_integer_infix_expression(operator, x, y)
+                Self::eval_integer_infix_expression(operator, *x, *y)
             }
             (Object::BOOLEAN(x), Object::BOOLEAN(y)) => {
-                self.eval_boolean_infix_expression(operator, x, y)
+                Self::eval_boolean_infix_expression(operator, *x, *y)
             }
             (Object::STRING(x), Object::STRING(y)) => {
-                self.eval_string_infix_expression(operator, x, y)
+                Self::eval_string_infix_expression(operator, x, y)
             }
             _ => Object::ERROR(format!(
                 "type mismatch: {} {} {}",
@@ -194,7 +192,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_integer_infix_expression(&self, operator: &Token, left: &i64, right: &i64) -> Object {
+    fn eval_integer_infix_expression(operator: &Token, left: i64, right: i64) -> Object {
         match operator {
             Token::Plus => Object::INTEGER(left + right),
             Token::Minus => Object::INTEGER(left - right),
@@ -204,31 +202,31 @@ impl Evaluator {
             Token::GT => Object::BOOLEAN(left > right),
             Token::Equal => Object::BOOLEAN(left == right),
             Token::NotEqual => Object::BOOLEAN(left != right),
-            _ => Object::ERROR(format!("unknown operator: INTEGER {} INTEGER", operator)),
+            _ => Object::ERROR(format!("unknown operator: INTEGER {operator} INTEGER")),
         }
     }
 
-    fn eval_boolean_infix_expression(&self, operator: &Token, left: &bool, right: &bool) -> Object {
+    fn eval_boolean_infix_expression(operator: &Token, left: bool, right: bool) -> Object {
         match operator {
             Token::Equal => Object::BOOLEAN(left == right),
             Token::NotEqual => Object::BOOLEAN(left != right),
-            _ => Object::ERROR(format!("unknown operator: BOOLEAN {} BOOLEAN", operator)),
+            _ => Object::ERROR(format!("unknown operator: BOOLEAN {operator} BOOLEAN")),
         }
     }
 
-    fn eval_string_infix_expression(&self, operator: &Token, left: &str, right: &str) -> Object {
+    fn eval_string_infix_expression(operator: &Token, left: &str, right: &str) -> Object {
         match operator {
-            Token::Plus => Object::STRING(format!("{}{}", left, right)),
-            _ => Object::ERROR(format!("unknown operator: STRING {} STRING", operator)),
+            Token::Plus => Object::STRING(format!("{left}{right}")),
+            _ => Object::ERROR(format!("unknown operator: STRING {operator} STRING")),
         }
     }
 
     fn eval_conditional_expression(&mut self, conditional: &Conditional) -> Object {
         let condition = self.eval_expression(&conditional.condition);
-        if self.is_error(&condition) {
+        if Self::is_error(&condition) {
             return condition;
         }
-        if self.is_truthy(&condition) {
+        if Self::is_truthy(&condition) {
             self.eval_block_statemet(&conditional.consequence)
         } else if let Some(alternative) = &conditional.alternative {
             self.eval_block_statemet(alternative)
@@ -237,7 +235,7 @@ impl Evaluator {
         }
     }
 
-    fn is_truthy(&self, object: &Object) -> bool {
+    fn is_truthy(object: &Object) -> bool {
         match object {
             Object::NULL => false,
             Object::BOOLEAN(x) => *x,
@@ -245,7 +243,7 @@ impl Evaluator {
         }
     }
 
-    fn is_error(&self, object: &Object) -> bool {
+    fn is_error(object: &Object) -> bool {
         matches!(object, Object::ERROR(_))
     }
 
@@ -254,7 +252,7 @@ impl Evaluator {
             Some(x) => x,
             None => match BuiltinFunction::get_builtin(&identifier.to_string()) {
                 Some(x) => x,
-                None => Object::ERROR(format!("identifier not found: {}", identifier)),
+                None => Object::ERROR(format!("identifier not found: {identifier}")),
             },
         }
     }
@@ -263,7 +261,7 @@ impl Evaluator {
         let mut result = vec![];
         for expression in expressions {
             let evaluated = self.eval_expression(expression);
-            if self.is_error(&evaluated) {
+            if Self::is_error(&evaluated) {
                 return vec![evaluated];
             }
             result.push(evaluated);
@@ -274,7 +272,7 @@ impl Evaluator {
     fn apply_function(&mut self, function: &Object, args: Vec<Object>) -> Object {
         match function {
             Object::FUNCTION(function) => {
-                let extended_env = self.extend_function_env(function, args);
+                let extended_env = Self::extend_function_env(function, args);
                 let env = Rc::clone(&self.env);
                 self.env = Rc::new(RefCell::new(extended_env));
                 let evaluated = self.eval_block_statemet(&function.body);
@@ -282,11 +280,11 @@ impl Evaluator {
                 evaluated
             }
             Object::BUILTIN(function) => function.call(args),
-            _ => Object::ERROR(format!("not a function: {}", function)),
+            _ => Object::ERROR(format!("not a function: {function}")),
         }
     }
 
-    fn extend_function_env(&self, function: &FunctionObject, args: Vec<Object>) -> Environment {
+    fn extend_function_env(function: &Function, args: Vec<Object>) -> Environment {
         let mut env = Environment::new_enclosed_environment(Rc::clone(&function.environment));
         for (param, arg) in function.parameters.iter().zip(args) {
             env.set(param.to_string(), arg);
@@ -296,11 +294,11 @@ impl Evaluator {
 
     fn eval_index_expression(&mut self, index_expression: &IndexExpression) -> Object {
         let left = self.eval_expression(&index_expression.left);
-        if self.is_error(&left) {
+        if Self::is_error(&left) {
             return left;
         }
         let index = self.eval_expression(&index_expression.index);
-        if self.is_error(&index) {
+        if Self::is_error(&index) {
             return index;
         }
         match (&left, &index) {
@@ -345,7 +343,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_integer_object(evaluated, expected);
         }
     }
@@ -375,7 +373,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_boolean_object(evaluated, expected);
         }
     }
@@ -392,7 +390,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_boolean_object(evaluated, expected);
         }
     }
@@ -410,7 +408,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             if let Some(expected) = expected {
                 test_integer_object(evaluated, expected);
             } else {
@@ -431,7 +429,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_integer_object(evaluated, expected);
         }
     }
@@ -450,12 +448,12 @@ mod tests {
             ),
             (
                 r#"
-if (10 > 1) {
-if (10 > 1) {
-return true + false;
-}
-return 1;
-}"#,
+                if (10 > 1) {
+                    if (10 > 1) {
+                        return true + false;
+                    }
+                    return 1;
+                }"#,
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
             ("foobar", "identifier not found: foobar"),
@@ -463,7 +461,7 @@ return 1;
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_error_object(evaluated, expected.to_string());
         }
     }
@@ -478,7 +476,7 @@ return 1;
         ];
 
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_integer_object(evaluated, expected);
         }
     }
@@ -487,7 +485,7 @@ return 1;
     fn test_function_object() {
         let input = "fn(x) { x + 2; };";
 
-        let evaluated = test_eval(input.to_string());
+        let evaluated = test_eval(input);
 
         match evaluated {
             Object::FUNCTION(x) => {
@@ -513,7 +511,7 @@ return 1;
             ("fn(x) { x; }(5)", 5),
         ];
         for (input, expected) in tests {
-            let evaluated = test_eval(input.to_string());
+            let evaluated = test_eval(input);
             test_integer_object(evaluated, expected);
         }
     }
@@ -528,21 +526,21 @@ return 1;
         let addTwo = newAdder(2);
         addTwo(2);"#;
 
-        test_integer_object(test_eval(input.to_string()), 4);
+        test_integer_object(test_eval(input), 4);
     }
 
     #[test]
     fn test_string_literal() {
-        let input = "\"Hello World!\"".to_string();
+        let input = "\"Hello World!\"";
 
-        let evaluated = test_eval(input.clone());
+        let evaluated = test_eval(input);
 
         test_string_object(evaluated, "Hello World!".to_string());
     }
 
     #[test]
     fn test_string_concatenationm() {
-        let input = "\"Hello\" + \" \" + \"World!\"".to_string();
+        let input = "\"Hello\" + \" \" + \"World!\"";
 
         let evaluated = test_eval(input.clone());
 
@@ -559,7 +557,7 @@ return 1;
         ];
 
         for (input, expected) in tests_striung {
-            test_integer_object(test_eval(input.to_string()), expected)
+            test_integer_object(test_eval(input), expected)
         }
     }
 
@@ -574,7 +572,7 @@ return 1;
         ];
 
         for (input, expected) in tests_striung {
-            test_error_object(test_eval(input.to_string()), expected.to_string());
+            test_error_object(test_eval(input), expected.to_string());
         }
     }
 
@@ -582,7 +580,7 @@ return 1;
     fn test_array_literals() {
         let input = "[1, 2 * 2, 3 + 3]";
 
-        let evaluated = test_eval(input.to_string());
+        let evaluated = test_eval(input);
 
         match evaluated {
             Object::ARRAY(x) => {
@@ -618,8 +616,8 @@ return 1;
 
         for (input, expected) in tests {
             match expected {
-                Some(x) => test_integer_object(test_eval(input.to_string()), x),
-                None => test_null_object(test_eval(input.to_string())),
+                Some(x) => test_integer_object(test_eval(input), x),
+                None => test_null_object(test_eval(input)),
             }
         }
     }
@@ -637,8 +635,8 @@ return 1;
         for (input, expected) in tests {
             println!("{}", input);
             match expected {
-                Some(x) => test_integer_object(test_eval(input.to_string()), x),
-                None => test_null_object(test_eval(input.to_string())),
+                Some(x) => test_integer_object(test_eval(input), x),
+                None => test_null_object(test_eval(input)),
             }
         }
     }
@@ -656,8 +654,8 @@ return 1;
         for (input, expected) in tests {
             println!("{}", input);
             match expected {
-                Some(x) => test_integer_object(test_eval(input.to_string()), x),
-                None => test_null_object(test_eval(input.to_string())),
+                Some(x) => test_integer_object(test_eval(input), x),
+                None => test_null_object(test_eval(input)),
             }
         }
     }
@@ -676,10 +674,10 @@ return 1;
             println!("{}", input);
             match expected {
                 Some(x) => {
-                    let evaluated = test_eval(input.to_string());
+                    let evaluated = test_eval(input);
                     test_array_object(evaluated, x);
                 }
-                None => test_null_object(test_eval(input.to_string())),
+                None => test_null_object(test_eval(input)),
             }
         }
     }
@@ -697,16 +695,15 @@ return 1;
         for (input, expected) in tests {
             println!("{}", input);
             match expected {
-                Some(x) => test_array_object(test_eval(input.to_string()), x),
-                None => test_null_object(test_eval(input.to_string())),
+                Some(x) => test_array_object(test_eval(input), x),
+                None => test_null_object(test_eval(input)),
             }
         }
     }
 
-#[test]
-fn test_array_functions_together(){
-
-    let input  = r#"
+    #[test]
+    fn test_array_functions_together() {
+        let input = r#"
         let map = fn(arr, f) {
             let iter = fn(arr, accumulated) {
                 if (len(arr) == 0) {
@@ -721,15 +718,13 @@ fn test_array_functions_together(){
         let double = fn(x) { x * 2 };
         map(a, double);
         "#;
-    
+
         let expected = vec![2, 4, 6, 8];
 
-        test_array_object(test_eval(input.to_string()), expected);
+        test_array_object(test_eval(input), expected);
+    }
 
-}
-
-
-    fn test_eval(input: String) -> Object {
+    fn test_eval(input: &str) -> Object {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();

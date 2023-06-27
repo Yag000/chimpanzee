@@ -12,7 +12,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(input: String) -> Lexer {
+    pub fn new(input: &str) -> Lexer {
         let mut lexer = Lexer {
             input: input.chars().collect(),
             position: 0,
@@ -28,7 +28,7 @@ impl Lexer {
         if self.read_position >= self.input.len() {
             self.ch = '\0';
         } else {
-            self.ch = self.input[self.read_position]
+            self.ch = self.input[self.read_position];
         }
         self.position = self.read_position;
         self.read_position += 1;
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn test_next_token_basic() {
-        let input = String::from("=+(){},;");
+        let input = "=+(){},;";
 
         let expected = vec![
             Token::Assign,
@@ -191,7 +191,7 @@ mod tests {
             [1, 2];
         "#;
 
-        let mut lexer = Lexer::new(input.into());
+        let mut lexer = Lexer::new(input);
 
         let expected = vec![
             Token::Let,

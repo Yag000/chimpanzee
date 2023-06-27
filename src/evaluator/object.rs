@@ -10,7 +10,7 @@ pub enum Object {
     STRING(String),
     RETURN(Box<Object>),
     ERROR(String),
-    FUNCTION(FunctionObject),
+    FUNCTION(Function),
     BUILTIN(BuiltinFunction),
     ARRAY(Vec<Object>),
     NULL,
@@ -19,11 +19,11 @@ pub enum Object {
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Object::INTEGER(i) => write!(f, "{}", i),
-            Object::BOOLEAN(b) => write!(f, "{}", b),
-            Object::STRING(s) => write!(f, "\"{}\"", s),
-            Object::RETURN(o) => write!(f, "{}", o),
-            Object::FUNCTION(o) => write!(f, "{}", o),
+            Object::INTEGER(i) => write!(f, "{i}"),
+            Object::BOOLEAN(b) => write!(f, "{b}"),
+            Object::STRING(s) => write!(f, "\"{s}\""),
+            Object::RETURN(o) => write!(f, "{o}",),
+            Object::FUNCTION(o) => write!(f, "{o}"),
             Object::BUILTIN(o) => write!(f, "{o}"),
             Object::ERROR(s) => write!(f, "ERROR: {s}"),
             Object::ARRAY(a) => Self::format_array(f, a),
@@ -54,13 +54,13 @@ impl Object {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct FunctionObject {
+pub struct Function {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
     pub environment: Rc<RefCell<Environment>>,
 }
 
-impl Display for FunctionObject {
+impl Display for Function {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let parameters = self
             .parameters
@@ -93,16 +93,6 @@ impl Display for BuiltinFunction {
 }
 
 impl BuiltinFunction {
-    pub fn call(&self, args: Vec<Object>) -> Object {
-        match self {
-            BuiltinFunction::LEN => self.call_len(args),
-            BuiltinFunction::FIRST => self.call_first(args),
-            BuiltinFunction::LAST => self.call_last(args),
-            BuiltinFunction::REST => self.call_rest(args),
-            BuiltinFunction::PUSH => self.call_push(args),
-        }
-    }
-
     pub fn get_builtins() -> Environment {
         let mut env = Environment::new();
         env.set(String::from("len"), Object::BUILTIN(BuiltinFunction::LEN));
@@ -127,7 +117,17 @@ impl BuiltinFunction {
         }
     }
 
-    fn call_len(&self, args: Vec<Object>) -> Object {
+    pub fn call(&self, args: Vec<Object>) -> Object {
+        match self {
+            BuiltinFunction::LEN => Self::call_len(args),
+            BuiltinFunction::FIRST => Self::call_first(args),
+            BuiltinFunction::LAST => Self::call_last(args),
+            BuiltinFunction::REST => Self::call_rest(args),
+            BuiltinFunction::PUSH => Self::call_push(args),
+        }
+    }
+
+    fn call_len(args: Vec<Object>) -> Object {
         Self::handle_number_of_arguments(args.len(), 1).unwrap_or_else(|| match &args[0] {
             Object::STRING(s) => Object::INTEGER(s.len() as i64),
             Object::ARRAY(a) => Object::INTEGER(a.len() as i64),
@@ -138,13 +138,13 @@ impl BuiltinFunction {
         })
     }
 
-    fn call_first(&self, args: Vec<Object>) -> Object {
+    fn call_first(args: Vec<Object>) -> Object {
         Self::handle_number_of_arguments(args.len(), 1).unwrap_or_else(|| match &args[0] {
             Object::ARRAY(a) => {
-                if !a.is_empty() {
-                    a[0].clone()
-                } else {
+                if a.is_empty() {
                     NULL
+                } else {
+                    a[0].clone()
                 }
             }
             _ => Object::ERROR(format!(
@@ -154,7 +154,7 @@ impl BuiltinFunction {
         })
     }
 
-    fn call_last(&self, args: Vec<Object>) -> Object {
+    fn call_last(args: Vec<Object>) -> Object {
         Self::handle_number_of_arguments(args.len(), 1).unwrap_or_else(|| match &args[0] {
             Object::ARRAY(a) => {
                 let length = a.len();
@@ -171,7 +171,7 @@ impl BuiltinFunction {
         })
     }
 
-    fn call_rest(&self, args: Vec<Object>) -> Object {
+    fn call_rest(args: Vec<Object>) -> Object {
         Self::handle_number_of_arguments(args.len(), 1).unwrap_or_else(|| match &args[0] {
             Object::ARRAY(a) => {
                 let length = a.len();
@@ -189,7 +189,7 @@ impl BuiltinFunction {
         })
     }
 
-    fn call_push(&self, args: Vec<Object>) -> Object {
+    fn call_push(args: Vec<Object>) -> Object {
         Self::handle_number_of_arguments(args.len(), 2).unwrap_or_else(|| match &args[0] {
             Object::ARRAY(a) => {
                 let mut new_array = a.clone();
@@ -206,8 +206,7 @@ impl BuiltinFunction {
     fn handle_number_of_arguments(got: usize, expected: usize) -> Option<Object> {
         if got != expected {
             return Some(Object::ERROR(format!(
-                "wrong number of arguments. got={}, want={}",
-                got, expected
+                "wrong number of arguments. got={got}, want={expected}"
             )));
         }
         None
