@@ -9,7 +9,7 @@ impl Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut program = String::new();
         for statement in &self.statements {
-            program.push_str(&format!("{statement}\n" ));
+            program.push_str(&format!("{statement}\n"));
         }
         write!(f, "{program}")
     }
@@ -25,6 +25,7 @@ pub enum Expression {
     FunctionLiteral(FunctionLiteral),
     FunctionCall(FunctionCall),
     ArrayLiteral(ArrayLiteral),
+    HashMapLiteral(HashMapLiteral),
     IndexExpression(IndexExpression),
 }
 
@@ -40,6 +41,7 @@ impl Display for Expression {
             Expression::FunctionCall(x) => write!(f, "{x}"),
             Expression::ArrayLiteral(x) => write!(f, "{x}"),
             Expression::IndexExpression(x) => write!(f, "{x}"),
+            Expression::HashMapLiteral(x) => write!(f, "{x}"),
         }
     }
 }
@@ -56,6 +58,7 @@ impl Expression {
             Token::If => Conditional::parse(parser).map(Expression::Conditional),
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             Token::LSquare => ArrayLiteral::parse(parser).map(Expression::ArrayLiteral),
+            Token::LSquirly => HashMapLiteral::parse(parser).map(Expression::HashMapLiteral),
             _ => Err(format!(
                 "There is no prefix parser for the token {}",
                 parser.current_token
@@ -236,7 +239,7 @@ impl Display for Conditional {
             Some(alternative) => exp.push_str(&format!(" else {{{alternative}}}")),
             None => (),
         }
-        write!(f, "{exp}" )
+        write!(f, "{exp}")
     }
 }
 
@@ -282,14 +285,14 @@ impl Display for BlockStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut statements = String::new();
         for statement in &self.statements {
-            statements.push_str(&format!("{statement}\n" ));
+            statements.push_str(&format!("{statement}\n"));
         }
-        write!(f, "{statements}" )
+        write!(f, "{statements}")
     }
 }
 
 impl BlockStatement {
-    fn parse(parser: &mut Parser) -> Self  {
+    fn parse(parser: &mut Parser) -> Self {
         parser.next_token();
         let mut statements: Vec<Statement> = Vec::new();
         while !parser.current_token_is(&Token::RSquirly) && !parser.current_token_is(&Token::Eof) {
@@ -512,6 +515,50 @@ impl IndexExpression {
             left: Box::new(left),
             index: Box::new(index),
         })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct HashMapLiteral {
+    pub pairs: Vec<(Expression, Expression)>,
+}
+
+impl Display for HashMapLiteral {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let pairs = self
+            .pairs
+            .iter()
+            .map(|(k, v)| format!("{k}: {v}"))
+            .collect::<Vec<String>>();
+        write!(f, "{{{}}}", pairs.join(", "))
+    }
+}
+
+impl HashMapLiteral {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        let mut pairs = Vec::new();
+        while !parser.peek_token_is(&Token::RSquirly) {
+            parser.next_token();
+            let key = Expression::parse(parser, Precedence::Lowest)?;
+            if !parser.expect_peek(&Token::Colon) {
+                return Err(String::new());
+            }
+
+            parser.next_token();
+            let value = Expression::parse(parser, Precedence::Lowest)?;
+
+            pairs.push((key, value));
+
+            if !parser.peek_token_is(&Token::RSquirly) && !parser.expect_peek(&Token::Comma) {
+                return Err(String::new());
+            }
+        }
+
+        if !parser.expect_peek(&Token::RSquirly) {
+            return Err(String::new());
+        }
+
+        Ok(HashMapLiteral { pairs })
     }
 }
 

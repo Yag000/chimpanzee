@@ -1,6 +1,8 @@
 use crate::{lexer::Lexer, Program, Token};
 
-use self::ast::*;
+use self::ast::{
+    precedence_of, Expression, Identifier, LetStatement, Precedence, ReturnStatement, Statement,
+};
 
 pub struct Parser {
     lexer: Lexer,
@@ -171,7 +173,9 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::parser::ast::Primitive;
+
+    use super::{ast::BlockStatement, *};
 
     #[test]
     fn test_let_statements() {
@@ -180,10 +184,7 @@ mod tests {
         let foobar = y;
         "#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
+        let program = generate_program(input);
         let expected_statemets = vec![
             Statement::Let(LetStatement {
                 name: Identifier {
@@ -217,8 +218,6 @@ mod tests {
             println!("{} | {} | {} ", i, expected, program.statements[i]);
             assert_eq!(program.statements[i], *expected);
         }
-
-        check_parse_errors(&parser);
     }
 
     #[test]
@@ -229,10 +228,7 @@ mod tests {
         return y;
         "#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
+        let program = generate_program(input);
         let expected = vec![
             Statement::Return(ReturnStatement {
                 return_value: Expression::Primitive(Primitive::IntegerLiteral(5)),
@@ -253,8 +249,6 @@ mod tests {
         for (i, expected) in expected.iter().enumerate() {
             assert_eq!(program.statements[i], *expected);
         }
-
-        check_parse_errors(&parser);
     }
 
     fn check_parse_errors(parser: &Parser) {
@@ -289,11 +283,7 @@ mod tests {
     #[test]
     fn test_identifier_expression() {
         let input = "foobar;";
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
 
@@ -310,11 +300,7 @@ mod tests {
     #[test]
     fn test_integer_literal_expression() {
         let input = "5;";
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
 
@@ -335,11 +321,7 @@ mod tests {
         ];
 
         for (input, operator, value) in tests {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
@@ -366,11 +348,7 @@ mod tests {
         ];
 
         for (input, left, operator, right) in tests {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
@@ -427,11 +405,7 @@ mod tests {
         ];
 
         for (input, expected) in test {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
             print!("{}", program.to_string());
             assert_ne!(program.statements.len(), 0);
             assert_eq!(program.to_string(), format!("{expected}\n"));
@@ -443,12 +417,7 @@ mod tests {
         let tests = vec![("true;", true), ("false;", false)];
 
         for (input, expected) in tests {
-            let lexer = Lexer::new(input);
-
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
@@ -461,11 +430,7 @@ mod tests {
     #[test]
     fn test_if_statement() {
         let (input, condition, consequence, alternative) = ("if (x < y) { x }", "x < y", "x", None);
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
@@ -498,11 +463,7 @@ mod tests {
     #[test]
     fn test_function_literal_parsing() {
         let input = "fn(x, y) { x + y; }";
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
@@ -520,11 +481,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
@@ -542,11 +499,7 @@ mod tests {
             vec!["1", "(2 * 3)", "(4 + 5)"],
         );
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
@@ -568,11 +521,7 @@ mod tests {
         ];
 
         for (input, name, argumnets) in tests {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
@@ -586,11 +535,7 @@ mod tests {
     fn test_string_literal_expression() {
         let input = "\"hello world\";";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
@@ -603,11 +548,7 @@ mod tests {
     fn test_array_literal() {
         let input = "[1,2*2,3+3]";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
         let expressions = match &program.statements[0] {
@@ -628,11 +569,7 @@ mod tests {
     fn test_parsing_index_expression_complete() {
         let input = "myArray[1+1]";
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-
-        check_parse_errors(&parser);
+        let program = generate_program(input);
 
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
@@ -657,11 +594,7 @@ mod tests {
         ];
 
         for (input, left, index) in tests {
-            let lexer = Lexer::new(input);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-
-            check_parse_errors(&parser);
+            let program = generate_program(input);
 
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
@@ -670,6 +603,108 @@ mod tests {
                 _ => panic!("It is not an expression statement"),
             }
         }
+    }
+
+    #[test]
+    fn test_parsing_hash_map_literal_string_keys() {
+        let input = "{\"one\": 1, \"two\": 2, \"three\": 3}";
+
+        let program = generate_program(input);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => match exp {
+                Expression::HashMapLiteral(h) => {
+                    assert_eq!(h.pairs.len(), 3);
+                    let expected = vec![("one", "1"), ("two", "2"), ("three", "3")];
+                    for (i, (key, value)) in expected.iter().enumerate() {
+                        let pair = h.pairs.get(i).unwrap();
+                        check_primitive_literal(&pair.0, key);
+                        check_primitive_literal(&pair.1, value);
+                    }
+                }
+                _ => panic!("It is not an hash literal"),
+            },
+            _ => panic!("It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_parsing_empty_hash_map() {
+        let input = "{}";
+
+        let program = generate_program(input);
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => match exp {
+                Expression::HashMapLiteral(h) => {
+                    assert_eq!(h.pairs.len(), 0);
+                }
+                _ => panic!("It is not an hash literal"),
+            },
+            _ => panic!("It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_parsing_hash_map_literal_integer_values() {
+        let input = "{\"one\": 1 + 34, \"two\": 2/5, \"three\": 3-1}";
+
+        let program = generate_program(input);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => match exp {
+                Expression::HashMapLiteral(h) => {
+                    assert_eq!(h.pairs.len(), 3);
+                    let expected = vec![
+                        ("one", "(1 + 34)"),
+                        ("two", "(2 / 5)"),
+                        ("three", "(3 - 1)"),
+                    ];
+                    for (i, (key, value)) in expected.iter().enumerate() {
+                        let pair = h.pairs.get(i).unwrap();
+                        assert_eq!(pair.0.to_string(), **key);
+                        assert_eq!(pair.1.to_string(), **value);
+                    }
+                }
+                _ => panic!("It is not an hash literal"),
+            },
+            _ => panic!("It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_parsing_hash_map_literal_mixed_keys() {
+        let input = "{1:true, 2: \"Hi\", \"three\": 3-1}";
+
+        let program = generate_program(input);
+
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Statement::Expression(exp) => match exp {
+                Expression::HashMapLiteral(h) => {
+                    assert_eq!(h.pairs.len(), 3);
+                    let expected = vec![("1", "true"), ("2", "Hi"), ("three", "(3 - 1)")];
+                    for (i, (key, value)) in expected.iter().enumerate() {
+                        let pair = h.pairs.get(i).unwrap();
+                        assert_eq!(pair.0.to_string(), **key);
+                        assert_eq!(pair.1.to_string(), **value);
+                    }
+                }
+                _ => panic!("It is not an hash literal"),
+            },
+            _ => panic!("It is not an expression statement"),
+        }
+    }
+
+    fn generate_program(input: &str) -> Program {
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+
+        check_parse_errors(&parser);
+        program
     }
 
     fn check_identifier(exp: &Identifier, value: &str) {

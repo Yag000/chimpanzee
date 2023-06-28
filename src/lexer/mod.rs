@@ -67,6 +67,7 @@ impl Lexer {
             '}' => Token::RSquirly,
             '[' => Token::LSquare,
             ']' => Token::RSquare,
+            ':' => Token::Colon,
             '"' => {
                 let string = self.read_string();
                 Token::String(string)
@@ -189,6 +190,7 @@ mod tests {
             "foobar"
             "foo bar"
             [1, 2];
+            {"foo": "bar"}
         "#;
 
         let mut lexer = Lexer::new(input);
@@ -280,6 +282,12 @@ mod tests {
             Token::Int(String::from("2")),
             Token::RSquare,
             Token::Semicolon,
+            //
+            Token::LSquirly,
+            Token::String(String::from("foo")),
+            Token::Colon,
+            Token::String(String::from("bar")),
+            Token::RSquirly,
             //
             Token::Eof,
         ];

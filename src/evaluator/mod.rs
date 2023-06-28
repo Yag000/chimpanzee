@@ -1,11 +1,12 @@
 pub mod enviroment;
 pub mod object;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
     parser::ast::{
-        BlockStatement, Conditional, Expression, Identifier, IndexExpression, Primitive, Statement,
+        BlockStatement, Conditional, Expression, HashMapLiteral, Identifier, IndexExpression,
+        Primitive, Statement,
     },
     Program, Token,
 };
@@ -133,6 +134,7 @@ impl Evaluator {
             Expression::IndexExpression(index_expression) => {
                 self.eval_index_expression(index_expression)
             }
+            Expression::HashMapLiteral(hashmap) => self.eval_hashmap_literal(hashmap),
         }
     }
 
@@ -308,6 +310,7 @@ impl Evaluator {
                 }
                 x[*y as usize].clone()
             }
+            (Object::HASHMAP(x), _) => self.eval_hashmap_index_expression(x, &index),
             _ => Object::ERROR(format!(
                 "index operator not supported: {}[{}]",
                 left.get_type(),
@@ -315,12 +318,45 @@ impl Evaluator {
             )),
         }
     }
+    fn eval_hashmap_index_expression(
+        &self,
+        hashmap: &HashMap<Object, Object>,
+        index: &Object,
+    ) -> Object {
+        if !index.is_hashable() {
+            return Object::ERROR(format!("unusable as hash key: {}", index.get_type()));
+        }
+        match hashmap.get(index) {
+            Some(x) => x.clone(),
+            None => NULL,
+        }
+    }
+    fn eval_hashmap_literal(&mut self, hashmap_pairs: &HashMapLiteral) -> Object {
+        let mut hashmap = HashMap::new();
+        for (key, value) in hashmap_pairs.pairs.clone() {
+            let key = self.eval_expression(&key);
+            if Self::is_error(&key) {
+                return key;
+            }
+            if !key.is_hashable() {
+                return Object::ERROR(format!("unusable as hash key: {}", key.get_type()));
+            }
+
+            let value = self.eval_expression(&value);
+            if Self::is_error(&value) {
+                return value;
+            }
+            hashmap.insert(key, value);
+        }
+        Object::HASHMAP(hashmap)
+    }
 }
 #[cfg(test)]
 mod tests {
 
     use super::*;
     use crate::{Lexer, Parser};
+    use std::collections::HashMap;
 
     #[test]
     fn test_eval_integer_expression() {
@@ -458,6 +494,10 @@ mod tests {
             ),
             ("foobar", "identifier not found: foobar"),
             (r#""Hello" - "World""#, "unknown operator: STRING - STRING"),
+            (
+                r#"{"name": "Monkey"}[fn(x) { x }];"#,
+                "unusable as hash key: FUNCTION",
+            ),
         ];
 
         for (input, expected) in tests {
@@ -722,6 +762,65 @@ mod tests {
         let expected = vec![2, 4, 6, 8];
 
         test_array_object(test_eval(input), expected);
+    }
+
+    #[test]
+    fn test_evaluate_hash_literals() {
+        let input = r#"
+        let two = "two";
+        {
+            "one": 10 - 9,
+            two: 1 + 1,
+            "thr" + "ee": 6 / 2,
+            4: 4,
+            true: 5,
+            false: 6
+        }
+        "#;
+
+        let mut expected = HashMap::new();
+        expected.insert(Object::STRING("one".to_string()), Object::INTEGER(1));
+        expected.insert(Object::STRING("two".to_string()), Object::INTEGER(2));
+        expected.insert(Object::STRING("three".to_string()), Object::INTEGER(3));
+        expected.insert(Object::INTEGER(4), Object::INTEGER(4));
+        expected.insert(Object::BOOLEAN(true), Object::INTEGER(5));
+        expected.insert(Object::BOOLEAN(false), Object::INTEGER(6));
+
+        let evaluated = test_eval(input);
+        match evaluated {
+            Object::HASHMAP(hash) => {
+                assert_eq!(hash.len(), expected.len());
+
+                for (expected_key, expected_value) in expected {
+                    match hash.get(&expected_key) {
+                        Some(value) => assert_eq!(value, &expected_value),
+                        None => assert!(false, "No pair for given key in Pairs"),
+                    }
+                }
+            }
+            _ => assert!(false, "The object is not a hash"),
+        }
+    }
+
+    #[test]
+    fn test_hash_index_expressions() {
+        let tests = vec![
+            (r#"{"foo": 5}["foo"]"#, Some(5)),
+            (r#"{"foo": 5}["bar"]"#, None),
+            (r#"let key = "foo"; {"foo": 5}[key]"#, Some(5)),
+            (r#"{}["foo"]"#, None),
+            (r#"{5: 5}[5]"#, Some(5)),
+            (r#"{true: 5}[true]"#, Some(5)),
+            (r#"{false: 5}[false]"#, Some(5)),
+        ];
+
+        for (input, expected) in tests {
+            println!("{}", input);
+            match expected {
+                Some(x) => test_integer_object(test_eval(input), x),
+                None => test_null_object(test_eval(input)),
+            }
+        }
     }
 
     fn test_eval(input: &str) -> Object {

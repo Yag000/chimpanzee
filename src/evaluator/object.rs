@@ -1,4 +1,4 @@
-use std::{cell::RefCell, cmp::Ordering, fmt::Display, rc::Rc};
+use std::{cell::RefCell, cmp::Ordering, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
 
 use crate::parser::ast::{BlockStatement, Identifier};
 
@@ -13,6 +13,7 @@ pub enum Object {
     FUNCTION(Function),
     BUILTIN(BuiltinFunction),
     ARRAY(Vec<Object>),
+    HASHMAP(HashMap<Object, Object>),
     NULL,
 }
 
@@ -27,7 +28,25 @@ impl Display for Object {
             Object::BUILTIN(o) => write!(f, "{o}"),
             Object::ERROR(s) => write!(f, "ERROR: {s}"),
             Object::ARRAY(a) => Self::format_array(f, a),
+            Object::HASHMAP(h) => {
+                let mut values: Vec<String> = h.iter().map(|(k, v)| format!("{k}: {v}")).collect();
+                values.sort();
+                write!(f, "{{{}}}", values.join(", "))
+            }
             Object::NULL => write!(f, "null"),
+        }
+    }
+}
+
+impl Eq for Object {}
+
+impl Hash for Object {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Object::INTEGER(i) => i.hash(state),
+            Object::BOOLEAN(b) => b.hash(state),
+            Object::STRING(s) => s.hash(state),
+            _ => "".hash(state),
         }
     }
 }
@@ -43,6 +62,7 @@ impl Object {
             Object::FUNCTION(_) => String::from("FUNCTION"),
             Object::BUILTIN(_) => String::from("BUILTIN"),
             Object::ARRAY(_) => String::from("ARRAY"),
+            Object::HASHMAP(_) => String::from("HASHMAP"),
             Object::NULL => String::from("NULL"),
         }
     }
@@ -50,6 +70,13 @@ impl Object {
     fn format_array(f: &mut std::fmt::Formatter<'_>, array: &[Object]) -> std::fmt::Result {
         let values: Vec<String> = array.iter().map(|o| o.to_string()).collect();
         write!(f, "[{}]", values.join(", "))
+    }
+
+    pub fn is_hashable(&self) -> bool {
+        matches!(
+            self,
+            Object::INTEGER(_) | Object::BOOLEAN(_) | Object::STRING(_)
+        )
     }
 }
 
@@ -210,5 +237,65 @@ impl BuiltinFunction {
             )));
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_hashing_objects() {
+        let mut map = HashMap::new();
+        let one = Object::INTEGER(1);
+        let two = Object::INTEGER(2);
+        let one_again = Object::INTEGER(1);
+        let string_1 = Object::STRING("one".to_string());
+        let string_2 = Object::STRING("two".to_string());
+        let string_1_again = Object::STRING("one".to_string());
+        let true_1 = Object::BOOLEAN(true);
+        let false_1 = Object::BOOLEAN(false);
+        let true_2 = Object::BOOLEAN(true);
+
+        map.insert(one.clone(), "one".to_string());
+        map.insert(two.clone(), "two".to_string());
+        map.insert(one_again.clone(), "one again".to_string());
+        map.insert(string_1.clone(), "one".to_string());
+        map.insert(string_2.clone(), "two".to_string());
+        map.insert(string_1_again.clone(), "one again".to_string());
+        map.insert(true_1.clone(), "true".to_string());
+        map.insert(false_1.clone(), "false".to_string());
+        map.insert(true_2.clone(), "true again".to_string());
+
+        assert_eq!(map.len(), 6);
+        assert_eq!(map.get(&one), Some(&"one again".to_string()));
+        assert_eq!(map.get(&two), Some(&"two".to_string()));
+        assert_eq!(map.get(&one_again), Some(&"one again".to_string()));
+        assert_eq!(map.get(&string_1), Some(&"one again".to_string()));
+        assert_eq!(map.get(&string_2), Some(&"two".to_string()));
+        assert_eq!(map.get(&string_1_again), Some(&"one again".to_string()));
+        assert_eq!(map.get(&true_1), Some(&"true again".to_string()));
+        assert_eq!(map.get(&false_1), Some(&"false".to_string()));
+        assert_eq!(map.get(&true_2), Some(&"true again".to_string()));
+    }
+
+    #[test]
+    fn tests_is_hashable() {
+        let one = Object::INTEGER(1);
+        let two = Object::INTEGER(2);
+        let string_1 = Object::STRING("one".to_string());
+        let string_2 = Object::STRING("two".to_string());
+        let true_1 = Object::BOOLEAN(true);
+        let false_1 = Object::BOOLEAN(false);
+        let return_object = Object::RETURN(Box::new(Object::INTEGER(1)));
+
+        assert!(one.is_hashable());
+        assert!(two.is_hashable());
+        assert!(string_1.is_hashable());
+        assert!(string_2.is_hashable());
+        assert!(true_1.is_hashable());
+        assert!(false_1.is_hashable());
+        assert!(!return_object.is_hashable());
     }
 }
