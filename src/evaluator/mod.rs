@@ -78,7 +78,7 @@ impl Evaluator {
                     return value;
                 }
                 self.env.borrow_mut().set(x.name.to_string(), value.clone());
-                value
+                NULL
             }
         }
     }
@@ -509,15 +509,19 @@ mod tests {
     #[test]
     fn test_let_stateemtns() {
         let tests = vec![
-            ("let a = 5; a;", 5),
-            ("let a = 5 * 5; a;", 25),
-            ("let a = 5; let b = a; b;", 5),
-            ("let a = 5; let b = a; let c = a + b + 5; c;", 15),
+            ("let a = 5; a;", Some(5)),
+            ("let a = 5 * 5; a;", Some(25)),
+            ("let a = 5; let b = a; b;", Some(5)),
+            ("let a = 5; let b = a; let c = a + b + 5; c;", Some(15)),
+            ("let a = 5;", None),
         ];
 
         for (input, expected) in tests {
             let evaluated = test_eval(input);
-            test_integer_object(evaluated, expected);
+            match expected {
+                Some(expected) => test_integer_object(evaluated, expected),
+                None => test_null_object(evaluated),
+            }
         }
     }
 
