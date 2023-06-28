@@ -1,5 +1,21 @@
 use interpreter_monkey::{evaluator::Evaluator, Lexer, Parser, Token};
-use std::io::{self, Write};
+use std::{
+    env,
+    error::Error,
+    fs,
+    io::{self, Write},
+};
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let is_repl = args.len() == 1;
+    if is_repl {
+        repl();
+    } else {
+        let filename = &args[1];
+        run_file(filename);
+    }
+}
 
 #[allow(dead_code)]
 fn rlpl() {
@@ -114,6 +130,36 @@ fn print_parse_errors(errors: Vec<String>) {
     }
 }
 
-fn main() {
-    repl();
+fn run_file(file_path: &str) {
+    let contents = match interpret_file(file_path) {
+        Ok(contents) => contents,
+        Err(error) => {
+            eprintln!("{error}");
+            return;
+        }
+    };
+
+    let lexer = Lexer::new(&contents);
+    let mut parser = Parser::new(lexer);
+    let program = parser.parse_program();
+    if !parser.errors.is_empty() {
+        print_parse_errors(parser.errors);
+        return;
+    }
+    let mut evaluator = Evaluator::new();
+
+    match evaluator.eval(&program) {
+        interpreter_monkey::evaluator::object::Object::ERROR(error) => {
+            eprintln!("{error}");
+        }
+        _ => {}
+    }
+}
+
+fn interpret_file(file_path: &str) -> Result<String, Box<dyn Error>> {
+    if !file_path.ends_with(".mk") {
+        Err(String::from("Error: File must end with .mk").into())
+    } else {
+        Ok(fs::read_to_string(file_path)?)
+    }
 }
