@@ -231,12 +231,12 @@ impl Display for Conditional {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut exp = String::new();
         exp.push_str(&format!(
-            "if {}{{{}}}",
+            "if {}{{\n{}}}",
             self.condition.as_ref(),
             self.consequence
         ));
         match &self.alternative {
-            Some(alternative) => exp.push_str(&format!(" else {{{alternative}}}")),
+            Some(alternative) => exp.push_str(&format!(" else {{\n{alternative}}}")),
             None => (),
         }
         write!(f, "{exp}")
@@ -318,7 +318,7 @@ impl Display for FunctionLiteral {
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>();
-        write!(f, "fn({}){{{}}}", parameters.join(", "), self.body)
+        write!(f, "fn({}){{\n{}}}", parameters.join(", "), self.body)
     }
 }
 

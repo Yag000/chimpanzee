@@ -152,12 +152,12 @@ fn run_file(file_path: &str) {
         interpreter_monkey::evaluator::object::Object::ERROR(error) => {
             eprintln!("{error}");
         }
-        _ => {}
+        _ => (),
     }
 }
 
 fn interpret_file(file_path: &str) -> Result<String, Box<dyn Error>> {
-    if !file_path.ends_with(".mk") {
+    if !file_path.ends_with(".monkey") {
         Err(String::from("Error: File must end with .monkey").into())
     } else {
         Ok(fs::read_to_string(file_path)?)
