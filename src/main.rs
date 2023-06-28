@@ -158,7 +158,7 @@ fn run_file(file_path: &str) {
 
 fn interpret_file(file_path: &str) -> Result<String, Box<dyn Error>> {
     if !file_path.ends_with(".mk") {
-        Err(String::from("Error: File must end with .mk").into())
+        Err(String::from("Error: File must end with .monkey").into())
     } else {
         Ok(fs::read_to_string(file_path)?)
     }
