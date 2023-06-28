@@ -1,2 +1,2 @@
 # Interpreter-Monkey
-Interpreter for Monekey in rust (following [Thorsten's book](https://interpreterbook.com/))
+Interpreter for Monkey in rust (following [Thorsten's book](https://interpreterbook.com/))
