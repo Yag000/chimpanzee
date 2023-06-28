@@ -105,6 +105,7 @@ pub enum BuiltinFunction {
     LAST,
     REST,
     PUSH,
+    PUTS,
 }
 
 impl Display for BuiltinFunction {
@@ -115,6 +116,7 @@ impl Display for BuiltinFunction {
             BuiltinFunction::LAST => write!(f, "last"),
             BuiltinFunction::REST => write!(f, "rest"),
             BuiltinFunction::PUSH => write!(f, "push"),
+            BuiltinFunction::PUTS => write!(f, "puts"),
         }
     }
 }
@@ -140,6 +142,7 @@ impl BuiltinFunction {
             "last" => Some(Object::BUILTIN(BuiltinFunction::LAST)),
             "rest" => Some(Object::BUILTIN(BuiltinFunction::REST)),
             "push" => Some(Object::BUILTIN(BuiltinFunction::PUSH)),
+            "puts" => Some(Object::BUILTIN(BuiltinFunction::PUTS)),
             _ => None,
         }
     }
@@ -151,6 +154,7 @@ impl BuiltinFunction {
             BuiltinFunction::LAST => Self::call_last(args),
             BuiltinFunction::REST => Self::call_rest(args),
             BuiltinFunction::PUSH => Self::call_push(args),
+            BuiltinFunction::PUTS => Self::call_puts(args),
         }
     }
 
@@ -228,6 +232,13 @@ impl BuiltinFunction {
                 args[0].get_type()
             )),
         })
+    }
+
+    fn call_puts(args: Vec<Object>) -> Object {
+        for arg in args {
+            println!("{}", arg);
+        }
+        NULL
     }
 
     fn handle_number_of_arguments(got: usize, expected: usize) -> Option<Object> {
