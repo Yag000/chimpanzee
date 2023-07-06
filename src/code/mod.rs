@@ -48,6 +48,7 @@ impl Instructions {
 
         match operand_count {
             1 => format!("{} {}", def.operand, operands[0]),
+            0 => format!("{}", def.operand),
             _ => format!("Unhandeled operand_count for {}", def.operand),
         }
     }
@@ -64,13 +65,15 @@ pub struct OperandDefinition {
 
 #[derive(Debug, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum Opcode {
-    Opconstant,
+    Constant,
+    Add,
 }
 
 impl Display for Opcode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let op = match self {
-            Opcode::Opconstant => "Opconstant",
+            Opcode::Constant => "OpConstant",
+            Opcode::Add => "OpAdd",
         };
         write!(f, "{}", op)
     }
@@ -79,9 +82,13 @@ impl Display for Opcode {
 impl Opcode {
     pub fn lookup(&self) -> OperandDefinition {
         match self {
-            Opcode::Opconstant => OperandDefinition {
-                operand: Opcode::Opconstant,
+            Opcode::Constant => OperandDefinition {
+                operand: Opcode::Constant,
                 operand_widths: vec![2],
+            },
+            Opcode::Add => OperandDefinition {
+                operand: Opcode::Add,
+                operand_widths: vec![],
             },
         }
     }
@@ -131,11 +138,14 @@ mod tests {
 
     #[test]
     fn test_make() {
-        let tests = vec![(
-            Opcode::Opconstant,
-            vec![65534],
-            vec![Opcode::Opconstant as u8, 255, 254],
-        )];
+        let tests = vec![
+            (
+                Opcode::Constant,
+                vec![65534],
+                vec![Opcode::Constant as u8, 255, 254],
+            ),
+            (Opcode::Add, vec![], vec![Opcode::Add as u8]),
+        ];
 
         for (op, operands, expected) in tests {
             let instructions = op.make(operands);
@@ -157,9 +167,9 @@ mod tests {
     #[test]
     fn test_instructions_string() {
         let instructions = vec![
-            Opcode::Opconstant.make(vec![1]),
-            Opcode::Opconstant.make(vec![2]),
-            Opcode::Opconstant.make(vec![65535]),
+            Opcode::Add.make(vec![1]),
+            Opcode::Constant.make(vec![2]),
+            Opcode::Constant.make(vec![65535]),
         ];
 
         let mut test_instruction = Instructions::default();
@@ -167,14 +177,14 @@ mod tests {
             test_instruction.append(instruction);
         }
 
-        let expected = "0000 Opconstant 1\n0003 Opconstant 2\n0006 Opconstant 65535\n";
+        let expected = "0000 OpAdd\n0001 OpConstant 2\n0004 OpConstant 65535\n";
 
         assert_eq!(test_instruction.to_string(), expected);
     }
 
     #[test]
     fn test_read_operands() {
-        let tests = vec![(Opcode::Opconstant, vec![65535], 2)];
+        let tests = vec![(Opcode::Constant, vec![65535], 2)];
 
         for (op, operands, bytes_read) in tests {
             let instructions = op.make(operands.clone());

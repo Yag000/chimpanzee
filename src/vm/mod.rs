@@ -35,10 +35,23 @@ impl VM {
             let op = Opcode::from_u8(self.instructions.data[ip])
                 .ok_or(format!("Unknown opcode {}", self.instructions.data[ip]))?;
             match op {
-                Opcode::Opconstant => {
+                Opcode::Constant => {
                     let const_index = read_u16(&self.instructions.data[ip + 1..]);
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
+                }
+                Opcode::Add => {
+                    let left = self.pop().ok_or("Stack underflow".to_string())?;
+                    let right = self.pop().ok_or("Stack underflow".to_string())?;
+
+                    let left = self
+                        .cast_to_integer(left)
+                        .ok_or("Not an integer".to_string())?;
+                    let right = self
+                        .cast_to_integer(right)
+                        .ok_or("Not an integer".to_string())?;
+
+                    self.push(Rc::new(Object::INTEGER(left + right)))?;
                 }
             }
             ip += 1;
@@ -56,8 +69,24 @@ impl VM {
         }
     }
 
+    fn pop(&mut self) -> Option<Rc<Object>> {
+        if self.sp == 0 {
+            None
+        } else {
+            self.sp -= 1;
+            self.stack.pop()
+        }
+    }
+
     fn stack_top(&self) -> Option<Rc<Object>> {
         self.stack.get(self.sp - 1).cloned()
+    }
+
+    fn cast_to_integer(&self, obj: Rc<Object>) -> Option<i64> {
+        match *obj {
+            Object::INTEGER(i) => Some(i),
+            _ => None,
+        }
     }
 }
 
@@ -106,7 +135,7 @@ mod tests {
             },
             VmTestCase {
                 input: "1 + 2".to_string(),
-                expected: Object::INTEGER(2),
+                expected: Object::INTEGER(3),
             },
         ];
         run_vm_tests(tests);

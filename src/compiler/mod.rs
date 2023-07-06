@@ -2,7 +2,7 @@ use crate::{
     code::{Instructions, Opcode},
     evaluator::object::Object,
     parser::ast::{Expression, Primitive, Statement},
-    Program,
+    Program, Token,
 };
 
 pub struct Compiler {
@@ -44,6 +44,7 @@ impl Compiler {
             Expression::Infix(infix) => {
                 self.compile_expression(*infix.left)?;
                 self.compile_expression(*infix.right)?;
+                self.compile_infix_operator(infix.token)?;
                 Ok(())
             }
             Expression::Primitive(primitive) => self.compile_primitive(primitive),
@@ -56,11 +57,19 @@ impl Compiler {
             Primitive::IntegerLiteral(i) => {
                 let integer = Object::INTEGER(i);
                 let pos = self.add_constant(integer);
-                self.emit(Opcode::Opconstant, vec![pos]);
+                self.emit(Opcode::Constant, vec![pos]);
                 Ok(())
             }
             _ => unimplemented!(),
         }
+    }
+
+    fn compile_infix_operator(&mut self, operator: Token) -> Result<(), String> {
+        match operator {
+            Token::Plus => self.emit(Opcode::Add, vec![]),
+            _ => return Err(format!("Unknown operator: {:?}", operator)),
+        };
+        Ok(())
     }
 
     fn add_constant(&mut self, obj: Object) -> i32 {
@@ -120,8 +129,9 @@ pub mod tests {
             input: "1 + 2".to_string(),
             expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
             expected_instructions: flatten_instructions(vec![
-                Opcode::Opconstant.make(vec![0]),
-                Opcode::Opconstant.make(vec![1]),
+                Opcode::Constant.make(vec![0]),
+                Opcode::Constant.make(vec![1]),
+                Opcode::Add.make(vec![]),
             ]),
         }];
 
@@ -150,7 +160,14 @@ pub mod tests {
                         test.expected_instructions, bytecode.instructions
                     );
                     test_instructions(&bytecode.instructions, &test.expected_instructions);
-                    test_constants(&bytecode.constants, &test.expected_constants.iter().map(|x| Rc::new(x.clone())).collect());
+                    test_constants(
+                        &bytecode.constants,
+                        &test
+                            .expected_constants
+                            .iter()
+                            .map(|x| Rc::new(x.clone()))
+                            .collect(),
+                    );
                 }
                 Err(err) => panic!("compiler error: {}", err),
             }
