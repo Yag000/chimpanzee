@@ -1,4 +1,5 @@
 /target
 writing_an_interpreter_in_go_1.7/
+/writing_a_compiler_in_go_1.2/
 *.pdf
 *.zip
