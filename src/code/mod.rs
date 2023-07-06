@@ -110,7 +110,7 @@ impl Opcode {
         for width in def.operand_widths.iter() {
             match width {
                 2 => {
-                    operands.push(BigEndian::read_u16(&ins[offset..offset + 2]) as i32);
+                    operands.push(read_u16(&ins[offset..offset + 2]) as i32);
                     offset += 2;
                 }
                 _ => panic!("Unrecognized operand width: {width}"),
@@ -119,6 +119,10 @@ impl Opcode {
 
         (operands, offset as i32)
     }
+}
+
+pub fn read_u16(data: &[u8]) -> u16 {
+    BigEndian::read_u16(&data)
 }
 
 #[cfg(test)]
@@ -158,8 +162,8 @@ mod tests {
             Opcode::Opconstant.make(vec![65535]),
         ];
 
-        let mut  test_instruction = Instructions::default();
-        for instruction in instructions{
+        let mut test_instruction = Instructions::default();
+        for instruction in instructions {
             test_instruction.append(instruction);
         }
 

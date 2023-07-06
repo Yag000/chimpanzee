@@ -1,5 +1,3 @@
-use std::{borrow::Borrow, primitive};
-
 use crate::{
     code::{Instructions, Opcode},
     evaluator::object::Object,
@@ -19,7 +17,7 @@ impl Default for Compiler {
 }
 
 impl Compiler {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Compiler {
             instructions: Instructions::default(),
             constants: vec![],
@@ -82,14 +80,14 @@ impl Compiler {
         pos_new_instruction as i32
     }
 
-    fn bytecode(&self) -> Bytecode {
+    pub fn bytecode(&self) -> Bytecode {
         Bytecode::new(self.instructions.clone(), self.constants.clone())
     }
 }
 
 pub struct Bytecode {
-    instructions: Instructions,
-    constants: Vec<Object>,
+    pub instructions: Instructions,
+    pub constants: Vec<Object>,
 }
 
 impl Bytecode {
@@ -102,7 +100,9 @@ impl Bytecode {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
+
+    use std::rc::Rc;
 
     use crate::{code::Opcode, Lexer, Parser, Program};
 
@@ -150,20 +150,20 @@ mod tests {
                         test.expected_instructions, bytecode.instructions
                     );
                     test_instructions(&bytecode.instructions, &test.expected_instructions);
-                    test_constants(&bytecode.constants, &test.expected_constants);
+                    test_constants(&bytecode.constants, &test.expected_constants.iter().map(|x| Rc::new(x.clone())).collect());
                 }
                 Err(err) => panic!("compiler error: {}", err),
             }
         }
     }
 
-    fn parse(input: &str) -> Program {
+    pub fn parse(input: &str) -> Program {
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         parser.parse_program()
     }
 
-    fn test_instructions(instructions: &Instructions, expected: &Instructions) {
+    pub fn test_instructions(instructions: &Instructions, expected: &Instructions) {
         assert_eq!(
             instructions.data.len(),
             expected.data.len(),
@@ -176,7 +176,7 @@ mod tests {
         );
     }
 
-    fn test_constants(constants: &Vec<Object>, expected: &Vec<Object>) {
+    pub fn test_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
         assert_eq!(
             constants.len(),
             expected.len(),
@@ -193,7 +193,7 @@ mod tests {
         }
     }
 
-    fn test_integer_object(integer: &i64, expected: &Object) {
+    pub fn test_integer_object(integer: &i64, expected: &Object) {
         match expected {
             Object::INTEGER(i) => assert_eq!(
                 integer, i,
