@@ -75,7 +75,7 @@ impl Display for Opcode {
             Opcode::Constant => "OpConstant",
             Opcode::Add => "OpAdd",
         };
-        write!(f, "{}", op)
+        write!(f, "{op}")
     }
 }
 

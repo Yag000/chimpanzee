@@ -67,7 +67,7 @@ impl Compiler {
     fn compile_infix_operator(&mut self, operator: Token) -> Result<(), String> {
         match operator {
             Token::Plus => self.emit(Opcode::Add, vec![]),
-            _ => return Err(format!("Unknown operator: {:?}", operator)),
+            _ => return Err(format!("Unknown operator: {operator}")),
         };
         Ok(())
     }
@@ -79,7 +79,7 @@ impl Compiler {
 
     fn emit(&mut self, opcode: Opcode, operands: Vec<i32>) -> i32 {
         let instruction = opcode.make(operands);
-         self.add_instruction(instruction)
+        self.add_instruction(instruction)
     }
 
     fn add_instruction(&mut self, instruction: Instructions) -> i32 {

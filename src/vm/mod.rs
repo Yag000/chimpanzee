@@ -19,7 +19,7 @@ pub struct VM {
 }
 
 impl VM {
-    fn new(bytecode: Bytecode) -> Self {
+    pub fn new(bytecode: Bytecode) -> Self {
         Self {
             instructions: bytecode.instructions,
             constants: bytecode.constants.into_iter().map(Rc::new).collect(), // TODO: Improve this
@@ -45,10 +45,10 @@ impl VM {
                     let right = self.pop().ok_or("Stack underflow".to_string())?;
 
                     let left = self
-                        .cast_to_integer(left)
+                        .cast_to_integer(&left)
                         .ok_or("Not an integer".to_string())?;
                     let right = self
-                        .cast_to_integer(right)
+                        .cast_to_integer(&right)
                         .ok_or("Not an integer".to_string())?;
 
                     self.push(Rc::new(Object::INTEGER(left + right)))?;
@@ -78,12 +78,12 @@ impl VM {
         }
     }
 
-    fn stack_top(&self) -> Option<Rc<Object>> {
+    pub fn stack_top(&self) -> Option<Rc<Object>> {
         self.stack.get(self.sp - 1).cloned()
     }
 
-    fn cast_to_integer(&self, obj: Rc<Object>) -> Option<i64> {
-        match *obj {
+    fn cast_to_integer(&self, obj: &Rc<Object>) -> Option<i64> {
+        match **obj {
             Object::INTEGER(i) => Some(i),
             _ => None,
         }

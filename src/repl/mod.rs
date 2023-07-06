@@ -1,4 +1,6 @@
+use crate::compiler::Compiler;
 use crate::evaluator::object::Object;
+use crate::vm::VM;
 use crate::{evaluator::Evaluator, Lexer, Parser, Token};
 use std::io::{self, Write};
 use std::{error::Error, fs};
@@ -38,6 +40,7 @@ pub fn rppl() {
     });
 }
 
+#[allow(dead_code)]
 pub fn repl_interpreter() {
     greeting_message();
     print_entry_header();
@@ -52,6 +55,42 @@ pub fn repl_interpreter() {
             }
             let evaluated = evaluator.eval(&program);
             println!("{evaluated}");
+
+            print_entry_header();
+        }
+    });
+}
+
+pub fn repl_compiler() {
+    greeting_message();
+    print_entry_header();
+    std::io::stdin().lines().for_each(|line| {
+        if let Ok(line) = line {
+            let lexer = Lexer::new(&line);
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            if !parser.errors.is_empty() {
+                print_parse_errors(parser.errors);
+            }
+            let mut compiler = Compiler::new();
+            match compiler.compile(program) {
+                Ok(()) => {
+                    let mut vm = VM::new(compiler.bytecode());
+                    match vm.run() {
+                        Ok(()) => {
+                            let stack_top = match vm.stack_top() {
+                                Some(x) => x.to_string(),
+                                None => "Error: No stack top".to_string(),
+                            };
+                            println!("{stack_top}");
+                        }
+                        Err(e) => println!("Bytecode evaluation error: {e}"),
+                    };
+                }
+                Err(e) => {
+                    println!("Compilation failed: {e}");
+                }
+            }
 
             print_entry_header();
         }
@@ -140,9 +179,9 @@ pub fn run_file(file_path: &str) {
 }
 
 fn read_file_contents(file_path: &str) -> Result<String, Box<dyn Error>> {
-    if !file_path.ends_with(".monkey") {
-        Err(String::from("Error: File must end with .monkey").into())
-    } else {
+    if file_path.ends_with(".monkey") {
         Ok(fs::read_to_string(file_path)?)
+    } else {
+        Err(String::from("Error: File must end with .monkey").into())
     }
 }
