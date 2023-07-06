@@ -58,6 +58,8 @@ Integers support the following operators:
 - `!=`: inequality
 - `<`: less than
 - `>`: greater than
+- `<=`: less than or equal to
+- `>=`: greater than or equal to
 
 #### Booleans
 
@@ -75,9 +77,6 @@ Booleans support the following operators:
 - `==`: equality
 - `!=`: inequality
 - `!`: negation
-
-In the future the following operators will be supported:
-
 - `&&`: and
 - `||`: or
 

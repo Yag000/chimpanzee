@@ -57,8 +57,38 @@ impl Lexer {
             }
             '/' => Token::Slash,
             '*' => Token::Asterisk,
-            '<' => Token::LT,
-            '>' => Token::GT,
+            '<' => {
+                if self.peek_char() == '=' {
+                    self.read_char();
+                    Token::LTE
+                } else {
+                    Token::LT
+                }
+            }
+            '>' => {
+                if self.peek_char() == '=' {
+                    self.read_char();
+                    Token::GTE
+                } else {
+                    Token::GT
+                }
+            }
+            '&' => {
+                if self.peek_char() == '&' {
+                    self.read_char();
+                    Token::And
+                } else {
+                    Token::Illegal
+                }
+            }
+            '|' => {
+                if self.peek_char() == '|' {
+                    self.read_char();
+                    Token::Or
+                } else {
+                    Token::Illegal
+                }
+            }
             ';' => Token::Semicolon,
             '(' => Token::LParen,
             ')' => Token::RParen,
@@ -191,6 +221,8 @@ mod tests {
             "foo bar"
             [1, 2];
             {"foo": "bar"}
+            true && false || true && false;
+            12 <= 12 && 12 >= 12;
         "#;
 
         let mut lexer = Lexer::new(input);
@@ -288,6 +320,24 @@ mod tests {
             Token::Colon,
             Token::String(String::from("bar")),
             Token::RSquirly,
+            //
+            Token::True,
+            Token::And,
+            Token::False,
+            Token::Or,
+            Token::True,
+            Token::And,
+            Token::False,
+            Token::Semicolon,
+            //
+            Token::Int(String::from("12")),
+            Token::LTE,
+            Token::Int(String::from("12")),
+            Token::And,
+            Token::Int(String::from("12")),
+            Token::GTE,
+            Token::Int(String::from("12")),
+            Token::Semicolon,
             //
             Token::Eof,
         ];

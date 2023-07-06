@@ -74,7 +74,11 @@ impl Expression {
                 | Token::Equal
                 | Token::NotEqual
                 | Token::LT
-                | Token::GT => {
+                | Token::GT
+                | Token::LTE
+                | Token::GTE
+                | Token::And
+                | Token::Or => {
                     parser.next_token(); // TODO: Solve this.
                                          //  This is absolutely awful, I need to peek the next token
                                          //  only if a infix operator is found, I want to also
@@ -577,9 +581,9 @@ pub enum Precedence {
 pub fn precedence_of(token: &Token) -> Precedence {
     match token {
         Token::Equal | Token::NotEqual => Precedence::Equals,
-        Token::LT | Token::GT => Precedence::LessGreater,
-        Token::Plus | Token::Minus => Precedence::Sum,
-        Token::Slash | Token::Asterisk => Precedence::Product,
+        Token::LT | Token::GT | Token::LTE | Token::GTE => Precedence::LessGreater,
+        Token::Plus | Token::Minus | Token::Or => Precedence::Sum,
+        Token::Slash | Token::Asterisk | Token::And => Precedence::Product,
         Token::LParen => Precedence::Call,
         Token::LSquare => Precedence::Index,
         _ => Precedence::Lowest,
