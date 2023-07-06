@@ -4,6 +4,7 @@ pub mod evaluator;
 pub mod lexer;
 pub mod parser;
 pub mod vm;
+pub mod repl;
 
 pub use lexer::token::Token;
 pub use lexer::Lexer;
