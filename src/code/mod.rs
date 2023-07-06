@@ -24,7 +24,7 @@ impl Display for Instructions {
                 None => panic!("ERROR: Unknown opcode: {}", self.data[i]),
             };
             let (operands, read) = Opcode::read_operands(&def, &self.data[i + 1..]);
-            write!(f, "{:04} {}\n", i, self.format_instruction(&def, &operands))?;
+            writeln!(f, "{:04} {}", i, self.format_instruction(&def, &operands))?;
             i += 1 + read as usize;
         }
         Ok(())
@@ -129,7 +129,7 @@ impl Opcode {
 }
 
 pub fn read_u16(data: &[u8]) -> u16 {
-    BigEndian::read_u16(&data)
+    BigEndian::read_u16(data)
 }
 
 #[cfg(test)]

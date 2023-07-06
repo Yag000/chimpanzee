@@ -79,8 +79,7 @@ impl Compiler {
 
     fn emit(&mut self, opcode: Opcode, operands: Vec<i32>) -> i32 {
         let instruction = opcode.make(operands);
-        let pos = self.add_instruction(instruction);
-        pos
+         self.add_instruction(instruction)
     }
 
     fn add_instruction(&mut self, instruction: Instructions) -> i32 {

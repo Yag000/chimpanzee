@@ -148,11 +148,8 @@ fn run_file(file_path: &str) {
     }
     let mut evaluator = Evaluator::new();
 
-    match evaluator.eval(&program) {
-        interpreter_monkey::evaluator::object::Object::ERROR(error) => {
-            eprintln!("{error}");
-        }
-        _ => (),
+    if let interpreter_monkey::evaluator::object::Object::ERROR(error) = evaluator.eval(&program) {
+        eprintln!("{error}");
     }
 }
 
