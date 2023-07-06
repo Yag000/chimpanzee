@@ -24,7 +24,7 @@ impl VM {
             instructions: bytecode.instructions,
             constants: bytecode.constants.into_iter().map(Rc::new).collect(), // TODO: Improve this
 
-            stack: Vec::with_capacity(STACK_SIZE),
+            stack: vec![Rc::new(Object::NULL); STACK_SIZE],
             sp: 0,
         }
     }
@@ -53,6 +53,9 @@ impl VM {
 
                     self.push(Rc::new(Object::INTEGER(left + right)))?;
                 }
+                Opcode::Pop => {
+                    self.pop();
+                }
             }
             ip += 1;
         }
@@ -63,7 +66,8 @@ impl VM {
         if self.sp >= STACK_SIZE {
             Err("Stack overflow :(, you gotta fix this".to_string())
         } else {
-            self.stack.push(obj);
+            println!("Pushing {:?}, at pos {}", obj, self.sp);
+            self.stack[self.sp] = obj;
             self.sp += 1;
             Ok(())
         }
@@ -74,7 +78,7 @@ impl VM {
             None
         } else {
             self.sp -= 1;
-            self.stack.pop()
+            self.stack.get(self.sp).cloned()
         }
     }
 
@@ -87,6 +91,10 @@ impl VM {
             Object::INTEGER(i) => Some(i),
             _ => None,
         }
+    }
+
+    pub fn last_popped_stack_element(&self) -> Option<Rc<Object>> {
+        self.stack.get(self.sp).cloned()
     }
 }
 
@@ -110,6 +118,7 @@ mod tests {
 
     fn run_vm_tests(tests: Vec<VmTestCase>) {
         for test in tests {
+            println!("Running test: {}", test.input);
             let program = parse(&test.input);
             let mut compiler = Compiler::new();
             compiler.compile(program).unwrap();
@@ -117,7 +126,10 @@ mod tests {
 
             let mut vm = VM::new(bytecode);
             vm.run().unwrap();
-            let got = vm.stack_top().unwrap();
+            println!("Stack: {:?}", vm.stack);
+            println!("SP: {}", vm.sp);
+            println!("Last popped: {:?}", vm.last_popped_stack_element());
+            let got = vm.last_popped_stack_element().unwrap();
             test_constants(&vec![test.expected], &vec![got]);
         }
     }

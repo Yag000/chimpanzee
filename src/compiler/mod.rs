@@ -34,7 +34,11 @@ impl Compiler {
 
     fn compile_statement(&mut self, statement: Statement) -> Result<(), String> {
         match statement {
-            Statement::Expression(s) => self.compile_expression(s),
+            Statement::Expression(s) => {
+                self.compile_expression(s)?;
+                self.emit(Opcode::Pop, vec![]);
+                Ok(())
+            }
             _ => unimplemented!(),
         }
     }
@@ -124,15 +128,28 @@ pub mod tests {
 
     #[test]
     fn test_integer_arithemtic() {
-        let tests = vec![CompilerTestCase {
-            input: "1 + 2".to_string(),
-            expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
-            expected_instructions: flatten_instructions(vec![
-                Opcode::Constant.make(vec![0]),
-                Opcode::Constant.make(vec![1]),
-                Opcode::Add.make(vec![]),
-            ]),
-        }];
+        let tests = vec![
+            CompilerTestCase {
+                input: "1 + 2".to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Add.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "1; 2".to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
 
         run_compiler(tests);
     }

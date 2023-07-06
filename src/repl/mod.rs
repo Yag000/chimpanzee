@@ -78,7 +78,7 @@ pub fn repl_compiler() {
                     let mut vm = VM::new(compiler.bytecode());
                     match vm.run() {
                         Ok(()) => {
-                            let stack_top = match vm.stack_top() {
+                            let stack_top = match vm.last_popped_stack_element() {
                                 Some(x) => x.to_string(),
                                 None => "Error: No stack top".to_string(),
                             };

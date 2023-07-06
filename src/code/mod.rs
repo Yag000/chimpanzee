@@ -67,6 +67,7 @@ pub struct OperandDefinition {
 pub enum Opcode {
     Constant,
     Add,
+    Pop,
 }
 
 impl Display for Opcode {
@@ -74,6 +75,7 @@ impl Display for Opcode {
         let op = match self {
             Opcode::Constant => "OpConstant",
             Opcode::Add => "OpAdd",
+            Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
     }
@@ -88,6 +90,10 @@ impl Opcode {
             },
             Opcode::Add => OperandDefinition {
                 operand: Opcode::Add,
+                operand_widths: vec![],
+            },
+            Opcode::Pop => OperandDefinition {
+                operand: Opcode::Pop,
                 operand_widths: vec![],
             },
         }
