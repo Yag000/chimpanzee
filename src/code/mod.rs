@@ -74,6 +74,16 @@ pub enum Opcode {
     Mul,
     Div,
 
+    // Boolean
+    True,
+    False,
+    GreaterThan,
+    GreaterEqualThan,
+    Equal,
+    NotEqual,
+    Or,
+    And,
+
     // Stack
     Pop,
 }
@@ -86,6 +96,14 @@ impl Display for Opcode {
             Opcode::Sub => "OpSub",
             Opcode::Mul => "OpMul",
             Opcode::Div => "OpDiv",
+            Opcode::True => "OpTrue",
+            Opcode::False => "OpFalse",
+            Opcode::GreaterThan => "OpGreaterThan",
+            Opcode::GreaterEqualThan => "OpGreaterEqualThan",
+            Opcode::Equal => "OpEqual",
+            Opcode::NotEqual => "OpNotEqual",
+            Opcode::Or => "OpOr",
+            Opcode::And => "OpAnd",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -113,6 +131,38 @@ impl Opcode {
             },
             Opcode::Div => OperandDefinition {
                 operand: Opcode::Div,
+                operand_widths: vec![],
+            },
+            Opcode::True => OperandDefinition {
+                operand: Opcode::True,
+                operand_widths: vec![],
+            },
+            Opcode::False => OperandDefinition {
+                operand: Opcode::False,
+                operand_widths: vec![],
+            },
+            Opcode::GreaterThan => OperandDefinition {
+                operand: Opcode::GreaterThan,
+                operand_widths: vec![],
+            },
+            Opcode::GreaterEqualThan => OperandDefinition {
+                operand: Opcode::GreaterEqualThan,
+                operand_widths: vec![],
+            },
+            Opcode::Equal => OperandDefinition {
+                operand: Opcode::Equal,
+                operand_widths: vec![],
+            },
+            Opcode::NotEqual => OperandDefinition {
+                operand: Opcode::NotEqual,
+                operand_widths: vec![],
+            },
+            Opcode::Or => OperandDefinition {
+                operand: Opcode::Or,
+                operand_widths: vec![],
+            },
+            Opcode::And => OperandDefinition {
+                operand: Opcode::And,
                 operand_widths: vec![],
             },
             Opcode::Pop => OperandDefinition {
