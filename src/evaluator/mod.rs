@@ -202,6 +202,8 @@ impl Evaluator {
             Token::Slash => Object::INTEGER(left / right),
             Token::LT => Object::BOOLEAN(left < right),
             Token::GT => Object::BOOLEAN(left > right),
+            Token::LTE => Object::BOOLEAN(left <= right),
+            Token::GTE => Object::BOOLEAN(left >= right),
             Token::Equal => Object::BOOLEAN(left == right),
             Token::NotEqual => Object::BOOLEAN(left != right),
             _ => Object::ERROR(format!("unknown operator: INTEGER {operator} INTEGER")),
@@ -212,6 +214,8 @@ impl Evaluator {
         match operator {
             Token::Equal => Object::BOOLEAN(left == right),
             Token::NotEqual => Object::BOOLEAN(left != right),
+            Token::And => Object::BOOLEAN(left && right),
+            Token::Or => Object::BOOLEAN(left || right),
             _ => Object::ERROR(format!("unknown operator: BOOLEAN {operator} BOOLEAN")),
         }
     }
@@ -393,15 +397,31 @@ mod tests {
             ("1 > 2", false),
             ("1 < 1", false),
             ("1 > 1", false),
+            ("1 <= 2", true),
+            ("1 >= 2", false),
+            ("1 <= 1", true),
+            ("1 >= 1", true),
             ("1 == 1", true),
             ("1 != 1", false),
             ("1 == 2", false),
             ("1 != 2", true),
+            //
             ("true == true", true),
             ("false == false", true),
             ("true == false", false),
             ("true != false", true),
             ("false != true", true),
+            //
+            ("false && true", false),
+            ("true && false", false),
+            ("false && false", false),
+            ("true && true", true),
+            //
+            ("false || true", true),
+            ("true || false", true),
+            ("false || false", false),
+            ("true || true", true),
+            //
             ("(1 < 2) == true", true),
             ("(1 < 2) == false", false),
             ("(1 > 2) == true", false),
