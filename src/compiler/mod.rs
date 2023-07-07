@@ -71,6 +71,9 @@ impl Compiler {
     fn compile_infix_operator(&mut self, operator: Token) -> Result<(), String> {
         match operator {
             Token::Plus => self.emit(Opcode::Add, vec![]),
+            Token::Minus => self.emit(Opcode::Sub, vec![]),
+            Token::Asterisk => self.emit(Opcode::Mul, vec![]),
+            Token::Slash => self.emit(Opcode::Div, vec![]),
             _ => return Err(format!("Unknown operator: {operator}")),
         };
         Ok(())
@@ -146,6 +149,36 @@ pub mod tests {
                     Opcode::Constant.make(vec![0]),
                     Opcode::Pop.make(vec![]),
                     Opcode::Constant.make(vec![1]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase{
+                input: "1 * 2".to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Mul.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase{
+                input: "1 / 2".to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Div.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase{
+                input: "1 - 2".to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Sub.make(vec![]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },

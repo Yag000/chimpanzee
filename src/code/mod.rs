@@ -65,8 +65,16 @@ pub struct OperandDefinition {
 
 #[derive(Debug, PartialEq, FromPrimitive, ToPrimitive)]
 pub enum Opcode {
+    // Constants
     Constant,
+
+    // Arithmetic
     Add,
+    Sub,
+    Mul,
+    Div,
+
+    // Stack
     Pop,
 }
 
@@ -75,6 +83,9 @@ impl Display for Opcode {
         let op = match self {
             Opcode::Constant => "OpConstant",
             Opcode::Add => "OpAdd",
+            Opcode::Sub => "OpSub",
+            Opcode::Mul => "OpMul",
+            Opcode::Div => "OpDiv",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -90,6 +101,18 @@ impl Opcode {
             },
             Opcode::Add => OperandDefinition {
                 operand: Opcode::Add,
+                operand_widths: vec![],
+            },
+            Opcode::Sub => OperandDefinition {
+                operand: Opcode::Sub,
+                operand_widths: vec![],
+            },
+            Opcode::Mul => OperandDefinition {
+                operand: Opcode::Mul,
+                operand_widths: vec![],
+            },
+            Opcode::Div => OperandDefinition {
+                operand: Opcode::Div,
                 operand_widths: vec![],
             },
             Opcode::Pop => OperandDefinition {

@@ -40,18 +40,8 @@ impl VM {
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
-                Opcode::Add => {
-                    let left = self.pop().ok_or("Stack underflow".to_string())?;
-                    let right = self.pop().ok_or("Stack underflow".to_string())?;
-
-                    let left = self
-                        .cast_to_integer(&left)
-                        .ok_or("Not an integer".to_string())?;
-                    let right = self
-                        .cast_to_integer(&right)
-                        .ok_or("Not an integer".to_string())?;
-
-                    self.push(Rc::new(Object::INTEGER(left + right)))?;
+                Opcode::Add | Opcode::Sub | Opcode::Mul | Opcode::Div => {
+                    self.execute_binary_operation(op)?;
                 }
                 Opcode::Pop => {
                     self.pop();
@@ -59,6 +49,43 @@ impl VM {
             }
             ip += 1;
         }
+        Ok(())
+    }
+
+    fn execute_binary_operation(&mut self, op: Opcode) -> Result<(), String> {
+        let right = self.pop().ok_or("Stack underflow".to_string())?;
+        let left = self.pop().ok_or("Stack underflow".to_string())?;
+
+        match (&*left, &*right) {
+            (Object::INTEGER(_), Object::INTEGER(_)) => {
+                self.execute_bianary_integer_operation(left, right, op)
+            }
+            _ => Err("Unsupported types for binary operation".to_string()),
+        }
+    }
+
+    fn execute_bianary_integer_operation(
+        &mut self,
+        left: Rc<Object>,
+        right: Rc<Object>,
+        op: Opcode,
+    ) -> Result<(), String> {
+        let left = self
+            .cast_to_integer(&left)
+            .ok_or("Error: Not an integer".to_string())?;
+        let right = self
+            .cast_to_integer(&right)
+            .ok_or("Error: Not an integer".to_string())?;
+
+        let result = match op {
+            Opcode::Add => left + right,
+            Opcode::Sub => left - right,
+            Opcode::Mul => left * right,
+            Opcode::Div => left / right,
+            _ => unreachable!(),
+        };
+
+        self.push(Rc::new(Object::INTEGER(result)))?;
         Ok(())
     }
 
@@ -126,9 +153,6 @@ mod tests {
 
             let mut vm = VM::new(bytecode);
             vm.run().unwrap();
-            println!("Stack: {:?}", vm.stack);
-            println!("SP: {}", vm.sp);
-            println!("Last popped: {:?}", vm.last_popped_stack_element());
             let got = vm.last_popped_stack_element().unwrap();
             test_constants(&vec![test.expected], &vec![got]);
         }
@@ -148,6 +172,34 @@ mod tests {
             VmTestCase {
                 input: "1 + 2".to_string(),
                 expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: "1 - 2".to_string(),
+                expected: Object::INTEGER(-1),
+            },
+            VmTestCase {
+                input: "1 * 2".to_string(),
+                expected: Object::INTEGER(2),
+            },
+            VmTestCase {
+                input: "4 / 2".to_string(),
+                expected: Object::INTEGER(2),
+            },
+            VmTestCase {
+                input: "50 / 2 * 2 + 10 - 5".to_string(),
+                expected: Object::INTEGER(55),
+            },
+            VmTestCase {
+                input: "5 + 5 + 5 + 5 - 10".to_string(),
+                expected: Object::INTEGER(10),
+            },
+            VmTestCase {
+                input: "2 * 2 * 2 * 2 * 2".to_string(),
+                expected: Object::INTEGER(32),
+            },
+            VmTestCase {
+                input: "5 * 2 + 10".to_string(),
+                expected: Object::INTEGER(20),
             },
         ];
         run_vm_tests(tests);
