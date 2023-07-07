@@ -97,7 +97,6 @@ impl VM {
         if self.sp >= STACK_SIZE {
             Err("Stack overflow :(, you gotta fix this".to_string())
         } else {
-            println!("Pushing {:?}, at pos {}", obj, self.sp);
             self.stack[self.sp] = obj;
             self.sp += 1;
             Ok(())
