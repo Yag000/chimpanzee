@@ -69,6 +69,12 @@ impl VM {
                 Opcode::False => {
                     self.push(Rc::new(FALSE))?;
                 }
+                Opcode::Bang => {
+                    self.execute_bang_operation()?;
+                }
+                Opcode::Minus => {
+                    self.execute_minus_operation()?;
+                }
             }
             ip += 1;
         }
@@ -189,6 +195,37 @@ impl VM {
             self.push(Rc::new(TRUE))?;
         } else {
             self.push(Rc::new(FALSE))?;
+        }
+        Ok(())
+    }
+
+    fn execute_bang_operation(&mut self) -> Result<(), String> {
+        let operand = self.pop().ok_or("Stack underflow".to_string())?;
+
+        match &*operand {
+            Object::BOOLEAN(b) => {
+                self.push(self.native_boolean_to_boolean_object(!b))?;
+            }
+            Object::NULL => {
+                self.push(Rc::new(TRUE))?;
+            }
+            _ => {
+                self.push(Rc::new(FALSE))?;
+            }
+        }
+        Ok(())
+    }
+
+    fn execute_minus_operation(&mut self) -> Result<(), String> {
+        let operand = self.pop().ok_or("Stack underflow".to_string())?;
+
+        match &*operand {
+            Object::INTEGER(i) => {
+                self.push(Rc::new(Object::INTEGER(-i)))?;
+            }
+            _ => {
+                return Err("Unsupported type for minus operation".to_string());
+            }
         }
         Ok(())
     }
@@ -319,6 +356,22 @@ mod tests {
                 input: "5 * 2 + 10".to_string(),
                 expected: Object::INTEGER(20),
             },
+            VmTestCase {
+                input: "-1".to_string(),
+                expected: Object::INTEGER(-1),
+            },
+            VmTestCase {
+                input: "-10".to_string(),
+                expected: Object::INTEGER(-10),
+            },
+            VmTestCase {
+                input: "-50 + 100 + -50".to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: "(5 + 10 * 2 + 15 / 3) * 2 + -10".to_string(),
+                expected: Object::INTEGER(50),
+            },
         ];
         run_vm_tests(tests);
     }
@@ -409,6 +462,30 @@ mod tests {
             VmTestCase {
                 input: "false || false".to_string(),
                 expected: Object::BOOLEAN(false),
+            },
+            VmTestCase {
+                input: "!true".to_string(),
+                expected: Object::BOOLEAN(false),
+            },
+            VmTestCase {
+                input: "!false".to_string(),
+                expected: Object::BOOLEAN(true),
+            },
+            VmTestCase {
+                input: "!5".to_string(),
+                expected: Object::BOOLEAN(false),
+            },
+            VmTestCase {
+                input: "!!true".to_string(),
+                expected: Object::BOOLEAN(true),
+            },
+            VmTestCase {
+                input: "!!false".to_string(),
+                expected: Object::BOOLEAN(false),
+            },
+            VmTestCase {
+                input: "!!5".to_string(),
+                expected: Object::BOOLEAN(true),
             },
         ];
         run_vm_tests(tests);

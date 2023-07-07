@@ -84,6 +84,10 @@ pub enum Opcode {
     Or,
     And,
 
+    // Prefix operators
+    Minus,
+    Bang,
+
     // Stack
     Pop,
 }
@@ -104,6 +108,8 @@ impl Display for Opcode {
             Opcode::NotEqual => "OpNotEqual",
             Opcode::Or => "OpOr",
             Opcode::And => "OpAnd",
+            Opcode::Minus => "OpMinus",
+            Opcode::Bang => "OpBang",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -111,6 +117,7 @@ impl Display for Opcode {
 }
 
 impl Opcode {
+    //TODO: I hate this, i must change it after i learn more about the compiler
     pub fn lookup(&self) -> OperandDefinition {
         match self {
             Opcode::Constant => OperandDefinition {
@@ -163,6 +170,14 @@ impl Opcode {
             },
             Opcode::And => OperandDefinition {
                 operand: Opcode::And,
+                operand_widths: vec![],
+            },
+            Opcode::Minus => OperandDefinition {
+                operand: Opcode::Minus,
+                operand_widths: vec![],
+            },
+            Opcode::Bang => OperandDefinition {
+                operand: Opcode::Bang,
                 operand_widths: vec![],
             },
             Opcode::Pop => OperandDefinition {

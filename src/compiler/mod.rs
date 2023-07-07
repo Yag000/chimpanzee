@@ -54,6 +54,10 @@ impl Compiler {
                     self.compile_infix_operator(infix.token)?;
                 }
             },
+            Expression::Prefix(prefix) => {
+                self.compile_expression(*prefix.right)?;
+                self.compile_prefix_operator(prefix.token)?;
+            }
             Expression::Primitive(primitive) => self.compile_primitive(primitive)?,
             _ => unimplemented!(),
         }
@@ -104,6 +108,15 @@ impl Compiler {
             Token::LT => self.emit(Opcode::GreaterThan, vec![]),
             Token::LTE => self.emit(Opcode::GreaterEqualThan, vec![]),
             tk => return Err(format!("Unknown operator: {tk}")),
+        };
+        Ok(())
+    }
+
+    fn compile_prefix_operator(&mut self, operator: Token) -> Result<(), String> {
+        match operator {
+            Token::Bang => self.emit(Opcode::Bang, vec![]),
+            Token::Minus => self.emit(Opcode::Minus, vec![]),
+            _ => return Err(format!("Unknown operator: {operator}")),
         };
         Ok(())
     }
@@ -208,6 +221,15 @@ pub mod tests {
                     Opcode::Constant.make(vec![0]),
                     Opcode::Constant.make(vec![1]),
                     Opcode::Sub.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "-1".to_string(),
+                expected_constants: vec![Object::INTEGER(1)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Minus.make(vec![]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -320,6 +342,24 @@ pub mod tests {
                     Opcode::True.make(vec![]),
                     Opcode::False.make(vec![]),
                     Opcode::NotEqual.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "!true".to_string(),
+                expected_constants: vec![],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::True.make(vec![]),
+                    Opcode::Bang.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "!false".to_string(),
+                expected_constants: vec![],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::False.make(vec![]),
+                    Opcode::Bang.make(vec![]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
