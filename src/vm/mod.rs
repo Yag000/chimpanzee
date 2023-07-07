@@ -24,8 +24,12 @@ impl VM {
             instructions: bytecode.instructions,
             constants: bytecode.constants.into_iter().map(Rc::new).collect(), // TODO: Improve this
 
-            stack: vec![Rc::new(Object::NULL); STACK_SIZE],
             sp: 0,
+            stack: {
+                let mut v = Vec::with_capacity(STACK_SIZE);
+                (0..STACK_SIZE).for_each(|_| v.push(Rc::new(Object::NULL)));
+                v
+            },
         }
     }
 
