@@ -236,7 +236,7 @@ impl BuiltinFunction {
 
     fn call_puts(args: Vec<Object>) -> Object {
         for arg in args {
-            println!("{}", arg);
+            println!("{arg}");
         }
         NULL
     }

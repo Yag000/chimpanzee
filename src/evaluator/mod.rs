@@ -77,7 +77,7 @@ impl Evaluator {
                 if Self::is_error(&value) {
                     return value;
                 }
-                self.env.borrow_mut().set(x.name.to_string(), value.clone());
+                self.env.borrow_mut().set(x.name.to_string(), value);
                 NULL
             }
         }

@@ -1,8 +1,12 @@
+pub mod code;
+pub mod compiler;
+pub mod evaluator;
 pub mod lexer;
 pub mod parser;
-pub mod evaluator;
+pub mod vm;
+pub mod repl;
 
-pub use lexer::Lexer;
 pub use lexer::token::Token;
-pub use parser::Parser;
+pub use lexer::Lexer;
 pub use parser::ast::Program;
+pub use parser::Parser;
