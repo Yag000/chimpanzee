@@ -339,12 +339,16 @@ mod tests {
             ("5 * 5;", "5", "*", "5"),
             ("5 / 5;", "5", "/", "5"),
             ("5 > 5;", "5", ">", "5"),
+            ("5 >= 5;", "5", ">=", "5"),
             ("5 < 5;", "5", "<", "5"),
+            ("5 <= 5;", "5", "<=", "5"),
             ("5 == 5;", "5", "==", "5"),
             ("5 != 5;", "5", "!=", "5"),
             ("true == true", "true", "==", "true"),
             ("true != false", "true", "!=", "false"),
             ("false == false", "false", "==", "false"),
+            ("false && true", "false", "&&", "true"),
+            ("true || false", "true", "||", "false"),
         ];
 
         for (input, left, operator, right) in tests {
