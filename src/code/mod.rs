@@ -92,6 +92,9 @@ pub enum Opcode {
     JumpNotTruthy,
     Jump,
 
+    // Null
+    Null,
+
     // Stack
     Pop,
 }
@@ -116,6 +119,7 @@ impl Display for Opcode {
             Opcode::Bang => "OpBang",
             Opcode::JumpNotTruthy => "OpJumpNotTruthy",
             Opcode::Jump => "OpJump",
+            Opcode::Null => "OpNull",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -193,6 +197,10 @@ impl Opcode {
             Opcode::Jump => OperandDefinition {
                 operand: Opcode::Jump,
                 operand_widths: vec![2],
+            },
+            Opcode::Null => OperandDefinition {
+                operand: Opcode::Null,
+                operand_widths: vec![],
             },
             Opcode::Pop => OperandDefinition {
                 operand: Opcode::Pop,

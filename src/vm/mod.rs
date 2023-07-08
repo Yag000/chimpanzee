@@ -9,6 +9,7 @@ use crate::{
 };
 
 const STACK_SIZE: usize = 2048;
+const NULL: Object = Object::NULL;
 const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
 
@@ -29,7 +30,7 @@ impl VM {
             sp: 0,
             stack: {
                 let mut v = Vec::with_capacity(STACK_SIZE);
-                (0..STACK_SIZE).for_each(|_| v.push(Rc::new(Object::NULL)));
+                (0..STACK_SIZE).for_each(|_| v.push(Rc::new(NULL)));
                 v
             },
         }
@@ -86,6 +87,9 @@ impl VM {
                     if !self.is_truthy(&condition) {
                         ip = pos - 1;
                     }
+                }
+                Opcode::Null => {
+                    self.push(Rc::new(NULL))?;
                 }
                 _ => {
                     return Err(format!("Unhandeled opcode {}", op));
@@ -500,11 +504,15 @@ mod tests {
                 input: "!!5".to_string(),
                 expected: Object::BOOLEAN(true),
             },
+            VmTestCase {
+                input: "!(if (false) { 5 })".to_string(),
+                expected: Object::BOOLEAN(true),
+            },
         ];
         run_vm_tests(tests);
     }
     #[test]
-    fn test_conditionas() {
+    fn test_conditionals() {
         let tests = vec![
             VmTestCase {
                 input: "if (true) { 10 }".to_string(),
@@ -532,6 +540,18 @@ mod tests {
             },
             VmTestCase {
                 input: "if (1 > 2) { 10 } else { 20 }".to_string(),
+                expected: Object::INTEGER(20),
+            },
+            VmTestCase {
+                input: "if (1 > 2) { 10 }".to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: "if (false) { 10 }".to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: "if ((if (false) { 10 })) { 10 } else { 20 }".to_string(),
                 expected: Object::INTEGER(20),
             },
         ];

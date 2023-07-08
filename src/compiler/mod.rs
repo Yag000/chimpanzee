@@ -153,20 +153,24 @@ impl Compiler {
         if self.is_last_instruction(Opcode::Pop) {
             self.remove_last_instruction();
         }
+
+        let jump_pos = self.emit(Opcode::Jump, vec![9999]); // We emit a dummy value for the jump offset
+                                                            // and we will fix it later
+
+        let after_consequence_pos = self.instructions.data.len();
+        self.change_operand(jump_not_truthy_pos, after_consequence_pos as i32)?;
+
         if let Some(alternative) = conditional.alternative {
-            let jump_pos = self.emit(Opcode::Jump, vec![9999]); // We emit another dummy value for the jump offset
-            let after_consequence_pos = self.instructions.data.len();
-            self.change_operand(jump_not_truthy_pos, after_consequence_pos as i32)?;
             self.compile_block_statement(alternative)?;
             if self.is_last_instruction(Opcode::Pop) {
                 self.remove_last_instruction();
             }
-            let after_alternative_pos = self.instructions.data.len();
-            self.change_operand(jump_pos, after_alternative_pos as i32)?;
         } else {
-            let after_consequence_pos = self.instructions.data.len();
-            self.change_operand(jump_not_truthy_pos, after_consequence_pos as i32)?;
+            self.emit(Opcode::Null, vec![]);
         }
+
+        let after_alternative_pos = self.instructions.data.len();
+        self.change_operand(jump_pos, after_alternative_pos as i32)?;
 
         Ok(())
     }
@@ -466,11 +470,21 @@ pub mod tests {
                 input: "if (true) { 10 }; 3333;".to_string(),
                 expected_constants: vec![Object::INTEGER(10), Object::INTEGER(3333)],
                 expected_instructions: flatten_instructions(vec![
+                    // 0000
                     Opcode::True.make(vec![]),
-                    Opcode::JumpNotTruthy.make(vec![7]),
+                    // 0001
+                    Opcode::JumpNotTruthy.make(vec![10]),
+                    // 0004
                     Opcode::Constant.make(vec![0]),
+                    // 0007
+                    Opcode::Jump.make(vec![11]),
+                    // 0010
+                    Opcode::Null.make(vec![]),
+                    // 0011
                     Opcode::Pop.make(vec![]),
+                    // 0012
                     Opcode::Constant.make(vec![1]),
+                    // 0015
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -573,6 +587,13 @@ pub mod tests {
             match constant {
                 Object::INTEGER(x) => check_integer_object(x, &expected[i]),
                 Object::BOOLEAN(x) => check_boolean_object(x, &expected[i]),
+                Object::NULL => assert_eq!(
+                    constant,
+                    &Object::NULL,
+                    "constant[{}] - wrong type. got={:?}",
+                    i,
+                    constant
+                ),
                 _ => panic!("constant[{}] - wrong type. got={:?}", i, constant),
             }
         }
