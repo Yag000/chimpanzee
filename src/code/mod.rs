@@ -63,7 +63,7 @@ pub struct OperandDefinition {
     pub operand_widths: Vec<u32>,
 }
 
-#[derive(Debug, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Debug, PartialEq, FromPrimitive, ToPrimitive, Clone)]
 pub enum Opcode {
     // Constants
     Constant,
@@ -88,6 +88,10 @@ pub enum Opcode {
     Minus,
     Bang,
 
+    // Jump
+    JumpNotTruthy,
+    Jump,
+
     // Stack
     Pop,
 }
@@ -110,6 +114,8 @@ impl Display for Opcode {
             Opcode::And => "OpAnd",
             Opcode::Minus => "OpMinus",
             Opcode::Bang => "OpBang",
+            Opcode::JumpNotTruthy => "OpJumpNotTruthy",
+            Opcode::Jump => "OpJump",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -179,6 +185,14 @@ impl Opcode {
             Opcode::Bang => OperandDefinition {
                 operand: Opcode::Bang,
                 operand_widths: vec![],
+            },
+            Opcode::JumpNotTruthy => OperandDefinition {
+                operand: Opcode::JumpNotTruthy,
+                operand_widths: vec![2],
+            },
+            Opcode::Jump => OperandDefinition {
+                operand: Opcode::Jump,
+                operand_widths: vec![2],
             },
             Opcode::Pop => OperandDefinition {
                 operand: Opcode::Pop,

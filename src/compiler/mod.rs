@@ -1,13 +1,24 @@
 use crate::{
     code::{Instructions, Opcode},
     evaluator::object::Object,
-    parser::ast::{Expression, InfixOperator, Primitive, Statement},
+    parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement},
     Program, Token,
 };
+
+use num_traits::FromPrimitive;
 
 pub struct Compiler {
     instructions: Instructions,
     constants: Vec<Object>,
+
+    last_instruction: Option<EmittedInstruction>,
+    previous_instruction: Option<EmittedInstruction>,
+}
+
+#[derive(Debug, Clone)]
+struct EmittedInstruction {
+    opcode: Opcode,
+    position: usize,
 }
 
 impl Default for Compiler {
@@ -21,11 +32,22 @@ impl Compiler {
         Compiler {
             instructions: Instructions::default(),
             constants: vec![],
+
+            last_instruction: None,
+            previous_instruction: None,
         }
     }
 
     pub fn compile(&mut self, program: Program) -> Result<(), String> {
-        for statement in program.statements {
+        self.compile_statements(program.statements)
+    }
+
+    fn compile_block_statement(&mut self, block: BlockStatement) -> Result<(), String> {
+        self.compile_statements(block.statements)
+    }
+
+    fn compile_statements(&mut self, statements: Vec<Statement>) -> Result<(), String> {
+        for statement in statements {
             self.compile_statement(statement)?;
         }
 
@@ -59,6 +81,7 @@ impl Compiler {
                 self.compile_prefix_operator(prefix.token)?;
             }
             Expression::Primitive(primitive) => self.compile_primitive(primitive)?,
+            Expression::Conditional(conditional) => self.compile_conditional(conditional)?,
             _ => unimplemented!(),
         }
 
@@ -70,7 +93,7 @@ impl Compiler {
             Primitive::IntegerLiteral(i) => {
                 let integer = Object::INTEGER(i);
                 let pos = self.add_constant(integer);
-                self.emit(Opcode::Constant, vec![pos]);
+                self.emit(Opcode::Constant, vec![pos as i32]);
             }
             Primitive::BooleanLiteral(true) => {
                 self.emit(Opcode::True, vec![]);
@@ -121,20 +144,88 @@ impl Compiler {
         Ok(())
     }
 
-    fn add_constant(&mut self, obj: Object) -> i32 {
+    fn compile_conditional(&mut self, conditional: Conditional) -> Result<(), String> {
+        self.compile_expression(*conditional.condition)?;
+
+        let jump_not_truthy_pos = self.emit(Opcode::JumpNotTruthy, vec![9999]); // We emit a dummy value for the jump offset
+                                                                                // and we will fix it later
+        self.compile_block_statement(conditional.consequence)?;
+        if self.is_last_instruction(Opcode::Pop) {
+            self.remove_last_instruction();
+        }
+        if let Some(alternative) = conditional.alternative {
+            let jump_pos = self.emit(Opcode::Jump, vec![9999]); // We emit another dummy value for the jump offset
+            let after_consequence_pos = self.instructions.data.len();
+            self.change_operand(jump_not_truthy_pos, after_consequence_pos as i32)?;
+            self.compile_block_statement(alternative)?;
+            if self.is_last_instruction(Opcode::Pop) {
+                self.remove_last_instruction();
+            }
+            let after_alternative_pos = self.instructions.data.len();
+            self.change_operand(jump_pos, after_alternative_pos as i32)?;
+        } else {
+            let after_consequence_pos = self.instructions.data.len();
+            self.change_operand(jump_not_truthy_pos, after_consequence_pos as i32)?;
+        }
+
+        Ok(())
+    }
+
+    fn is_last_instruction(&self, opcode: Opcode) -> bool {
+        match self.last_instruction {
+            Some(ref last) => last.opcode == opcode,
+            None => false,
+        }
+    }
+
+    fn remove_last_instruction(&mut self) {
+        if let Some(_) = self.last_instruction {
+            self.instructions.data.pop();
+            self.last_instruction = self.previous_instruction.clone();
+        }
+    }
+
+    fn add_constant(&mut self, obj: Object) -> usize {
         self.constants.push(obj);
-        (self.constants.len() - 1) as i32
+        self.constants.len() - 1
     }
 
-    fn emit(&mut self, opcode: Opcode, operands: Vec<i32>) -> i32 {
+    fn emit(&mut self, opcode: Opcode, operands: Vec<i32>) -> usize {
         let instruction = opcode.make(operands);
-        self.add_instruction(instruction)
+        let pos = self.add_instruction(instruction);
+        self.set_last_instruction(opcode, pos);
+        pos
     }
 
-    fn add_instruction(&mut self, instruction: Instructions) -> i32 {
+    fn add_instruction(&mut self, instruction: Instructions) -> usize {
         let pos_new_instruction = self.instructions.data.len();
         self.instructions.append(instruction);
-        pos_new_instruction as i32
+        pos_new_instruction
+    }
+
+    fn set_last_instruction(&mut self, opcode: Opcode, pos: usize) {
+        let last = EmittedInstruction {
+            opcode,
+            position: pos,
+        };
+        self.previous_instruction = self.last_instruction.clone();
+        self.last_instruction = Some(last);
+    }
+
+    fn change_operand(&mut self, pos: usize, operand: i32) -> Result<(), String> {
+        let op = Opcode::from_u8(self.instructions.data[pos]).ok_or(format!(
+            "Unknown opcode: {opcode}",
+            opcode = self.instructions.data[pos]
+        ))?;
+        let new_instruction = op.make(vec![operand]);
+        self.replace_instruction(pos, new_instruction);
+        Ok(())
+    }
+
+    fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
+        for (i, instruction) in new_instruction.data.iter().enumerate() {
+            self.instructions.data[pos + i] = *instruction;
+        }
     }
 
     pub fn bytecode(&self) -> Bytecode {
@@ -360,6 +451,52 @@ pub mod tests {
                 expected_instructions: flatten_instructions(vec![
                     Opcode::False.make(vec![]),
                     Opcode::Bang.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
+
+    #[test]
+    fn test_conditionals() {
+        let tests = vec![
+            CompilerTestCase {
+                input: "if (true) { 10 }; 3333;".to_string(),
+                expected_constants: vec![Object::INTEGER(10), Object::INTEGER(3333)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::True.make(vec![]),
+                    Opcode::JumpNotTruthy.make(vec![7]),
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "if (true) { 10 } else { 20 }; 3333;".to_string(),
+                expected_constants: vec![
+                    Object::INTEGER(10),
+                    Object::INTEGER(20),
+                    Object::INTEGER(3333),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    // 0000
+                    Opcode::True.make(vec![]),
+                    // 0001
+                    Opcode::JumpNotTruthy.make(vec![10]),
+                    // 0004
+                    Opcode::Constant.make(vec![0]),
+                    // 0007
+                    Opcode::Jump.make(vec![13]),
+                    // 0010
+                    Opcode::Constant.make(vec![1]),
+                    // 0013
+                    Opcode::Pop.make(vec![]),
+                    // 0014
+                    Opcode::Constant.make(vec![2]),
+                    // 0017
                     Opcode::Pop.make(vec![]),
                 ]),
             },
