@@ -127,13 +127,36 @@ impl VM {
 
         match (&*left, &*right) {
             (Object::INTEGER(_), Object::INTEGER(_)) => {
-                self.execute_bianary_integer_operation(left, right, op)
+                self.execute_bianary_integer_operation(left, right, op)?
             }
-            (Object::BOOLEAN(_), Object::BOOLEAN(_)) => {
-                self.execute_bianary_boolean_operation(left, right, op)
+            (Object::BOOLEAN(left), Object::BOOLEAN(right)) => {
+                let result = match op {
+                    Opcode::Or => *left || *right,
+                    Opcode::And => *left && *right,
+                    _ => {
+                        return Err("Unsupported types for binary operation".to_string());
+                    }
+                };
+
+                if result {
+                    self.push(Rc::new(TRUE))?;
+                } else {
+                    self.push(Rc::new(FALSE))?;
+                }
             }
-            _ => Err("Unsupported types for binary operation".to_string()),
+            (Object::STRING(s1), Object::STRING(s2)) => {
+                let result = match op {
+                    Opcode::Add => s1.to_string() + s2,
+                    _ => {
+                        return Err("Unsupported types for binary operation".to_string());
+                    }
+                };
+
+                self.push(Rc::new(Object::STRING(result)))?;
+            }
+            _ => return Err("Unsupported types for binary operation".to_string()),
         }
+        Ok(())
     }
 
     fn execute_bianary_integer_operation(
@@ -158,33 +181,6 @@ impl VM {
         };
 
         self.push(Rc::new(Object::INTEGER(result)))?;
-        Ok(())
-    }
-
-    fn execute_bianary_boolean_operation(
-        &mut self,
-        left: Rc<Object>,
-        right: Rc<Object>,
-        op: Opcode,
-    ) -> Result<(), String> {
-        let left = self
-            .cast_to_boolean(&left)
-            .ok_or("Error: Not a boolean".to_string())?;
-        let right = self
-            .cast_to_boolean(&right)
-            .ok_or("Error: Not a boolean".to_string())?;
-
-        let result = match op {
-            Opcode::Or => left || right,
-            Opcode::And => left && right,
-            _ => unreachable!(),
-        };
-
-        if result {
-            self.push(Rc::new(TRUE))?;
-        } else {
-            self.push(Rc::new(FALSE))?;
-        }
         Ok(())
     }
 
@@ -302,13 +298,6 @@ impl VM {
     fn cast_to_integer(&self, obj: &Rc<Object>) -> Option<i64> {
         match **obj {
             Object::INTEGER(i) => Some(i),
-            _ => None,
-        }
-    }
-
-    fn cast_to_boolean(&self, obj: &Rc<Object>) -> Option<bool> {
-        match **obj {
-            Object::BOOLEAN(b) => Some(b),
             _ => None,
         }
     }
@@ -592,6 +581,26 @@ mod tests {
             VmTestCase {
                 input: "let one = 1; let two = one + one; one + two".to_string(),
                 expected: Object::INTEGER(3),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_string_expressions() {
+        let tests = vec![
+            VmTestCase {
+                input: "\"monkey\"".to_string(),
+                expected: Object::STRING("monkey".to_string()),
+            },
+            VmTestCase {
+                input: "\"mon\" + \"key\"".to_string(),
+                expected: Object::STRING("monkey".to_string()),
+            },
+            VmTestCase {
+                input: "\"mon\" + \"key\" + \"banana\"".to_string(),
+                expected: Object::STRING("monkeybanana".to_string()),
             },
         ];
 

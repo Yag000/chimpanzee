@@ -123,7 +123,11 @@ impl Compiler {
             Primitive::BooleanLiteral(false) => {
                 self.emit(Opcode::False, vec![]);
             }
-            _ => unimplemented!(),
+            Primitive::StringLiteral(s) => {
+                let string = Object::STRING(s);
+                let pos = self.add_constant(string);
+                self.emit(Opcode::Constant, vec![pos as i32]);
+            }
         }
 
         Ok(())
@@ -620,6 +624,35 @@ pub mod tests {
                     Opcode::GetGlobal.make(vec![0]),
                     Opcode::SetGlobal.make(vec![1]),
                     Opcode::GetGlobal.make(vec![1]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
+
+    #[test]
+    fn test_string_expressions() {
+        let tests = vec![
+            CompilerTestCase {
+                input: r#""monkey""#.to_string(),
+                expected_constants: vec![Object::STRING("monkey".to_string())],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#""mon" + "key""#.to_string(),
+                expected_constants: vec![
+                    Object::STRING("mon".to_string()),
+                    Object::STRING("key".to_string()),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Add.make(vec![]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },

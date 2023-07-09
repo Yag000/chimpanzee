@@ -45,6 +45,7 @@ pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
                 i,
                 constant
             ),
+            Object::STRING(x) => check_string_object(x, &expected[i]),
             _ => panic!("constant[{}] - wrong type. got={:?}", i, constant),
         }
     }
@@ -69,5 +70,16 @@ pub fn check_boolean_object(boolean: &bool, expected: &Object) {
             boolean, b
         ),
         _ => panic!("object is not Boolean. got={:?}", expected),
+    }
+}
+
+pub fn check_string_object(string: &str, expected: &Object) {
+    match expected {
+        Object::STRING(s) => assert_eq!(
+            string, s,
+            "string object has wrong value. got={}, want={}",
+            string, s
+        ),
+        _ => panic!("object is not String. got={:?}", expected),
     }
 }
