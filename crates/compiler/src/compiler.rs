@@ -1,4 +1,5 @@
 use crate::code::{Instructions, Opcode};
+use crate::symbol_table::SymbolTable;
 
 use interpreter::object::Object;
 use lexer::token::Token;
@@ -13,6 +14,8 @@ pub struct Compiler {
 
     last_instruction: Option<EmittedInstruction>,
     previous_instruction: Option<EmittedInstruction>,
+
+    symbol_table: SymbolTable,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +38,8 @@ impl Compiler {
 
             last_instruction: None,
             previous_instruction: None,
+
+            symbol_table: SymbolTable::default(),
         }
     }
 
@@ -60,6 +65,12 @@ impl Compiler {
                 self.compile_expression(s)?;
                 self.emit(Opcode::Pop, vec![]);
             }
+            Statement::Let(s) => {
+                self.compile_expression(s.value)?;
+
+                let symbol = self.symbol_table.define(s.name.value);
+                self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
+            }
             _ => unimplemented!(),
         }
 
@@ -82,6 +93,17 @@ impl Compiler {
             }
             Expression::Primitive(primitive) => self.compile_primitive(primitive)?,
             Expression::Conditional(conditional) => self.compile_conditional(conditional)?,
+            Expression::Identifier(ident) => {
+                let symbol = self.symbol_table.resolve(&ident.value);
+                match symbol {
+                    Some(symbol) => {
+                        self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);
+                    }
+                    None => {
+                        return Err(format!("Undefined variable: {}", ident.value));
+                    }
+                }
+            }
             _ => unimplemented!(),
         }
 
@@ -256,7 +278,10 @@ pub mod tests {
 
     use std::rc::Rc;
 
-    use crate::{code::Opcode, test_utils::{parse, check_instructions, check_constants}};
+    use crate::{
+        code::Opcode,
+        test_utils::{check_constants, check_instructions, parse},
+    };
 
     use super::*;
 
@@ -546,6 +571,55 @@ pub mod tests {
                     // 0014
                     Opcode::Constant.make(vec![2]),
                     // 0017
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
+    #[test]
+    fn test_let_statements() {
+        let tests = vec![
+            CompilerTestCase {
+                input: r#"
+                let one = 1;    
+                let two = 2"#
+                    .to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::SetGlobal.make(vec![1]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#"
+                let one = 1;
+                one;"#
+                    .to_string(),
+                expected_constants: vec![Object::INTEGER(1)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                    Opcode::GetGlobal.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#"
+                let one = 1;
+                let two = one;
+                two;"#
+                    .to_string(),
+                expected_constants: vec![Object::INTEGER(1)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                    Opcode::GetGlobal.make(vec![0]),
+                    Opcode::SetGlobal.make(vec![1]),
+                    Opcode::GetGlobal.make(vec![1]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },

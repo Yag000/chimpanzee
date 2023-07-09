@@ -8,6 +8,8 @@ use interpreter::object::Object;
 use num_traits::FromPrimitive;
 
 const STACK_SIZE: usize = 2048;
+const GLOBALS_SIZE: usize = 65536;
+
 const NULL: Object = Object::NULL;
 const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
@@ -18,6 +20,8 @@ pub struct VM {
 
     stack: Vec<Rc<Object>>,
     sp: usize, // stack pointer. Always point to the next value. Top of the stack is stack[sp -1]
+
+    globals: Vec<Rc<Object>>,
 }
 
 impl VM {
@@ -30,6 +34,12 @@ impl VM {
             stack: {
                 let mut v = Vec::with_capacity(STACK_SIZE);
                 (0..STACK_SIZE).for_each(|_| v.push(Rc::new(NULL)));
+                v
+            },
+
+            globals: {
+                let mut v = Vec::with_capacity(GLOBALS_SIZE);
+                (0..GLOBALS_SIZE).for_each(|_| v.push(Rc::new(NULL)));
                 v
             },
         }
@@ -89,6 +99,18 @@ impl VM {
                 }
                 Opcode::Null => {
                     self.push(Rc::new(NULL))?;
+                }
+                Opcode::SetGlobal => {
+                    let global_index = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    ip += 2;
+                    let value = self.pop().ok_or("Stack underflow".to_string())?;
+                    self.globals[global_index] = value;
+                }
+
+                Opcode::GetGlobal => {
+                    let global_index = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    ip += 2;
+                    self.push(self.globals[global_index].clone())?;
                 }
                 _ => {
                     return Err(format!("Unhandeled opcode {}", op));
@@ -550,6 +572,26 @@ mod tests {
             VmTestCase {
                 input: "if ((if (false) { 10 })) { 10 } else { 20 }".to_string(),
                 expected: Object::INTEGER(20),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_global_let_statements() {
+        let tests = vec![
+            VmTestCase {
+                input: "let one = 1; one".to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: "let one = 1; let two = 2; one + two".to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: "let one = 1; let two = one + one; one + two".to_string(),
+                expected: Object::INTEGER(3),
             },
         ];
 

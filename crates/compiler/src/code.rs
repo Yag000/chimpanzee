@@ -19,12 +19,16 @@ impl Display for Instructions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut i = 0;
         while i < self.data.len() {
-            let def = match Opcode::from_u8(self.data[i]) {
-                Some(op) => op.lookup(),
-                None => panic!("ERROR: Unknown opcode: {}", self.data[i]),
-            };
-            let (operands, read) = Opcode::read_operands(&def, &self.data[i + 1..]);
-            writeln!(f, "{:04} {}", i, self.format_instruction(&def, &operands))?;
+            let op = Opcode::from_u8(self.data[i])
+                .unwrap_or_else(|| panic!("ERROR: Unknown opcode: {}", self.data[i]));
+            let widths = op.lookup_widths();
+            let (operands, read) = Opcode::read_operands(&widths, &self.data[i + 1..]);
+            writeln!(
+                f,
+                "{:04} {}",
+                i,
+                self.format_instruction(op, &widths, &operands)
+            )?;
             i += 1 + read as usize;
         }
         Ok(())
@@ -36,8 +40,13 @@ impl Instructions {
         Instructions { data }
     }
 
-    pub fn format_instruction(&self, def: &OperandDefinition, operands: &Vec<i32>) -> String {
-        let operand_count = def.operand_widths.len();
+    pub fn format_instruction(
+        &self,
+        operand: Opcode,
+        widths: &Vec<u32>,
+        operands: &Vec<i32>,
+    ) -> String {
+        let operand_count = widths.len();
         if operands.len() != operand_count {
             return format!(
                 "ERROR: operand len {} does not match defined {}",
@@ -47,9 +56,9 @@ impl Instructions {
         }
 
         match operand_count {
-            1 => format!("{} {}", def.operand, operands[0]),
-            0 => format!("{}", def.operand),
-            _ => format!("Unhandeled operand_count for {}", def.operand),
+            1 => format!("{} {}", operand, operands[0]),
+            0 => format!("{}", operand),
+            _ => format!("Unhandeled operand_count for {}", operand),
         }
     }
 
@@ -58,12 +67,7 @@ impl Instructions {
     }
 }
 
-pub struct OperandDefinition {
-    pub operand: Opcode,
-    pub operand_widths: Vec<u32>,
-}
-
-#[derive(Debug, PartialEq, FromPrimitive, ToPrimitive, Clone)]
+#[derive(Debug, PartialEq, FromPrimitive, ToPrimitive, Clone, Copy)]
 pub enum Opcode {
     // Constants
     Constant,
@@ -95,6 +99,10 @@ pub enum Opcode {
     // Null
     Null,
 
+    // Variable assignment
+    SetGlobal,
+    GetGlobal,
+
     // Stack
     Pop,
 }
@@ -120,6 +128,8 @@ impl Display for Opcode {
             Opcode::JumpNotTruthy => "OpJumpNotTruthy",
             Opcode::Jump => "OpJump",
             Opcode::Null => "OpNull",
+            Opcode::SetGlobal => "OpSetGlobal",
+            Opcode::GetGlobal => "OpGetGlobal",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -127,94 +137,23 @@ impl Display for Opcode {
 }
 
 impl Opcode {
-    //TODO: I hate this, i must change it after i learn more about the compiler
-    pub fn lookup(&self) -> OperandDefinition {
+    pub fn lookup_widths(&self) -> Vec<u32> {
         match self {
-            Opcode::Constant => OperandDefinition {
-                operand: Opcode::Constant,
-                operand_widths: vec![2],
-            },
-            Opcode::Add => OperandDefinition {
-                operand: Opcode::Add,
-                operand_widths: vec![],
-            },
-            Opcode::Sub => OperandDefinition {
-                operand: Opcode::Sub,
-                operand_widths: vec![],
-            },
-            Opcode::Mul => OperandDefinition {
-                operand: Opcode::Mul,
-                operand_widths: vec![],
-            },
-            Opcode::Div => OperandDefinition {
-                operand: Opcode::Div,
-                operand_widths: vec![],
-            },
-            Opcode::True => OperandDefinition {
-                operand: Opcode::True,
-                operand_widths: vec![],
-            },
-            Opcode::False => OperandDefinition {
-                operand: Opcode::False,
-                operand_widths: vec![],
-            },
-            Opcode::GreaterThan => OperandDefinition {
-                operand: Opcode::GreaterThan,
-                operand_widths: vec![],
-            },
-            Opcode::GreaterEqualThan => OperandDefinition {
-                operand: Opcode::GreaterEqualThan,
-                operand_widths: vec![],
-            },
-            Opcode::Equal => OperandDefinition {
-                operand: Opcode::Equal,
-                operand_widths: vec![],
-            },
-            Opcode::NotEqual => OperandDefinition {
-                operand: Opcode::NotEqual,
-                operand_widths: vec![],
-            },
-            Opcode::Or => OperandDefinition {
-                operand: Opcode::Or,
-                operand_widths: vec![],
-            },
-            Opcode::And => OperandDefinition {
-                operand: Opcode::And,
-                operand_widths: vec![],
-            },
-            Opcode::Minus => OperandDefinition {
-                operand: Opcode::Minus,
-                operand_widths: vec![],
-            },
-            Opcode::Bang => OperandDefinition {
-                operand: Opcode::Bang,
-                operand_widths: vec![],
-            },
-            Opcode::JumpNotTruthy => OperandDefinition {
-                operand: Opcode::JumpNotTruthy,
-                operand_widths: vec![2],
-            },
-            Opcode::Jump => OperandDefinition {
-                operand: Opcode::Jump,
-                operand_widths: vec![2],
-            },
-            Opcode::Null => OperandDefinition {
-                operand: Opcode::Null,
-                operand_widths: vec![],
-            },
-            Opcode::Pop => OperandDefinition {
-                operand: Opcode::Pop,
-                operand_widths: vec![],
-            },
+            Opcode::Constant
+            | Opcode::Jump
+            | Opcode::JumpNotTruthy
+            | Opcode::SetGlobal
+            | Opcode::GetGlobal => vec![2],
+            _ => vec![],
         }
     }
 
     pub fn make(&self, operands: Vec<i32>) -> Instructions {
-        let def = self.lookup();
+        let widths = self.lookup_widths();
         let mut instructions: Vec<u8> = Vec::new();
-        instructions.push(def.operand as u8);
+        instructions.push(*self as u8);
 
-        for (operand, width) in operands.iter().zip(def.operand_widths) {
+        for (operand, width) in operands.iter().zip(widths) {
             match width {
                 2 => instructions
                     .write_u16::<BigEndian>(*operand as u16)
@@ -226,11 +165,11 @@ impl Opcode {
         Instructions::new(instructions)
     }
 
-    fn read_operands(def: &OperandDefinition, ins: &[u8]) -> (Vec<i32>, i32) {
+    fn read_operands(widths: &Vec<u32>, ins: &[u8]) -> (Vec<i32>, i32) {
         let mut operands: Vec<i32> = Vec::new();
         let mut offset = 0;
 
-        for width in def.operand_widths.iter() {
+        for width in widths {
             match width {
                 2 => {
                     operands.push(read_u16(&ins[offset..offset + 2]) as i32);
@@ -304,9 +243,9 @@ mod tests {
 
         for (op, operands, bytes_read) in tests {
             let instructions = op.make(operands.clone());
-            let def = op.lookup();
+            let widths = op.lookup_widths();
 
-            let (got_operands, offset) = Opcode::read_operands(&def, &instructions.data[1..]);
+            let (got_operands, offset) = Opcode::read_operands(&widths, &instructions.data[1..]);
             assert_eq!(offset, bytes_read, "offset wrong");
             assert!(got_operands.len() == operands.len(), "operands len wrong");
             assert_eq!(got_operands, operands, "operands wrong");

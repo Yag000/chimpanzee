@@ -68,6 +68,7 @@ pub fn repl_interpreter() {
 pub fn repl_compiler() {
     greeting_message();
     print_entry_header();
+    let mut compiler = Compiler::new();
     std::io::stdin().lines().for_each(|line| {
         if let Ok(line) = line {
             let lexer = Lexer::new(&line);
@@ -76,7 +77,6 @@ pub fn repl_compiler() {
             if !parser.errors.is_empty() {
                 print_parse_errors(parser.errors);
             }
-            let mut compiler = Compiler::new();
             match compiler.compile(program) {
                 Ok(()) => {
                     let mut vm = VM::new(compiler.bytecode());
