@@ -1,24 +1,13 @@
-pub mod enviroment;
-pub mod object;
-
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{
-    parser::ast::{
-        BlockStatement, Conditional, Expression, HashMapLiteral, Identifier, IndexExpression,
-        Primitive, Statement,
-    },
-    Program, Token,
-};
+use lexer::token::Token;
+use parser::ast::{BlockStatement, Expression, Primitive, Program, Statement, Conditional, Identifier, IndexExpression, HashMapLiteral};
 
-use self::{
-    enviroment::Environment,
-    object::{BuiltinFunction, Function, Object},
-};
+use crate::{enviroment::Environment, object::{Object, Function, BuiltinFunction}};
 
 const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
-const NULL: Object = Object::NULL;
+pub const NULL: Object = Object::NULL;
 
 pub struct Evaluator {
     env: Rc<RefCell<Environment>>,
@@ -359,7 +348,8 @@ impl Evaluator {
 mod tests {
 
     use super::*;
-    use crate::{Lexer, Parser};
+    use lexer::lexer::Lexer;
+    use parser::parser::Parser;
     use std::collections::HashMap;
 
     #[test]

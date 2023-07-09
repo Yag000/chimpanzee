@@ -1,0 +1,17 @@
+[package]
+name = "compiler"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Internal crates
+lexer = { path = "../lexer" }
+parser = { path = "../parser" }
+interpreter = { path = "../interpreter" }
+# External crates
+byteorder = "1.4.3"
+num-derive = "0.4.0"
+num-traits = "0.2.15"
+

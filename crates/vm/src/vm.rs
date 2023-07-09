@@ -1,12 +1,11 @@
 use std::rc::Rc;
 
-use num_traits::FromPrimitive;
-
-use crate::{
+use compiler::{
     code::{read_u16, Instructions, Opcode},
     compiler::Bytecode,
-    evaluator::object::Object,
 };
+use interpreter::object::Object;
+use num_traits::FromPrimitive;
 
 const STACK_SIZE: usize = 2048;
 const NULL: Object = Object::NULL;
@@ -300,13 +299,11 @@ impl VM {
 #[cfg(test)]
 mod tests {
 
-    use crate::{
-        compiler::{
-            tests::{check_constants, parse},
-            Compiler,
-        },
-        evaluator::object::Object,
+    use compiler::{
+        compiler::Compiler,
+        test_utils::{check_constants, parse},
     };
+    use interpreter::object::Object;
 
     use super::VM;
 

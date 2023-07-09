@@ -1,5 +1,8 @@
-use crate::{Parser, Token};
 use std::fmt::Display;
+
+use lexer::token::Token;
+
+use crate::parser::Parser;
 
 pub struct Program {
     pub statements: Vec<Statement>,

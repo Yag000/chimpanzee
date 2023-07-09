@@ -6,7 +6,7 @@ The Monkey language is a language created by Thorsten Ball for his book [Writing
 
 ## Monkey-rs
 
-Monkey-rs is an implementation of the Monkey language in Rust. It is based on the book [Writing an Interpreter in Go](https://interpreterbook.com/). It provides a REPL and a file intepreter. Monkey files the extension `.monkey`.
+Monkey-rs is an implementation of the Monkey language in Rust. It is based on the book [Writing an Interpreter in Go](https://interpreterbook.com/). It provides a REPL and a file intepreter. Monkey files use the extension `.monkey`.
 
 ### REPL
 

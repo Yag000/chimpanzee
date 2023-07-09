@@ -1,9 +1,19 @@
 [package]
-name = "interpreter_monkey"
+name = "monkey-rs"
 version = "0.1.0"
 edition = "2021"
+authors = ["Yago Iglesias"]
+
+
+[workspace]
+members = ["crates/*"]
+
 
 [dependencies]
-byteorder = "1.4.3"
-num-derive = "0.4.0"
-num-traits = "0.2.15"
+# local crates
+lexer = { path = "./crates/lexer" }
+parser = { path = "./crates/parser" }
+interpreter = { path = "./crates/interpreter" }
+compiler = { path = "./crates/compiler" }
+vm = { path = "./crates/vm" }
+repl = { path = "./crates/repl" }

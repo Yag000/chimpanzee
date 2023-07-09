@@ -1,7 +1,8 @@
-use crate::{lexer::Lexer, Program, Token};
+use lexer::{lexer::Lexer, token::Token};
 
-use self::ast::{
-    precedence_of, Expression, Identifier, LetStatement, Precedence, ReturnStatement, Statement,
+use crate::ast::{
+    precedence_of, Expression, Identifier, LetStatement, Precedence, Program, ReturnStatement,
+    Statement,
 };
 
 pub struct Parser {
@@ -173,9 +174,13 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::ast::Primitive;
+    use lexer::token::Token;
 
-    use super::{ast::BlockStatement, *};
+    use crate::ast::{
+        BlockStatement, Expression, Identifier, LetStatement, Primitive, ReturnStatement, Statement,
+    };
+
+    use super::*;
 
     #[test]
     fn test_let_statements() {
@@ -811,4 +816,3 @@ mod tests {
         }
     }
 }
-pub mod ast;

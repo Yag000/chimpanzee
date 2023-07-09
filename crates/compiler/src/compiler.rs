@@ -1,9 +1,9 @@
-use crate::{
-    code::{Instructions, Opcode},
-    evaluator::object::Object,
-    parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement},
-    Program, Token,
-};
+use crate::code::{Instructions, Opcode};
+
+use interpreter::object::Object;
+use lexer::token::Token;
+use parser::ast::Program;
+use parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement};
 
 use num_traits::FromPrimitive;
 
@@ -256,7 +256,7 @@ pub mod tests {
 
     use std::rc::Rc;
 
-    use crate::{code::Opcode, Lexer, Parser, Program};
+    use crate::{code::Opcode, test_utils::{parse, check_instructions, check_constants}};
 
     use super::*;
 
@@ -266,6 +266,41 @@ pub mod tests {
         expected_instructions: Instructions,
     }
 
+    fn flatten_instructions(instructions: Vec<Instructions>) -> Instructions {
+        let mut res = Instructions::default();
+        for instruction in instructions {
+            res.append(instruction);
+        }
+        res
+    }
+
+    fn run_compiler(tests: Vec<CompilerTestCase>) {
+        for test in tests {
+            let program = parse(&test.input);
+
+            let mut compiler = Compiler::new();
+
+            match compiler.compile(program) {
+                Ok(_) => {
+                    let bytecode = compiler.bytecode();
+                    println!(
+                        "want {}, got {}",
+                        test.expected_instructions, bytecode.instructions
+                    );
+                    check_instructions(&bytecode.instructions, &test.expected_instructions);
+                    check_constants(
+                        &bytecode.constants,
+                        &test
+                            .expected_constants
+                            .iter()
+                            .map(|x| Rc::new(x.clone()))
+                            .collect(),
+                    );
+                }
+                Err(err) => panic!("compiler error: {}", err),
+            }
+        }
+    }
     #[test]
     fn test_integer_arithemtic() {
         let tests = vec![
@@ -517,107 +552,5 @@ pub mod tests {
         ];
 
         run_compiler(tests);
-    }
-
-    fn flatten_instructions(instructions: Vec<Instructions>) -> Instructions {
-        let mut res = Instructions::default();
-        for instruction in instructions {
-            res.append(instruction);
-        }
-        res
-    }
-
-    fn run_compiler(tests: Vec<CompilerTestCase>) {
-        for test in tests {
-            let program = parse(&test.input);
-
-            let mut compiler = Compiler::new();
-
-            match compiler.compile(program) {
-                Ok(_) => {
-                    let bytecode = compiler.bytecode();
-                    println!(
-                        "want {}, got {}",
-                        test.expected_instructions, bytecode.instructions
-                    );
-                    check_instructions(&bytecode.instructions, &test.expected_instructions);
-                    check_constants(
-                        &bytecode.constants,
-                        &test
-                            .expected_constants
-                            .iter()
-                            .map(|x| Rc::new(x.clone()))
-                            .collect(),
-                    );
-                }
-                Err(err) => panic!("compiler error: {}", err),
-            }
-        }
-    }
-
-    pub fn parse(input: &str) -> Program {
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        parser.parse_program()
-    }
-
-    pub fn check_instructions(instructions: &Instructions, expected: &Instructions) {
-        assert_eq!(
-            instructions.data.len(),
-            expected.data.len(),
-            "wrong instructions length"
-        );
-        assert_eq!(
-            instructions, expected,
-            "wrong instructions. want={:?}, got={:?}",
-            expected, instructions
-        );
-    }
-
-    pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
-        assert_eq!(
-            constants.len(),
-            expected.len(),
-            "wrong number of constants. got={:?}, want={:?}",
-            constants.len(),
-            expected.len()
-        );
-
-        for (i, constant) in constants.iter().enumerate() {
-            match constant {
-                Object::INTEGER(x) => check_integer_object(x, &expected[i]),
-                Object::BOOLEAN(x) => check_boolean_object(x, &expected[i]),
-                Object::NULL => assert_eq!(
-                    constant,
-                    &Object::NULL,
-                    "constant[{}] - wrong type. got={:?}",
-                    i,
-                    constant
-                ),
-                _ => panic!("constant[{}] - wrong type. got={:?}", i, constant),
-            }
-        }
-    }
-
-    pub fn check_integer_object(integer: &i64, expected: &Object) {
-        match expected {
-            Object::INTEGER(i) => assert_eq!(
-                integer, i,
-                "integer object has wrong value. got={}, want={}",
-                integer, i
-            ),
-            _ => panic!("object is not Integer. got={:?}", expected),
-        }
-    }
-
-    pub fn check_boolean_object(boolean: &bool, expected: &Object) {
-        match expected {
-            Object::BOOLEAN(b) => assert_eq!(
-                boolean, b,
-                "boolean object has wrong value. got={}, want={}",
-                boolean, b
-            ),
-            _ => panic!("object is not Boolean. got={:?}", expected),
-        }
     }
 }

@@ -1,8 +1,7 @@
-pub mod token;
-
 use std::iter::FromIterator;
 
-use crate::Token;
+use crate::token::Token;
+
 
 pub struct Lexer {
     input: Vec<char>,

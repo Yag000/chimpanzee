@@ -1,9 +1,13 @@
-use crate::compiler::Compiler;
-use crate::evaluator::object::Object;
-use crate::vm::VM;
-use crate::{evaluator::Evaluator, Lexer, Parser, Token};
 use std::io::{self, Write};
 use std::{error::Error, fs};
+
+use compiler::compiler::Compiler;
+use interpreter::evaluator::Evaluator;
+use interpreter::object::Object;
+use lexer::lexer::Lexer;
+use lexer::token::Token;
+use parser::parser::Parser;
+use vm::vm::VM;
 
 #[allow(dead_code)]
 pub fn rlpl() {

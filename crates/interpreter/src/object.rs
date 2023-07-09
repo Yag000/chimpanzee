@@ -1,8 +1,10 @@
 use std::{cell::RefCell, cmp::Ordering, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
 
-use crate::parser::ast::{BlockStatement, Identifier};
+use parser::ast::{BlockStatement, Identifier};
 
-use super::{enviroment::Environment, NULL};
+use crate::evaluator::NULL;
+
+use super::{enviroment::Environment};
 #[derive(Debug, PartialEq, Clone)]
 pub enum Object {
     INTEGER(i64),

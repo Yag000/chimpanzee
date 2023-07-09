@@ -15,12 +15,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
-name = "interpreter_monkey"
+name = "compiler"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "interpreter",
+ "lexer",
  "num-derive",
  "num-traits",
+ "parser",
+]
+
+[[package]]
+name = "interpreter"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+ "parser",
+]
+
+[[package]]
+name = "lexer"
+version = "0.1.0"
+
+[[package]]
+name = "monkey-rs"
+version = "0.1.0"
+dependencies = [
+ "compiler",
+ "interpreter",
+ "lexer",
+ "parser",
+ "repl",
+ "vm",
 ]
 
 [[package]]
@@ -44,10 +71,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "lexer",
+]
+
+[[package]]
 name = "proc-macro2"
-version = "1.0.63"
+version = "1.0.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b368fba921b0dce7e60f5e04ec15e565b3303972b42bcfde1d0713b881959eb"
+checksum = "78803b62cbf1f46fde80d7c0e803111524b9877184cfe7c3033659490ac7a7da"
 dependencies = [
  "unicode-ident",
 ]
@@ -62,10 +96,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "repl"
+version = "0.1.0"
+dependencies = [
+ "compiler",
+ "interpreter",
+ "lexer",
+ "parser",
+ "vm",
+]
+
+[[package]]
 name = "syn"
-version = "2.0.23"
+version = "2.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59fb7d6d8281a51045d62b8eb3a7d1ce347b76f312af50cd3dc0af39c87c1737"
+checksum = "36ccaf716a23c35ff908f91c971a86a9a71af5998c1d8f10e828d9f55f68ac00"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -77,3 +122,12 @@ name = "unicode-ident"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22049a19f4a68748a168c0fc439f9516686aa045927ff767eca0a85101fb6e73"
+
+[[package]]
+name = "vm"
+version = "0.1.0"
+dependencies = [
+ "compiler",
+ "interpreter",
+ "num-traits",
+]

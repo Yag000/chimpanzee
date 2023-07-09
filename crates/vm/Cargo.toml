@@ -1,0 +1,15 @@
+[package]
+name = "vm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Internal crates
+
+compiler = { path = "../compiler" }
+interpreter = { path = "../interpreter" }
+
+# External crates
+num-traits = "0.2.15"
