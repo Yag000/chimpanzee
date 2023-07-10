@@ -1,8 +1,4 @@
-use std::iter::FromIterator;
-
 use crate::token::Token;
-
-
 pub struct Lexer {
     input: Vec<char>,
     position: usize,      // current position in input (points to current char)
@@ -141,7 +137,7 @@ impl Lexer {
         while self.ch.is_alphabetic() || self.ch == '_' {
             self.read_char();
         }
-        String::from_iter(self.input[position..self.position].iter())
+        self.input[position..self.position].iter().collect()
     }
 
     fn read_number(&mut self) -> String {
@@ -149,7 +145,7 @@ impl Lexer {
         while self.ch.is_numeric() {
             self.read_char();
         }
-        String::from_iter(self.input[position..self.position].iter())
+        self.input[position..self.position].iter().collect()
     }
 
     fn read_string(&mut self) -> String {
@@ -160,7 +156,7 @@ impl Lexer {
                 break; // TODO: handle unterminated string
             }
         }
-        String::from_iter(self.input[position..self.position].iter())
+        self.input[position..self.position].iter().collect()
     }
 }
 

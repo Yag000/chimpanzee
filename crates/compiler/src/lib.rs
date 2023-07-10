@@ -1,4 +1,4 @@
-pub mod compiler;
 pub mod code;
-pub mod test_utils;
+pub mod compiler;
 mod symbol_table;
+pub mod test_utils;

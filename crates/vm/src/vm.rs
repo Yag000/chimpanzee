@@ -1,11 +1,10 @@
-use std::rc::Rc;
-
 use compiler::{
     code::{read_u16, Instructions, Opcode},
     compiler::Bytecode,
 };
 use interpreter::object::Object;
 use num_traits::FromPrimitive;
+use std::rc::Rc;
 
 const STACK_SIZE: usize = 2048;
 const GLOBALS_SIZE: usize = 65536;
@@ -112,9 +111,6 @@ impl VM {
                     ip += 2;
                     self.push(self.globals[global_index].clone())?;
                 }
-                _ => {
-                    return Err(format!("Unhandeled opcode {}", op));
-                }
             }
             ip += 1;
         }
@@ -127,7 +123,7 @@ impl VM {
 
         match (&*left, &*right) {
             (Object::INTEGER(_), Object::INTEGER(_)) => {
-                self.execute_bianary_integer_operation(left, right, op)?
+                self.execute_bianary_integer_operation(&left, &right, op)?;
             }
             (Object::BOOLEAN(left), Object::BOOLEAN(right)) => {
                 let result = match op {
@@ -161,15 +157,15 @@ impl VM {
 
     fn execute_bianary_integer_operation(
         &mut self,
-        left: Rc<Object>,
-        right: Rc<Object>,
+        left: &Rc<Object>,
+        right: &Rc<Object>,
         op: Opcode,
     ) -> Result<(), String> {
         let left = self
-            .cast_to_integer(&left)
+            .cast_to_integer(left)
             .ok_or("Error: Not an integer".to_string())?;
         let right = self
-            .cast_to_integer(&right)
+            .cast_to_integer(right)
             .ok_or("Error: Not an integer".to_string())?;
 
         let result = match op {
@@ -190,7 +186,7 @@ impl VM {
 
         match (&*left, &*right) {
             (Object::INTEGER(_), Object::INTEGER(_)) => {
-                self.execute_integer_comparison(left, right, op)?;
+                self.execute_integer_comparison(&left, &right, op)?;
             }
             (Object::BOOLEAN(_), Object::BOOLEAN(_)) => match op {
                 Opcode::Equal => {
@@ -208,15 +204,15 @@ impl VM {
 
     fn execute_integer_comparison(
         &mut self,
-        left: Rc<Object>,
-        right: Rc<Object>,
+        left: &Rc<Object>,
+        right: &Rc<Object>,
         op: Opcode,
     ) -> Result<(), String> {
         let left = self
-            .cast_to_integer(&left)
+            .cast_to_integer(left)
             .ok_or("Error: Not an integer".to_string())?;
         let right = self
-            .cast_to_integer(&right)
+            .cast_to_integer(right)
             .ok_or("Error: Not an integer".to_string())?;
 
         let result = match op {

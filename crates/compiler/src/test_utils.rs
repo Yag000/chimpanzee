@@ -1,10 +1,8 @@
-use std::rc::Rc;
-
+use crate::code::Instructions;
 use interpreter::object::Object;
 use lexer::lexer::Lexer;
 use parser::{ast::Program, parser::Parser};
-
-use crate::code::Instructions;
+use std::rc::Rc;
 
 pub fn parse(input: &str) -> Program {
     let lexer = Lexer::new(input);
@@ -20,8 +18,7 @@ pub fn check_instructions(instructions: &Instructions, expected: &Instructions) 
     );
     assert_eq!(
         instructions, expected,
-        "wrong instructions. want={:?}, got={:?}",
-        expected, instructions
+        "wrong instructions. want={expected:?}, got={instructions:?}"
     );
 }
 
@@ -41,12 +38,10 @@ pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
             Object::NULL => assert_eq!(
                 constant,
                 &Object::NULL,
-                "constant[{}] - wrong type. got={:?}",
-                i,
-                constant
+                "constant[{i}] - wrong type. got={constant:?}"
             ),
             Object::STRING(x) => check_string_object(x, &expected[i]),
-            _ => panic!("constant[{}] - wrong type. got={:?}", i, constant),
+            _ => panic!("constant[{i}] - wrong type. got={constant:?}"),
         }
     }
 }
@@ -55,10 +50,9 @@ pub fn check_integer_object(integer: &i64, expected: &Object) {
     match expected {
         Object::INTEGER(i) => assert_eq!(
             integer, i,
-            "integer object has wrong value. got={}, want={}",
-            integer, i
+            "integer object has wrong value. got={integer}, want={i}"
         ),
-        _ => panic!("object is not Integer. got={:?}", expected),
+        _ => panic!("object is not Integer. got={expected:?}"),
     }
 }
 
@@ -66,10 +60,9 @@ pub fn check_boolean_object(boolean: &bool, expected: &Object) {
     match expected {
         Object::BOOLEAN(b) => assert_eq!(
             boolean, b,
-            "boolean object has wrong value. got={}, want={}",
-            boolean, b
+            "boolean object has wrong value. got={boolean}, want={b}"
         ),
-        _ => panic!("object is not Boolean. got={:?}", expected),
+        _ => panic!("object is not Boolean. got={expected:?}"),
     }
 }
 
@@ -77,9 +70,8 @@ pub fn check_string_object(string: &str, expected: &Object) {
     match expected {
         Object::STRING(s) => assert_eq!(
             string, s,
-            "string object has wrong value. got={}, want={}",
-            string, s
+            "string object has wrong value. got={string}, want={s}"
         ),
-        _ => panic!("object is not String. got={:?}", expected),
+        _ => panic!("object is not String. got={expected:?}"),
     }
 }

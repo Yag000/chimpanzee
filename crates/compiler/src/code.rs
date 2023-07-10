@@ -1,8 +1,7 @@
-use std::fmt::Display;
-
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::FromPrimitive;
+use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Instructions {
@@ -57,8 +56,8 @@ impl Instructions {
 
         match operand_count {
             1 => format!("{} {}", operand, operands[0]),
-            0 => format!("{}", operand),
-            _ => format!("Unhandeled operand_count for {}", operand),
+            0 => format!("{operand}"),
+            _ => format!("Unhandeled operand_count for {operand}"),
         }
     }
 
@@ -148,6 +147,7 @@ impl Opcode {
         }
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn make(&self, operands: Vec<i32>) -> Instructions {
         let widths = self.lookup_widths();
         let mut instructions: Vec<u8> = Vec::new();
@@ -172,7 +172,7 @@ impl Opcode {
         for width in widths {
             match width {
                 2 => {
-                    operands.push(read_u16(&ins[offset..offset + 2]) as i32);
+                    operands.push(i32::from(read_u16(&ins[offset..offset + 2])));
                     offset += 2;
                 }
                 _ => panic!("Unrecognized operand width: {width}"),
@@ -183,6 +183,29 @@ impl Opcode {
     }
 }
 
+/// This is a helper function to read a u16 from a byte slice, using
+/// big endian encoding.
+///
+/// # Arguments
+///
+/// * `data` - A byte slice
+///
+/// # Returns
+///
+/// * `u16` - A u16
+///
+/// # Examples
+///
+/// ```
+/// use compiler::code::read_u16;
+/// let data = vec![0, 1];
+/// let result = read_u16(&data);
+/// assert_eq!(result, 1);
+/// 
+/// let data = vec![255, 255];
+/// let result = read_u16(&data);
+/// assert_eq!(result, 65535);
+/// ```
 pub fn read_u16(data: &[u8]) -> u16 {
     BigEndian::read_u16(data)
 }

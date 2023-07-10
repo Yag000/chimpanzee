@@ -1,9 +1,8 @@
-use lexer::{lexer::Lexer, token::Token};
-
 use crate::ast::{
     precedence_of, Expression, Identifier, LetStatement, Precedence, Program, ReturnStatement,
     Statement,
 };
+use lexer::{lexer::Lexer, token::Token};
 
 pub struct Parser {
     lexer: Lexer,

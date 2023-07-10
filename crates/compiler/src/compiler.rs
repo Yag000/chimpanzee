@@ -1,12 +1,10 @@
 use crate::code::{Instructions, Opcode};
 use crate::symbol_table::SymbolTable;
-
 use interpreter::object::Object;
 use lexer::token::Token;
+use num_traits::FromPrimitive;
 use parser::ast::Program;
 use parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement};
-
-use num_traits::FromPrimitive;
 
 pub struct Compiler {
     instructions: Instructions,
@@ -18,6 +16,7 @@ pub struct Compiler {
     symbol_table: SymbolTable,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 struct EmittedInstruction {
     opcode: Opcode,
@@ -71,7 +70,8 @@ impl Compiler {
                 let symbol = self.symbol_table.define(s.name.value);
                 self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
             }
-            _ => unimplemented!(),
+            Statement::Return(_) => unimplemented!(),
+            
         }
 
         Ok(())
@@ -84,12 +84,12 @@ impl Compiler {
                 _ => {
                     self.compile_expression(*infix.left)?;
                     self.compile_expression(*infix.right)?;
-                    self.compile_infix_operator(infix.token)?;
+                    self.compile_infix_operator(&infix.token)?;
                 }
             },
             Expression::Prefix(prefix) => {
                 self.compile_expression(*prefix.right)?;
-                self.compile_prefix_operator(prefix.token)?;
+                self.compile_prefix_operator(&prefix.token)?;
             }
             Expression::Primitive(primitive) => self.compile_primitive(primitive)?,
             Expression::Conditional(conditional) => self.compile_conditional(conditional)?,
@@ -115,7 +115,8 @@ impl Compiler {
             Primitive::IntegerLiteral(i) => {
                 let integer = Object::INTEGER(i);
                 let pos = self.add_constant(integer);
-                self.emit(Opcode::Constant, vec![pos as i32]);
+                let pos = i32::from_usize(pos).ok_or("Invalid constant position")?;
+                self.emit(Opcode::Constant, vec![pos]);
             }
             Primitive::BooleanLiteral(true) => {
                 self.emit(Opcode::True, vec![]);
@@ -126,14 +127,15 @@ impl Compiler {
             Primitive::StringLiteral(s) => {
                 let string = Object::STRING(s);
                 let pos = self.add_constant(string);
-                self.emit(Opcode::Constant, vec![pos as i32]);
+                let pos = i32::from_usize(pos).ok_or("Invalid constant position")?;
+                self.emit(Opcode::Constant, vec![pos]);
             }
         }
 
         Ok(())
     }
 
-    fn compile_infix_operator(&mut self, operator: Token) -> Result<(), String> {
+    fn compile_infix_operator(&mut self, operator: &Token) -> Result<(), String> {
         match operator {
             Token::Plus => self.emit(Opcode::Add, vec![]),
             Token::Minus => self.emit(Opcode::Sub, vec![]),
@@ -161,7 +163,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_prefix_operator(&mut self, operator: Token) -> Result<(), String> {
+    fn compile_prefix_operator(&mut self, operator: &Token) -> Result<(), String> {
         match operator {
             Token::Bang => self.emit(Opcode::Bang, vec![]),
             Token::Minus => self.emit(Opcode::Minus, vec![]),
@@ -209,7 +211,7 @@ impl Compiler {
     }
 
     fn remove_last_instruction(&mut self) {
-        if let Some(_) = self.last_instruction {
+        if self.last_instruction.is_some() {
             self.instructions.data.pop();
             self.last_instruction = self.previous_instruction.clone();
         }
@@ -248,11 +250,11 @@ impl Compiler {
             opcode = self.instructions.data[pos]
         ))?;
         let new_instruction = op.make(vec![operand]);
-        self.replace_instruction(pos, new_instruction);
+        self.replace_instruction(pos, &new_instruction);
         Ok(())
     }
 
-    fn replace_instruction(&mut self, pos: usize, new_instruction: Instructions) {
+    fn replace_instruction(&mut self, pos: usize, new_instruction: &Instructions) {
         for (i, instruction) in new_instruction.data.iter().enumerate() {
             self.instructions.data[pos + i] = *instruction;
         }
@@ -326,7 +328,7 @@ pub mod tests {
                             .collect(),
                     );
                 }
-                Err(err) => panic!("compiler error: {}", err),
+                Err(err) => panic!("compiler error: {err}"),
             }
         }
     }

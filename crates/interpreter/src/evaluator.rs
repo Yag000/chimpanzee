@@ -1,9 +1,13 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
+use crate::{
+    enviroment::Environment,
+    object::{BuiltinFunction, Function, Object},
+};
 use lexer::token::Token;
-use parser::ast::{BlockStatement, Expression, Primitive, Program, Statement, Conditional, Identifier, IndexExpression, HashMapLiteral};
-
-use crate::{enviroment::Environment, object::{Object, Function, BuiltinFunction}};
+use parser::ast::{
+    BlockStatement, Conditional, Expression, HashMapLiteral, Identifier, IndexExpression,
+    Primitive, Program, Statement,
+};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
@@ -301,9 +305,19 @@ impl Evaluator {
                 if *y < 0 || *y >= x.len() as i64 {
                     return NULL;
                 }
-                x[*y as usize].clone()
+                let index = usize::try_from(*y).unwrap();
+                x[index].clone()
             }
-            (Object::HASHMAP(x), _) => self.eval_hashmap_index_expression(x, &index),
+            (Object::HASHMAP(x), _) => {
+                if !index.is_hashable() {
+                    return Object::ERROR(format!("unusable as hash key: {}", index.get_type()));
+                }
+                match x.get(&index) {
+                    Some(x) => x.clone(),
+                    None => NULL,
+                }
+            }
+
             _ => Object::ERROR(format!(
                 "index operator not supported: {}[{}]",
                 left.get_type(),
@@ -311,19 +325,7 @@ impl Evaluator {
             )),
         }
     }
-    fn eval_hashmap_index_expression(
-        &self,
-        hashmap: &HashMap<Object, Object>,
-        index: &Object,
-    ) -> Object {
-        if !index.is_hashable() {
-            return Object::ERROR(format!("unusable as hash key: {}", index.get_type()));
-        }
-        match hashmap.get(index) {
-            Some(x) => x.clone(),
-            None => NULL,
-        }
-    }
+
     fn eval_hashmap_literal(&mut self, hashmap_pairs: &HashMapLiteral) -> Object {
         let mut hashmap = HashMap::new();
         for (key, value) in hashmap_pairs.pairs.clone() {
@@ -687,7 +689,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            println!("{}", input);
+            println!("{input}");
             match expected {
                 Some(x) => test_integer_object(test_eval(input), x),
                 None => test_null_object(test_eval(input)),
@@ -706,7 +708,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            println!("{}", input);
+            println!("{input}");
             match expected {
                 Some(x) => test_integer_object(test_eval(input), x),
                 None => test_null_object(test_eval(input)),
@@ -725,7 +727,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            println!("{}", input);
+            println!("{input}");
             match expected {
                 Some(x) => {
                     let evaluated = test_eval(input);
@@ -747,7 +749,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            println!("{}", input);
+            println!("{input}");
             match expected {
                 Some(x) => test_array_object(test_eval(input), x),
                 None => test_null_object(test_eval(input)),
@@ -829,7 +831,7 @@ mod tests {
         ];
 
         for (input, expected) in tests {
-            println!("{}", input);
+            println!("{input}");
             match expected {
                 Some(x) => test_integer_object(test_eval(input), x),
                 None => test_null_object(test_eval(input)),

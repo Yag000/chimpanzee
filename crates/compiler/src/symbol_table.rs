@@ -12,18 +12,10 @@ pub struct Symbol {
     pub index: usize,
 }
 
+#[derive(Default)]
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
     num_definitions: usize,
-}
-
-impl Default for SymbolTable {
-    fn default() -> Self {
-        Self {
-            store: HashMap::new(),
-            num_definitions: 0,
-        }
-    }
 }
 
 impl SymbolTable {

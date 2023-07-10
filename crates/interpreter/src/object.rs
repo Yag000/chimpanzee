@@ -1,10 +1,8 @@
+use super::enviroment::Environment;
+use crate::evaluator::NULL;
+use parser::ast::{BlockStatement, Identifier};
 use std::{cell::RefCell, cmp::Ordering, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
 
-use parser::ast::{BlockStatement, Identifier};
-
-use crate::evaluator::NULL;
-
-use super::{enviroment::Environment};
 #[derive(Debug, PartialEq, Clone)]
 pub enum Object {
     INTEGER(i64),
@@ -70,7 +68,7 @@ impl Object {
     }
 
     fn format_array(f: &mut std::fmt::Formatter<'_>, array: &[Object]) -> std::fmt::Result {
-        let values: Vec<String> = array.iter().map(|o| o.to_string()).collect();
+        let values: Vec<String> = array.iter().map(ToString::to_string).collect();
         write!(f, "[{}]", values.join(", "))
     }
 
@@ -94,7 +92,7 @@ impl Display for Function {
         let parameters = self
             .parameters
             .iter()
-            .map(|x| x.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<String>>();
         write!(f, "fn({}){{\n{}\n}}", parameters.join(", "), self.body)
     }
@@ -123,6 +121,7 @@ impl Display for BuiltinFunction {
     }
 }
 
+#[allow(clippy::needless_pass_by_value)] // false positive
 impl BuiltinFunction {
     pub fn get_builtins() -> Environment {
         let mut env = Environment::new();

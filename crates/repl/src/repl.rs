@@ -1,12 +1,11 @@
-use std::io::{self, Write};
-use std::{error::Error, fs};
-
 use compiler::compiler::Compiler;
 use interpreter::evaluator::Evaluator;
 use interpreter::object::Object;
 use lexer::lexer::Lexer;
 use lexer::token::Token;
 use parser::parser::Parser;
+use std::io::{self, Write};
+use std::{error::Error, fs};
 use vm::vm::VM;
 
 #[allow(dead_code)]
@@ -45,7 +44,7 @@ pub fn rppl() {
 }
 
 #[allow(dead_code)]
-pub fn repl_interpreter() {
+pub fn interpreter() {
     greeting_message();
     print_entry_header();
     let mut evaluator = Evaluator::new();
@@ -65,7 +64,7 @@ pub fn repl_interpreter() {
     });
 }
 
-pub fn repl_compiler() {
+pub fn compiler() {
     greeting_message();
     print_entry_header();
     let mut compiler = Compiler::new();

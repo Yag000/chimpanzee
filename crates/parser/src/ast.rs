@@ -1,8 +1,6 @@
-use std::fmt::Display;
-
-use lexer::token::Token;
-
 use crate::parser::Parser;
+use lexer::token::Token;
+use std::fmt::Display;
 
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -323,7 +321,7 @@ impl Display for FunctionLiteral {
         let parameters = self
             .parameters
             .iter()
-            .map(|x| x.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<String>>();
         write!(f, "fn({}){{\n{}}}", parameters.join(", "), self.body)
     }
@@ -381,7 +379,7 @@ impl Display for FunctionCall {
         let arguments = self
             .arguments
             .iter()
-            .map(|x| x.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<String>>();
         write!(f, "{}({})", self.function, arguments.join(", "))
     }
@@ -484,7 +482,7 @@ impl Display for ArrayLiteral {
         let elements = self
             .elements
             .iter()
-            .map(|x| x.to_string())
+            .map(ToString::to_string)
             .collect::<Vec<String>>();
         write!(f, "[{}]", elements.join(", "))
     }
@@ -569,7 +567,7 @@ impl HashMapLiteral {
     }
 }
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Clone, Copy)]
 pub enum Precedence {
     Lowest = 0,
     Equals = 1,      // ==
