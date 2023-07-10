@@ -201,7 +201,7 @@ impl Opcode {
 /// let data = vec![0, 1];
 /// let result = read_u16(&data);
 /// assert_eq!(result, 1);
-/// 
+///
 /// let data = vec![255, 255];
 /// let result = read_u16(&data);
 /// assert_eq!(result, 65535);

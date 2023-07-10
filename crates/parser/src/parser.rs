@@ -3,11 +3,61 @@ use crate::ast::{
     Statement,
 };
 use lexer::{lexer::Lexer, token::Token};
+use std::{
+    error::Error,
+    fmt::{Display, Formatter},
+};
+
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug)]
+pub struct ParserErrors {
+    pub errors: Vec<String>,
+}
+
+impl Error for ParserErrors {}
+
+impl Default for ParserErrors {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Display for ParserErrors {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        writeln!(f, "Parser errors:")?;
+        for err in &self.errors {
+            writeln!(f, "\t{err}")?;
+        }
+        Ok(())
+    }
+}
+
+impl ParserErrors {
+    pub fn new() -> ParserErrors {
+        ParserErrors { errors: vec![] }
+    }
+
+    pub fn add_error(&mut self, err: String) {
+        self.errors.push(err);
+    }
+
+    pub fn add_errors(&mut self, mut errors: Vec<String>) {
+        self.errors.append(&mut errors);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.errors.is_empty()
+    }
+
+    pub fn len(&self) -> usize {
+        self.errors.len()
+    }
+}
 
 pub struct Parser {
     lexer: Lexer,
 
-    pub errors: Vec<String>,
+    pub errors: ParserErrors,
     pub current_token: Token,
     pub peek_token: Token,
 }
@@ -16,9 +66,9 @@ impl Parser {
     pub fn new(lexer: Lexer) -> Parser {
         let mut parser = Parser {
             lexer,
-            errors: Vec::new(),
-            current_token: Token::Illegal,
-            peek_token: Token::Illegal,
+            errors: ParserErrors::new(),
+            current_token: Token::Illegal(String::new()),
+            peek_token: Token::Illegal(String::new()),
         };
 
         parser.next_token();
@@ -150,7 +200,7 @@ impl Parser {
     }
 
     fn peek_error(&mut self, token: &Token) {
-        self.errors.push(format!(
+        self.errors.add_error(format!(
             "Expected next token to be {}, got {} instead",
             token, self.peek_token
         ));
@@ -166,7 +216,7 @@ impl Parser {
 
     fn push_error(&mut self, message: String) {
         if !message.is_empty() {
-            self.errors.push(message);
+            self.errors.add_error(message);
         }
     }
 }
@@ -260,9 +310,7 @@ mod tests {
 
         if len > 0 {
             println!("Parser has {} errors", parser.errors.len());
-            for error in parser.errors.iter() {
-                println!("Parser error: {}", error);
-            }
+            println!("Parser errors: {:?}", parser.errors);
         }
         assert_eq!(len, 0);
     }

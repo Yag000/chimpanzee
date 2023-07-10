@@ -4,7 +4,7 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)] // I should find a way of avoiding this thanks to lifetimes, but
                                    // not for now (the issue is with the parser...)
 pub enum Token {
-    Illegal,
+    Illegal(String),
     Eof,
 
     // Identifiers + literals
@@ -54,7 +54,7 @@ impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Token::Ident(x) | Token::Int(x) | Token::String(x) => write!(f, "{x}"),
-            Token::Illegal => write!(f, "Illegal"),
+            Token::Illegal(s) => write!(f, "Illegal: {s}"),
             Token::Eof => write!(f, "Eof"),
             Token::Assign => write!(f, "="),
             Token::Bang => write!(f, "!"),

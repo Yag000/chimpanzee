@@ -1,13 +1,15 @@
-use anyhow::Result;
 use clap_derive::{Parser, ValueEnum};
 use compiler::compiler::Compiler;
 use interpreter::evaluator::Evaluator;
+use interpreter::object::Object;
 use lexer::lexer::Lexer;
 use lexer::token::Token;
-use parser::parser::Parser;
+use parser::parser::{Parser, ParserErrors};
 use std::io::{self, Write};
 use std::{error::Error, fs};
 use vm::vm::VM;
+
+use crate::errors::{CompilerError, LexerErrors, RuntimeError};
 
 enum InputType {
     File(String),
@@ -50,64 +52,83 @@ impl Cli {
         }
     }
 
-    pub fn run(&self) {
+    pub fn run(&self) -> Result<(), Box<dyn Error>> {
         match &self.get_input_type() {
             InputType::Repl => match self.get_mode() {
-                Mode::Lexer => self.rlpl(),
-                Mode::Parser => self.rppl(),
+                Mode::Lexer => Ok(self.rlpl()?),
+                Mode::Parser => Ok(self.rppl()?),
                 Mode::Interpreter => self.interpreter(),
                 Mode::Compiler => self.compiler(),
             },
-            InputType::File(filename) => {
-                self.run_file(filename);
-            }
+            InputType::File(filename) => self.run_file(filename),
         }
     }
 
-    fn rlpl(&self) {
+    fn rlpl(&self) -> Result<(), LexerErrors> {
         self.greeting_message();
         Cli::print_entry_header();
+        let mut errors = LexerErrors::new();
         std::io::stdin().lines().for_each(|line| {
             if let Ok(line) = line {
-                lex(&line);
+                let new_error = lex(&line);
+                if let Err(err) = new_error {
+                    errors.add_errors(err);
+                }
             }
             Cli::print_entry_header();
         });
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
-    pub fn rppl(&self) {
+    pub fn rppl(&self) -> Result<(), ParserErrors> {
         self.greeting_message();
         Cli::print_entry_header();
+        let mut errors = ParserErrors::new();
         std::io::stdin().lines().for_each(|line| {
             if let Ok(line) = line {
-                parse(&line);
+                let new_error = parse(&line);
+                if let Err(err) = new_error {
+                    errors.add_errors(err.errors);
+                }
             }
             Cli::print_entry_header();
         });
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
-    pub fn interpreter(&self) {
+    pub fn interpreter(&self) -> Result<(), Box<dyn Error>> {
         self.greeting_message();
         Cli::print_entry_header();
         let mut evaluator = Evaluator::new();
-        std::io::stdin().lines().for_each(|line| {
-            if let Ok(line) = line {
-                interpret(&mut evaluator, &line);
-                Cli::print_entry_header();
+        for line in std::io::stdin().lines().flatten() {
+            if let Err(err) = interpret(&mut evaluator, &line) {
+                eprintln!("{err}");
             }
-        });
+            Cli::print_entry_header();
+        }
+        Ok(())
     }
 
-    pub fn compiler(&self) {
+    pub fn compiler(&self) -> Result<(), Box<dyn Error>> {
         self.greeting_message();
         Cli::print_entry_header();
         let mut compiler = Compiler::new();
-        std::io::stdin().lines().for_each(|line| {
-            if let Ok(line) = line {
-                compile(&mut compiler, &line);
-                Cli::print_entry_header();
+        for line in std::io::stdin().lines().flatten() {
+            if let Err(err) = compile(&mut compiler, &line) {
+                eprintln!("{err}");
             }
-        });
+            Cli::print_entry_header();
+        }
+        Ok(())
     }
 
     fn greeting_message(&self) {
@@ -164,24 +185,12 @@ impl Cli {
         io::stdout().flush().unwrap();
     }
 
-    fn print_parse_errors(errors: Vec<String>) {
-        for error in errors {
-            println!("{error}\n");
-        }
-    }
-
-    fn run_file(&self, file_path: &str) {
-        let contents = match Cli::read_file_contents(file_path) {
-            Ok(contents) => contents,
-            Err(error) => {
-                eprintln!("{error}");
-                return;
-            }
-        };
+    fn run_file(&self, file_path: &str) -> Result<(), Box<dyn Error>> {
+        let contents = Cli::read_file_contents(file_path)?;
 
         match self.get_mode() {
-            Mode::Lexer => lex(&contents),
-            Mode::Parser => parse(&contents),
+            Mode::Lexer => Ok(lex(&contents)?),
+            Mode::Parser => Ok(parse(&contents)?),
             Mode::Interpreter => {
                 let mut evaluator = Evaluator::new();
                 interpret(&mut evaluator, &contents)
@@ -202,60 +211,87 @@ impl Cli {
     }
 }
 
-fn lex(line: &str) {
+fn lex(line: &str) -> Result<(), LexerErrors> {
     let mut lexer = Lexer::new(line);
-    let mut token = Token::Illegal;
+    let mut token = Token::Illegal(String::new());
+    let mut errors = LexerErrors::new();
     while token != Token::Eof {
         token = lexer.next_token();
+        if let Token::Illegal(ref s) = token {
+            errors.add_error(s.clone());
+        }
         println!("{token}");
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
     }
 }
 
-fn parse(line: &str) {
-    let lexer = Lexer::new(&line);
+fn parse(line: &str) -> Result<(), ParserErrors> {
+    let lexer = Lexer::new(line);
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     if parser.errors.is_empty() {
         println!("{program}");
+        Ok(())
     } else {
-        Cli::print_parse_errors(parser.errors);
+        Err(parser.errors)
     }
 }
 
-fn interpret(interpreter: &mut Evaluator, line: &str) {
-    let lexer = Lexer::new(&line);
+fn interpret(interpreter: &mut Evaluator, line: &str) -> Result<(), Box<dyn Error>> {
+    let lexer = Lexer::new(line);
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     if !parser.errors.is_empty() {
-        Cli::print_parse_errors(parser.errors);
+        return Err(Box::new(parser.errors));
     }
     let evaluated = interpreter.eval(&program);
-    println!("{evaluated}");
+
+    if let Object::ERROR(error) = evaluated {
+        Err(Box::new(RuntimeError::new(error)))
+    } else {
+        println!("{evaluated}");
+        Ok(())
+    }
 }
 
-fn compile(compiler: &mut Compiler, line: &str) {
-    let lexer = Lexer::new(&line);
+fn compile(compiler: &mut Compiler, line: &str) -> Result<(), Box<dyn Error>> {
+    let lexer = Lexer::new(line);
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     if !parser.errors.is_empty() {
-        Cli::print_parse_errors(parser.errors);
+        return Err(Box::new(parser.errors));
     }
     match compiler.compile(program) {
         Ok(()) => {
             let mut vm = VM::new(compiler.bytecode());
             match vm.run() {
-                Ok(()) => {
-                    let stack_top = match vm.last_popped_stack_element() {
-                        Some(x) => x.to_string(),
-                        None => "Error: No stack top".to_string(),
-                    };
-                    println!("{stack_top}");
+                Ok(()) => match vm.last_popped_stack_element() {
+                    Some(obj) => match obj.as_ref() {
+                        Object::ERROR(error) => {
+                            return Err(Box::new(RuntimeError::new(error.clone())));
+                        }
+                        _ => {
+                            println!("{obj}");
+                        }
+                    },
+                    None => {
+                        return Err(Box::new(RuntimeError::new(String::from(
+                            "No object returned from VM",
+                        ))));
+                    }
+                },
+                Err(e) => {
+                    return Err(Box::new(RuntimeError::new(e)));
                 }
-                Err(e) => println!("Bytecode evaluation error: {e}"),
             };
         }
         Err(e) => {
-            println!("Compilation failed: {e}");
+            return Err(Box::new(CompilerError::new(e)));
         }
     }
+    Ok(())
 }

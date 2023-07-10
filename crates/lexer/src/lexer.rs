@@ -73,7 +73,7 @@ impl Lexer {
                     self.read_char();
                     Token::And
                 } else {
-                    Token::Illegal
+                    Token::Illegal("&".to_string())
                 }
             }
             '|' => {
@@ -81,7 +81,7 @@ impl Lexer {
                     self.read_char();
                     Token::Or
                 } else {
-                    Token::Illegal
+                    Token::Illegal("|".to_string())
                 }
             }
             ';' => Token::Semicolon,
@@ -112,7 +112,7 @@ impl Lexer {
                 };
             }
             '0'..='9' => return Token::Int(self.read_number()),
-            _ => Token::Illegal,
+            s => Token::Illegal(s.to_string()),
         };
         self.read_char();
         token
@@ -339,7 +339,7 @@ mod tests {
 
         for expected_token in expected {
             let token = lexer.next_token();
-            println!("{:?}", token);
+            println!("{token:?}");
             assert_eq!(token, expected_token);
         }
     }
