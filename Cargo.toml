@@ -2,8 +2,12 @@
 name = "monkey-rs"
 version = "0.1.0"
 edition = "2021"
-authors = ["Yago Iglesias @Yag000"]
-
+authors = ["Yago Iglesias <yagoiglesias7@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "Monkey programming language implementation in Rust (interpreter and compiler)"
+readme = "README.md"
+homepage = "https://github.com/Yag000/monkey-rs"
+repository = "https://github.com/Yag000/monkey-rs"
 
 [workspace]
 members = ["crates/*"]
@@ -17,3 +21,8 @@ interpreter = { path = "./crates/interpreter" }
 compiler = { path = "./crates/compiler" }
 vm = { path = "./crates/vm" }
 repl = { path = "./crates/repl" }
+
+# external crates
+clap = "4.3.11"
+clap_derive = "4.3.2"
+anyhow = "1.0.71"
