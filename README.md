@@ -6,7 +6,9 @@ The Monkey language is a language created by Thorsten Ball for his book [Writing
 
 ## Monkey-rs
 
-Monkey-rs is an implementation of the Monkey language in Rust. It is based on the book [Writing an Interpreter in Go](https://interpreterbook.com/). It provides a REPL and a file intepreter. Monkey files use the extension `.monkey`.
+Monkey-rs is an implementation of the Monkey language in Rust. It is based on the book [Writing an Interpreter in Go](https://interpreterbook.com/) and in the book [Writing a Compiler in Go](https://compilerbook.com/).
+
+This implemenattion is still in development. For now an interpreter is fully implemented, allowing to run a REPL an to run Monkey files(`.monkey` extension). I am currently working on a compiler, and some features are already implemented.
 
 ### REPL
 
@@ -22,6 +24,30 @@ To run a Monkey file, run the following command:
 
 ```bash
 cargo run --release -- <path-to-file>
+```
+
+### Other modes
+
+You can also test the compiler, parser and lexer in the same way, adding the following flag after the path to the file:
+
+```bash
+--mode <mode>
+```
+
+Where `<mode>` can be `compiler`, `parser` or `lexer`.
+
+Example:
+
+```bash
+cargo run --release -- <path-to-file> --mode compiler
+```
+
+### Help
+
+To see the help, run the following command:
+
+```bash
+cargo run --release -- --help
 ```
 
 ## Monkey syntax
