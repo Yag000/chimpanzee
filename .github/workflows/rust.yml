@@ -18,3 +18,5 @@ jobs:
         run: cargo build --all --verbose --release
       - name: Run tests
         run: cargo test --all --verbose --release
+      - name: Lint
+        run: ./run_linter.sh
