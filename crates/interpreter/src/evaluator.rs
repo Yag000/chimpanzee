@@ -30,9 +30,9 @@ impl Evaluator {
         }
     }
 
-    pub fn eval(&mut self, program: &Program) -> Object {
+    pub fn eval(&mut self, program: Program) -> Object {
         let mut result = NULL;
-        for statement in &program.statements {
+        for statement in program.statements {
             result = self.eval_statement(statement);
             match result {
                 Object::RETURN(x) => return *x,
@@ -43,9 +43,9 @@ impl Evaluator {
         result
     }
 
-    fn eval_block_statemet(&mut self, block: &BlockStatement) -> Object {
+    fn eval_block_statemet(&mut self, block: BlockStatement) -> Object {
         let mut result = NULL;
-        for statement in &block.statements {
+        for statement in block.statements {
             result = self.eval_statement(statement);
             match result {
                 Object::RETURN(_) | Object::ERROR(_) => return result,
@@ -55,18 +55,18 @@ impl Evaluator {
         result
     }
 
-    fn eval_statement(&mut self, statement: &Statement) -> Object {
+    fn eval_statement(&mut self, statement: Statement) -> Object {
         match statement {
             Statement::Expression(x) => self.eval_expression(x),
             Statement::Return(x) => {
-                let value = self.eval_expression(&x.return_value);
+                let value = self.eval_expression(x.return_value);
                 if Self::is_error(&value) {
                     return value;
                 }
                 Object::RETURN(Box::new(value))
             }
             Statement::Let(x) => {
-                let value = self.eval_expression(&x.value);
+                let value = self.eval_expression(x.value);
                 if Self::is_error(&value) {
                     return value;
                 }
@@ -76,49 +76,49 @@ impl Evaluator {
         }
     }
 
-    fn eval_expression(&mut self, expression: &Expression) -> Object {
+    fn eval_expression(&mut self, expression: Expression) -> Object {
         match expression {
             Expression::Primitive(x) => Self::eval_primitive_expression(x),
             Expression::Prefix(operator) => {
-                let right = self.eval_expression(&operator.right);
+                let right = self.eval_expression(*operator.right);
                 if Self::is_error(&right) {
                     return right;
                 }
                 Self::eval_prefix_expression(&operator.token, &right)
             }
             Expression::Infix(operator) => {
-                let left = self.eval_expression(&operator.left);
+                let left = self.eval_expression(*operator.left);
                 if Self::is_error(&left) {
                     return left;
                 }
-                let right = self.eval_expression(&operator.right);
+                let right = self.eval_expression(*operator.right);
                 if Self::is_error(&right) {
                     return right;
                 }
-                Self::eval_infix_expression(&operator.token, &left, &right)
+                Self::eval_infix_expression(&operator.token, left, right)
             }
             Expression::Conditional(conditional) => self.eval_conditional_expression(conditional),
-            Expression::Identifier(x) => self.eval_identifier(x),
+            Expression::Identifier(x) => self.eval_identifier(&x),
             Expression::FunctionLiteral(x) => {
-                let parameters = &x.parameters;
-                let body = &x.body;
+                let parameters = x.parameters;
+                let body = x.body;
                 Object::FUNCTION(Function {
-                    parameters: parameters.clone(),
-                    body: body.clone(),
+                    parameters,
+                    body,
                     environment: Rc::clone(&self.env),
                 })
             }
             Expression::FunctionCall(x) => {
-                let function = self.eval_expression(&x.function);
+                let function = self.eval_expression(*x.function);
                 if Self::is_error(&function) {}
-                let args = self.eval_expressions(&x.arguments);
+                let args = self.eval_expressions(x.arguments);
                 if args.len() == 1 && Self::is_error(&args[0]) {
                     return args[0].clone();
                 }
-                self.apply_function(&function, args)
+                self.apply_function(function, args)
             }
             Expression::ArrayLiteral(array) => {
-                let elements = self.eval_expressions(&array.elements);
+                let elements = self.eval_expressions(array.elements);
                 if elements.len() == 1 && Self::is_error(&elements[0]) {
                     return elements[0].clone();
                 }
@@ -131,17 +131,17 @@ impl Evaluator {
         }
     }
 
-    fn eval_primitive_expression(expression: &Primitive) -> Object {
+    fn eval_primitive_expression(expression: Primitive) -> Object {
         match expression {
-            Primitive::IntegerLiteral(x) => Object::INTEGER(*x),
+            Primitive::IntegerLiteral(x) => Object::INTEGER(x),
             Primitive::BooleanLiteral(x) => {
-                if *x {
+                if x {
                     TRUE
                 } else {
                     FALSE
                 }
             }
-            Primitive::StringLiteral(s) => Object::STRING(s.clone()),
+            Primitive::StringLiteral(s) => Object::STRING(s),
         }
     }
 
@@ -154,9 +154,10 @@ impl Evaluator {
     }
 
     fn eval_bang_operator_expression(right: &Object) -> Object {
-        match right {
-            Object::BOOLEAN(false) | Object::NULL => TRUE,
-            _ => FALSE,
+        if Self::is_truthy(right) {
+            FALSE
+        } else {
+            TRUE
         }
     }
 
@@ -167,18 +168,18 @@ impl Evaluator {
         }
     }
 
-    fn eval_infix_expression(operator: &Token, left: &Object, right: &Object) -> Object {
+    fn eval_infix_expression(operator: &Token, left: Object, right: Object) -> Object {
         match (left, right) {
             (Object::INTEGER(x), Object::INTEGER(y)) => {
-                Self::eval_integer_infix_expression(operator, *x, *y)
+                Self::eval_integer_infix_expression(operator, x, y)
             }
             (Object::BOOLEAN(x), Object::BOOLEAN(y)) => {
-                Self::eval_boolean_infix_expression(operator, *x, *y)
+                Self::eval_boolean_infix_expression(operator, x, y)
             }
             (Object::STRING(x), Object::STRING(y)) => {
-                Self::eval_string_infix_expression(operator, x, y)
+                Self::eval_string_infix_expression(operator, x, &y)
             }
-            _ => Object::ERROR(format!(
+            (left, right) => Object::ERROR(format!(
                 "type mismatch: {} {} {}",
                 left.get_type(),
                 operator,
@@ -213,21 +214,25 @@ impl Evaluator {
         }
     }
 
-    fn eval_string_infix_expression(operator: &Token, left: &str, right: &str) -> Object {
+    fn eval_string_infix_expression(operator: &Token, mut left: String, right: &str) -> Object {
         match operator {
-            Token::Plus => Object::STRING(format!("{left}{right}")),
+            Token::Plus => {
+                left.push_str(right);
+                Object::STRING(left)
+            }
+
             _ => Object::ERROR(format!("unknown operator: STRING {operator} STRING")),
         }
     }
 
-    fn eval_conditional_expression(&mut self, conditional: &Conditional) -> Object {
-        let condition = self.eval_expression(&conditional.condition);
+    fn eval_conditional_expression(&mut self, conditional: Conditional) -> Object {
+        let condition = self.eval_expression(*conditional.condition);
         if Self::is_error(&condition) {
             return condition;
         }
         if Self::is_truthy(&condition) {
-            self.eval_block_statemet(&conditional.consequence)
-        } else if let Some(alternative) = &conditional.alternative {
+            self.eval_block_statemet(conditional.consequence)
+        } else if let Some(alternative) = conditional.alternative {
             self.eval_block_statemet(alternative)
         } else {
             NULL
@@ -256,7 +261,7 @@ impl Evaluator {
         }
     }
 
-    fn eval_expressions(&mut self, expressions: &[Expression]) -> Vec<Object> {
+    fn eval_expressions(&mut self, expressions: Vec<Expression>) -> Vec<Object> {
         let mut result = vec![];
         for expression in expressions {
             let evaluated = self.eval_expression(expression);
@@ -268,13 +273,13 @@ impl Evaluator {
         result
     }
 
-    fn apply_function(&mut self, function: &Object, args: Vec<Object>) -> Object {
+    fn apply_function(&mut self, function: Object, args: Vec<Object>) -> Object {
         match function {
             Object::FUNCTION(function) => {
-                let extended_env = Self::extend_function_env(function, args);
+                let extended_env = Self::extend_function_env(&function, args);
                 let env = Rc::clone(&self.env);
                 self.env = Rc::new(RefCell::new(extended_env));
-                let evaluated = self.eval_block_statemet(&function.body);
+                let evaluated = self.eval_block_statemet(function.body);
                 self.env = env;
                 evaluated
             }
@@ -291,12 +296,12 @@ impl Evaluator {
         env
     }
 
-    fn eval_index_expression(&mut self, index_expression: &IndexExpression) -> Object {
-        let left = self.eval_expression(&index_expression.left);
+    fn eval_index_expression(&mut self, index_expression: IndexExpression) -> Object {
+        let left = self.eval_expression(*index_expression.left);
         if Self::is_error(&left) {
             return left;
         }
-        let index = self.eval_expression(&index_expression.index);
+        let index = self.eval_expression(*index_expression.index);
         if Self::is_error(&index) {
             return index;
         }
@@ -326,10 +331,10 @@ impl Evaluator {
         }
     }
 
-    fn eval_hashmap_literal(&mut self, hashmap_pairs: &HashMapLiteral) -> Object {
+    fn eval_hashmap_literal(&mut self, hashmap_pairs: HashMapLiteral) -> Object {
         let mut hashmap = HashMap::new();
-        for (key, value) in hashmap_pairs.pairs.clone() {
-            let key = self.eval_expression(&key);
+        for (key, value) in hashmap_pairs.pairs {
+            let key = self.eval_expression(key);
             if Self::is_error(&key) {
                 return key;
             }
@@ -337,7 +342,7 @@ impl Evaluator {
                 return Object::ERROR(format!("unusable as hash key: {}", key.get_type()));
             }
 
-            let value = self.eval_expression(&value);
+            let value = self.eval_expression(value);
             if Self::is_error(&value) {
                 return value;
             }
@@ -844,7 +849,7 @@ mod tests {
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
         let mut evaluator = Evaluator::new();
-        evaluator.eval(&program)
+        evaluator.eval(program)
     }
 
     fn test_integer_object(object: Object, expected: i64) {

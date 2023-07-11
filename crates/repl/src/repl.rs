@@ -248,7 +248,7 @@ fn interpret(interpreter: &mut Evaluator, line: &str) -> Result<(), Box<dyn Erro
     if !parser.errors.is_empty() {
         return Err(Box::new(parser.errors));
     }
-    let evaluated = interpreter.eval(&program);
+    let evaluated = interpreter.eval(program);
 
     if let Object::ERROR(error) = evaluated {
         Err(Box::new(RuntimeError::new(error)))
