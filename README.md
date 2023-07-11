@@ -34,7 +34,7 @@ You can also test the compiler, parser and lexer in the same way, adding the fol
 --mode <mode>
 ```
 
-Where `<mode>` can be `compiler`, `parser` or `lexer`.
+Where `<mode>` can be `compiler`, `parser`, `lexer` or `interpreter`.
 
 Example:
 
@@ -175,8 +175,6 @@ Hashes can be indexed using the `[]` operator. The index must be a key. The foll
 let a = {"one": 1, "two": 2};
 let b = a["one"]; // b = 1
 ```
-
-s
 
 ##### Built-in functions
 

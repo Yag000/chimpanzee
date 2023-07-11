@@ -62,6 +62,7 @@ pub struct Parser {
     pub peek_token: Token,
 }
 
+
 impl Parser {
     pub fn new(lexer: Lexer) -> Parser {
         let mut parser = Parser {
@@ -173,7 +174,6 @@ impl Parser {
     }
 
     pub fn current_token_is(&self, token: &Token) -> bool {
-        // TODO: This is a hack, we need to implement PartialEq correctly for Token
         match self.current_token {
             Token::Ident(_) => matches!(token, Token::Ident(_)),
             Token::Int(_) => matches!(token, Token::Int(_)),

@@ -1,13 +1,15 @@
 use clap_derive::{Parser, ValueEnum};
-use compiler::compiler::Compiler;
+use compiler::compiler::{Bytecode, Compiler};
+use compiler::symbol_table::SymbolTable;
 use interpreter::evaluator::Evaluator;
 use interpreter::object::Object;
 use lexer::lexer::Lexer;
 use lexer::token::Token;
 use parser::parser::{Parser, ParserErrors};
 use std::io::{self, Write};
+use std::rc::Rc;
 use std::{error::Error, fs};
-use vm::vm::VM;
+use vm::vm::{GLOBALS_SIZE, NULL, VM};
 
 use crate::errors::{CompilerError, LexerErrors, RuntimeError};
 
@@ -26,14 +28,14 @@ enum Mode {
 
 #[derive(Parser)]
 pub struct Cli {
-    /// Sets the input file to use, if not specified, the REPL will be launched
+    /// Input file, if not specified, the REPL will be launched
     filename: Option<String>,
 
-    // Sets the mode to use, if not specified, interpreter is used
+    /// Set the mode to use, if not specified, interpreter is used
     #[arg(short, long, value_name = "MODE")]
     mode: Option<Mode>,
 
-    // Shows the logo
+    /// Show the logo
     #[clap(long)]
     logo: bool,
 }
@@ -110,8 +112,13 @@ impl Cli {
         Cli::print_entry_header();
         let mut evaluator = Evaluator::new();
         for line in std::io::stdin().lines().flatten() {
-            if let Err(err) = interpret(&mut evaluator, &line) {
-                eprintln!("{err}");
+            match interpret(&mut evaluator, &line) {
+                Ok(str) => {
+                    if str != Object::NULL.to_string() {
+                        println!("{str}");
+                    }
+                }
+                Err(err) => eprintln!("{err}",),
             }
             Cli::print_entry_header();
         }
@@ -121,11 +128,52 @@ impl Cli {
     pub fn compiler(&self) -> Result<(), Box<dyn Error>> {
         self.greeting_message();
         Cli::print_entry_header();
-        let mut compiler = Compiler::new();
+        let mut symbol_table = SymbolTable::new();
+        let mut constants = Vec::new();
+        let mut globals = {
+            let mut v = Vec::with_capacity(GLOBALS_SIZE);
+            (0..GLOBALS_SIZE).for_each(|_| v.push(Rc::new(NULL)));
+            v
+        };
         for line in std::io::stdin().lines().flatten() {
-            if let Err(err) = compile(&mut compiler, &line) {
-                eprintln!("{err}");
+            let lexer = Lexer::new(&line);
+            let mut parser = Parser::new(lexer);
+            let program = parser.parse_program();
+            if !parser.errors.is_empty() {
+                eprintln!("{}", parser.errors);
             }
+            let mut compiler = Compiler::new_with_state(symbol_table.clone(), constants.clone());
+            if let Err(err) = compiler.compile(program) {
+                let err = CompilerError::new(err);
+                eprintln!("{err}",);
+            }
+
+            let mut vm = VM::new_with_global_store(compiler.bytecode(), globals.clone());
+            if let Err(err) = vm.run() {
+                eprintln!("{err}",);
+            }
+            constants = compiler.constants;
+            symbol_table = compiler.symbol_table;
+            let vm_result: Result<String, Box<dyn Error>> = match vm.last_popped_stack_element() {
+                Some(obj) => match obj.as_ref() {
+                    Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
+                    x => Ok(x.to_string()),
+                },
+                None => Err(Box::new(RuntimeError::new(String::from(
+                    "No object returned from VM",
+                )))),
+            };
+
+            globals = vm.globals;
+            match vm_result {
+                Ok(str) => {
+                    if str != Object::NULL.to_string() {
+                        println!("{str}");
+                    }
+                }
+                Err(err) => eprintln!("{err}",),
+            }
+
             Cli::print_entry_header();
         }
         Ok(())
@@ -176,7 +224,7 @@ impl Cli {
         if self.logo {
             println!("{greeting}");
         }
-        println!("Welcome to the Monkey programming language!");
+        println!("Welcome to the Monkey programming language! Compiler and Interpreter by @Yag000, in Rust");
         println!("Feel free to type in commands\n");
     }
 
@@ -189,17 +237,18 @@ impl Cli {
         let contents = Cli::read_file_contents(file_path)?;
 
         match self.get_mode() {
-            Mode::Lexer => Ok(lex(&contents)?),
-            Mode::Parser => Ok(parse(&contents)?),
+            Mode::Lexer => lex(&contents)?,
+            Mode::Parser => parse(&contents)?,
             Mode::Interpreter => {
                 let mut evaluator = Evaluator::new();
-                interpret(&mut evaluator, &contents)
+                interpret(&mut evaluator, &contents)?;
             }
             Mode::Compiler => {
-                let mut compiler = Compiler::new();
-                compile(&mut compiler, &contents)
+                let bytecode = compile(&contents)?;
+                run_vm(bytecode)?;
             }
         }
+        Ok(())
     }
 
     fn read_file_contents(file_path: &str) -> Result<String, Box<dyn Error>> {
@@ -241,7 +290,7 @@ fn parse(line: &str) -> Result<(), ParserErrors> {
     }
 }
 
-fn interpret(interpreter: &mut Evaluator, line: &str) -> Result<(), Box<dyn Error>> {
+fn interpret(interpreter: &mut Evaluator, line: &str) -> Result<String, Box<dyn Error>> {
     let lexer = Lexer::new(line);
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
@@ -253,45 +302,36 @@ fn interpret(interpreter: &mut Evaluator, line: &str) -> Result<(), Box<dyn Erro
     if let Object::ERROR(error) = evaluated {
         Err(Box::new(RuntimeError::new(error)))
     } else {
-        println!("{evaluated}");
-        Ok(())
+        Ok(evaluated.to_string())
     }
 }
 
-fn compile(compiler: &mut Compiler, line: &str) -> Result<(), Box<dyn Error>> {
+fn compile(line: &str) -> Result<Bytecode, Box<dyn Error>> {
     let lexer = Lexer::new(line);
     let mut parser = Parser::new(lexer);
     let program = parser.parse_program();
     if !parser.errors.is_empty() {
         return Err(Box::new(parser.errors));
     }
+    let mut compiler = Compiler::new();
     match compiler.compile(program) {
-        Ok(()) => {
-            let mut vm = VM::new(compiler.bytecode());
-            match vm.run() {
-                Ok(()) => match vm.last_popped_stack_element() {
-                    Some(obj) => match obj.as_ref() {
-                        Object::ERROR(error) => {
-                            return Err(Box::new(RuntimeError::new(error.clone())));
-                        }
-                        _ => {
-                            println!("{obj}");
-                        }
-                    },
-                    None => {
-                        return Err(Box::new(RuntimeError::new(String::from(
-                            "No object returned from VM",
-                        ))));
-                    }
-                },
-                Err(e) => {
-                    return Err(Box::new(RuntimeError::new(e)));
-                }
-            };
-        }
-        Err(e) => {
-            return Err(Box::new(CompilerError::new(e)));
-        }
+        Ok(()) => Ok(compiler.bytecode()),
+        Err(e) => Err(Box::new(CompilerError::new(e))),
     }
-    Ok(())
+}
+
+fn run_vm(bytecode: Bytecode) -> Result<String, Box<dyn Error>> {
+    let mut vm = VM::new(bytecode);
+    match vm.run() {
+        Ok(()) => match vm.last_popped_stack_element() {
+            Some(obj) => match obj.as_ref() {
+                Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
+                x => Ok(x.to_string()),
+            },
+            None => Err(Box::new(RuntimeError::new(String::from(
+                "No object returned from VM",
+            )))),
+        },
+        Err(e) => Err(Box::new(RuntimeError::new(e))),
+    }
 }

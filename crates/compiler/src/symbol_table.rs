@@ -12,13 +12,20 @@ pub struct Symbol {
     pub index: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SymbolTable {
     store: HashMap<String, Symbol>,
     num_definitions: usize,
 }
 
 impl SymbolTable {
+    pub fn new() -> Self {
+        Self {
+            store: HashMap::new(),
+            num_definitions: 0,
+        }
+    }
+
     pub fn define(&mut self, name: String) -> Symbol {
         let symbol = Symbol {
             name: name.clone(),

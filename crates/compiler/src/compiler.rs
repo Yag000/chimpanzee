@@ -8,12 +8,12 @@ use parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primit
 
 pub struct Compiler {
     instructions: Instructions,
-    constants: Vec<Object>,
+    pub constants: Vec<Object>,
 
     last_instruction: Option<EmittedInstruction>,
     previous_instruction: Option<EmittedInstruction>,
 
-    symbol_table: SymbolTable,
+    pub symbol_table: SymbolTable,
 }
 
 #[allow(dead_code)]
@@ -40,6 +40,13 @@ impl Compiler {
 
             symbol_table: SymbolTable::default(),
         }
+    }
+
+    pub fn new_with_state(symbol_table: SymbolTable, constants: Vec<Object>) -> Self {
+        let mut compiler = Compiler::new();
+        compiler.symbol_table = symbol_table;
+        compiler.constants = constants;
+        compiler
     }
 
     pub fn compile(&mut self, program: Program) -> Result<(), String> {
@@ -71,7 +78,6 @@ impl Compiler {
                 self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
             }
             Statement::Return(_) => unimplemented!(),
-            
         }
 
         Ok(())

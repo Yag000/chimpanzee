@@ -7,9 +7,9 @@ use num_traits::FromPrimitive;
 use std::rc::Rc;
 
 const STACK_SIZE: usize = 2048;
-const GLOBALS_SIZE: usize = 65536;
+pub const GLOBALS_SIZE: usize = 65536;
 
-const NULL: Object = Object::NULL;
+pub const NULL: Object = Object::NULL;
 const TRUE: Object = Object::BOOLEAN(true);
 const FALSE: Object = Object::BOOLEAN(false);
 
@@ -20,7 +20,7 @@ pub struct VM {
     stack: Vec<Rc<Object>>,
     sp: usize, // stack pointer. Always point to the next value. Top of the stack is stack[sp -1]
 
-    globals: Vec<Rc<Object>>,
+    pub globals: Vec<Rc<Object>>,
 }
 
 impl VM {
@@ -42,6 +42,12 @@ impl VM {
                 v
             },
         }
+    }
+
+    pub fn new_with_global_store(bytecode: Bytecode, globals: Vec<Rc<Object>>) -> Self {
+        let mut vm = Self::new(bytecode);
+        vm.globals = globals;
+        vm
     }
 
     pub fn run(&mut self) -> Result<(), String> {
