@@ -52,12 +52,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.71"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c7d0618f0e0b7e8ff11427422b64564d5fb0be1940354bfe2e0529b18a9d9b8"
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -210,7 +204,6 @@ checksum = "09fc20d2ca12cb9f044c93e3bd6d32d523e6e2ec3db4f7b2939cd99026ecd3f0"
 name = "monkey-rs"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "clap",
  "clap_derive",
  "compiler",
@@ -270,7 +263,6 @@ dependencies = [
 name = "repl"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "clap",
  "clap_derive",
  "compiler",
