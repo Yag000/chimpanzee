@@ -554,7 +554,7 @@ mod tests {
                 assert_eq!(x.parameters[0].to_string(), "x");
                 assert_eq!(x.body.to_string(), "(x + 2)\n");
             }
-            _ => assert!(false, "The object is not a function"),
+            _ => panic!("The object is not a function"),
         }
     }
 
@@ -603,7 +603,7 @@ mod tests {
     fn test_string_concatenationm() {
         let input = "\"Hello\" + \" \" + \"World!\"";
 
-        let evaluated = test_eval(input.clone());
+        let evaluated = test_eval(input);
 
         test_string_object(evaluated, "Hello World!".to_string());
     }
@@ -618,7 +618,7 @@ mod tests {
         ];
 
         for (input, expected) in tests_striung {
-            test_integer_object(test_eval(input), expected)
+            test_integer_object(test_eval(input), expected);
         }
     }
 
@@ -650,7 +650,7 @@ mod tests {
                 test_integer_object(x[1].clone(), 4);
                 test_integer_object(x[2].clone(), 6);
             }
-            _ => assert!(false, "The object is not an array"),
+            _ => panic!("The object is not an array"),
         }
     }
 
@@ -815,11 +815,11 @@ mod tests {
                 for (expected_key, expected_value) in expected {
                     match hash.get(&expected_key) {
                         Some(value) => assert_eq!(value, &expected_value),
-                        None => assert!(false, "No pair for given key in Pairs"),
+                        None => panic!("No pair for given key in Pairs"),
                     }
                 }
             }
-            _ => assert!(false, "The object is not a hash"),
+            _ => panic!("The object is not a hash"),
         }
     }
 
@@ -855,14 +855,14 @@ mod tests {
     fn test_integer_object(object: Object, expected: i64) {
         match object {
             Object::INTEGER(x) => assert_eq!(x, expected),
-            _ => assert!(false, "The object is not an integer"),
+            _ => panic!("The object is not an integer"),
         }
     }
 
     fn test_boolean_object(object: Object, expected: bool) {
         match object {
             Object::BOOLEAN(x) => assert_eq!(x, expected),
-            _ => assert!(false, "The object is not a boolean"),
+            _ => panic!("The object is not a boolean"),
         }
     }
 
@@ -870,21 +870,21 @@ mod tests {
         match object {
             Object::NULL | Object::ERROR(_) => (),
 
-            _ => assert!(false, "The object is not null"),
+            _ => panic!("The object is not null"),
         }
     }
 
     fn test_error_object(object: Object, expected: String) {
         match object {
             Object::ERROR(x) => assert_eq!(x, expected),
-            _ => assert!(false, "The object is not an  error"),
+            _ => panic!("The object is not an  error"),
         }
     }
 
     fn test_string_object(object: Object, expected: String) {
         match object {
             Object::STRING(s) => assert_eq!(format!("{s}"), expected),
-            _ => assert!(false, "The object is not an string"),
+            _ => panic!("The object is not an string"),
         }
     }
 
@@ -896,7 +896,7 @@ mod tests {
                     test_integer_object(v.clone(), expected[i]);
                 }
             }
-            _ => assert!(false, "The object is not an array"),
+            _ => panic!("The object is not an array"),
         }
     }
 }

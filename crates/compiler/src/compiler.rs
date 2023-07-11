@@ -285,6 +285,7 @@ impl Bytecode {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 #[cfg(test)]
 pub mod tests {
 

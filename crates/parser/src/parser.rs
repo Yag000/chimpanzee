@@ -62,7 +62,6 @@ pub struct Parser {
     pub peek_token: Token,
 }
 
-
 impl Parser {
     pub fn new(lexer: Lexer) -> Parser {
         let mut parser = Parser {
@@ -360,7 +359,7 @@ mod tests {
         assert_eq!(
             statement,
             &Statement::Expression(Expression::Primitive(Primitive::IntegerLiteral(5)))
-        )
+        );
     }
 
     #[test]
@@ -378,8 +377,8 @@ mod tests {
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
                 Statement::Expression(exp) => check_prefix_expression(exp, operator, value),
-                _ => assert!(false, "It is not an expression statement"),
-            }
+                _ => panic!("It is not an expression statement"),
+            };
         }
     }
 
@@ -409,7 +408,7 @@ mod tests {
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
                 Statement::Expression(exp) => check_infix_expression(exp, left, operator, right),
-                _ => assert!(false, "It is not an expression statement"),
+                _ => panic!("It is not an expression statement"),
             }
         }
     }
@@ -462,7 +461,7 @@ mod tests {
 
         for (input, expected) in test {
             let program = generate_program(input);
-            print!("{}", program.to_string());
+            print!("{program}");
             assert_ne!(program.statements.len(), 0);
             assert_eq!(program.to_string(), format!("{expected}\n"));
         }
@@ -478,7 +477,7 @@ mod tests {
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
                 Statement::Expression(exp) => check_primitive_literal(exp, &expected.to_string()),
-                _ => assert!(false, "It is not an expression statement"),
+                _ => panic!("It is not an expression statement"),
             }
         }
     }
@@ -491,9 +490,9 @@ mod tests {
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
             Statement::Expression(exp) => {
-                check_conditional_expression(&exp, condition, consequence, alternative)
+                check_conditional_expression(exp, condition, consequence, alternative);
             }
-            _ => assert!(false, "It is not an expression statement"),
+            _ => panic!("It is not an expression statement"),
         }
     }
 
@@ -510,9 +509,9 @@ mod tests {
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
             Statement::Expression(exp) => {
-                check_conditional_expression(&exp, condition, consequence, alternative)
+                check_conditional_expression(exp, condition, consequence, alternative);
             }
-            _ => assert!(false, "It is not an expression statement"),
+            _ => panic!("It is not an expression statement"),
         }
     }
 
@@ -524,7 +523,7 @@ mod tests {
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
             Statement::Expression(exp) => check_function_literal(exp, vec!["x", "y"], "(x + y)"),
-            _ => assert!(false, "It is not an expression statement"),
+            _ => panic!("It is not an expression statement"),
         }
     }
 
@@ -542,7 +541,7 @@ mod tests {
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
                 Statement::Expression(exp) => check_function_literal(exp, expected, ""),
-                _ => assert!(false, "It is not an expression statement"),
+                _ => panic!("It is not an expression statement"),
             }
         }
     }
@@ -560,7 +559,7 @@ mod tests {
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
             Statement::Expression(exp) => check_function_call(exp, name, argumnets),
-            _ => assert!(false, "It is not an expression statement"),
+            _ => panic!("It is not an expression statement"),
         }
     }
 
@@ -582,7 +581,7 @@ mod tests {
             assert_eq!(program.statements.len(), 1);
             match &program.statements[0] {
                 Statement::Expression(exp) => check_function_call(exp, name, argumnets),
-                _ => assert!(false, "It is not an expression statement"),
+                _ => panic!("It is not an expression statement"),
             }
         }
     }
@@ -596,7 +595,7 @@ mod tests {
         assert_eq!(program.statements.len(), 1);
         match &program.statements[0] {
             Statement::Expression(exp) => check_primitive_literal(exp, "hello world"),
-            _ => assert!(false, "It is not an expression statement"),
+            _ => panic!("It is not an expression statement"),
         }
     }
 
@@ -773,7 +772,7 @@ mod tests {
                 assert_eq!(p.token.to_string(), operator);
                 assert_eq!(p.right.to_string(), right);
             }
-            _ => assert!(false, "It is not an prefix operator"),
+            _ => panic!("It is not an prefix operator"),
         }
     }
 
@@ -784,7 +783,7 @@ mod tests {
                 Primitive::BooleanLiteral(b) => assert_eq!(b.to_string(), value),
                 Primitive::StringLiteral(s) => assert_eq!(s, value),
             },
-            _ => assert!(false, "It is not a literal"),
+            _ => panic!("It is not a literal"),
         }
     }
 
@@ -795,7 +794,7 @@ mod tests {
                 assert_eq!(operator, p.token.to_string());
                 check_primitive_literal(p.right.as_ref(), right);
             }
-            _ => assert!(false, "It is not an infix expression"),
+            _ => panic!("It is not an infix expression"),
         }
     }
 
@@ -810,16 +809,16 @@ mod tests {
                 assert_eq!(format!("({condition})"), p.condition.as_ref().to_string());
                 check_block_statement(&p.consequence, consequence);
                 match alternative {
-                    Some(a) => check_block_statement(&p.alternative.as_ref().unwrap(), a),
+                    Some(a) => check_block_statement(p.alternative.as_ref().unwrap(), a),
                     None => assert!(p.alternative.is_none()),
                 }
             }
-            _ => assert!(false, "It is not a conditional expression"),
+            _ => panic!("It is not a conditional expression"),
         }
     }
 
     fn check_block_statement(statement: &BlockStatement, expected: &str) {
-        if expected == "" {
+        if expected.is_empty() {
             assert_eq!(statement.to_string(), ""); // Empty block statement does not contain a
                                                    // newline
         } else {
@@ -836,7 +835,7 @@ mod tests {
                 }
                 check_block_statement(&p.body, body);
             }
-            _ => assert!(false, "It is not a function literal"),
+            _ => panic!("It is not a function literal"),
         }
     }
 
@@ -849,7 +848,7 @@ mod tests {
                     assert_eq!(p.arguments[i].to_string(), arg.to_owned().to_string());
                 }
             }
-            _ => assert!(false, "It is not a function call"),
+            _ => panic!("It is not a function call"),
         }
     }
 
@@ -859,7 +858,7 @@ mod tests {
                 assert_eq!(p.left.to_string(), left);
                 assert_eq!(p.index.to_string(), index);
             }
-            _ => assert!(false, "It is not an index expression"),
+            _ => panic!("It is not an index expression"),
         }
     }
 }
