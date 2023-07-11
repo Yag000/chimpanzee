@@ -31,47 +31,11 @@ pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
         expected.len()
     );
 
-    for (i, constant) in constants.iter().enumerate() {
-        match constant {
-            Object::INTEGER(x) => check_integer_object(x, &expected[i]),
-            Object::BOOLEAN(x) => check_boolean_object(x, &expected[i]),
-            Object::NULL => assert_eq!(
-                constant,
-                &Object::NULL,
-                "constant[{i}] - wrong type. got={constant:?}"
-            ),
-            Object::STRING(x) => check_string_object(x, &expected[i]),
-            _ => panic!("constant[{i}] - wrong type. got={constant:?}"),
-        }
-    }
-}
-
-pub fn check_integer_object(integer: &i64, expected: &Object) {
-    match expected {
-        Object::INTEGER(i) => assert_eq!(
-            integer, i,
-            "integer object has wrong value. got={integer}, want={i}"
-        ),
-        _ => panic!("object is not Integer. got={expected:?}"),
-    }
-}
-
-pub fn check_boolean_object(boolean: &bool, expected: &Object) {
-    match expected {
-        Object::BOOLEAN(b) => assert_eq!(
-            boolean, b,
-            "boolean object has wrong value. got={boolean}, want={b}"
-        ),
-        _ => panic!("object is not Boolean. got={expected:?}"),
-    }
-}
-
-pub fn check_string_object(string: &str, expected: &Object) {
-    match expected {
-        Object::STRING(s) => assert_eq!(
-            string, s,
-            "string object has wrong value. got={string}, want={s}"
-        ),
-        _ => panic!("object is not String. got={expected:?}"),
+    for (expected_constant, constant) in expected.iter().zip(constants.iter()) {
+        assert_eq!(
+            **expected_constant, *constant,
+            "constant not equal. got={:?}, want={:?}",
+            constant, expected_constant
+        );
     }
 }

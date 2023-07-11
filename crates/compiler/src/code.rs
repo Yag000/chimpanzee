@@ -102,6 +102,9 @@ pub enum Opcode {
     SetGlobal,
     GetGlobal,
 
+    // Custom types
+    Array,
+
     // Stack
     Pop,
 }
@@ -129,6 +132,7 @@ impl Display for Opcode {
             Opcode::Null => "OpNull",
             Opcode::SetGlobal => "OpSetGlobal",
             Opcode::GetGlobal => "OpGetGlobal",
+            Opcode::Array => "OpArray",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -142,7 +146,8 @@ impl Opcode {
             | Opcode::Jump
             | Opcode::JumpNotTruthy
             | Opcode::SetGlobal
-            | Opcode::GetGlobal => vec![2],
+            | Opcode::GetGlobal
+            | Opcode::Array => vec![2],
             _ => vec![],
         }
     }

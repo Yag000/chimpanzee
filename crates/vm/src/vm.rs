@@ -117,6 +117,14 @@ impl VM {
                     ip += 2;
                     self.push(self.globals[global_index].clone())?;
                 }
+
+                Opcode::Array => {
+                    let num_elements = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    ip += 2;
+                    let array = self.build_array(self.sp - num_elements, self.sp)?;
+                    self.sp -= num_elements;
+                    self.push(array)?;
+                }
             }
             ip += 1;
         }
@@ -256,6 +264,14 @@ impl VM {
             }
         }
         Ok(())
+    }
+
+    fn build_array(&self, start_index: usize, end_index: usize) -> Result<Rc<Object>, String> {
+        let mut elements: Vec<Object> = Vec::new();
+        for i in start_index..end_index {
+            elements.push((*self.stack[i]).clone()); // TODO: Chnage this
+        }
+        Ok(Rc::new(Object::ARRAY(elements)))
     }
 
     fn native_boolean_to_boolean_object(&self, input: bool) -> Rc<Object> {
@@ -604,6 +620,42 @@ mod tests {
             VmTestCase {
                 input: "\"mon\" + \"key\" + \"banana\"".to_string(),
                 expected: Object::STRING("monkeybanana".to_string()),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_array_expressions() {
+        let tests = vec![
+            VmTestCase {
+                input: "[]".to_string(),
+                expected: Object::ARRAY(vec![]),
+            },
+            VmTestCase {
+                input: "[1, 2, 3]".to_string(),
+                expected: Object::ARRAY(vec![
+                    Object::INTEGER(1),
+                    Object::INTEGER(2),
+                    Object::INTEGER(3),
+                ]),
+            },
+            VmTestCase {
+                input: "[1 + 2, 3 * 4, 5 + 6]".to_string(),
+                expected: Object::ARRAY(vec![
+                    Object::INTEGER(3),
+                    Object::INTEGER(12),
+                    Object::INTEGER(11),
+                ]),
+            },
+            VmTestCase {
+                input: "[\"yes\", false, [1,2]]".to_string(),
+                expected: Object::ARRAY(vec![
+                    Object::STRING("yes".to_string()),
+                    Object::BOOLEAN(false),
+                    Object::ARRAY(vec![Object::INTEGER(1), Object::INTEGER(2)]),
+                ]),
             },
         ];
 
