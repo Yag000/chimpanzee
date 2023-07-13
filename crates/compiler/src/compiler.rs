@@ -117,6 +117,15 @@ impl Compiler {
                 }
                 self.emit(Opcode::Array, vec![len]);
             }
+
+            Expression::HashMapLiteral(hasmap) => {
+                let len = i32::from_usize(hasmap.pairs.len()).ok_or("Invalid hashmap length")?;
+                for (key, value) in hasmap.pairs {
+                    self.compile_expression(key)?;
+                    self.compile_expression(value)?;
+                }
+                self.emit(Opcode::HashMap, vec![len * 2]);
+            }
             _ => unimplemented!(),
         }
 
@@ -724,6 +733,66 @@ pub mod tests {
                     Opcode::Constant.make(vec![5]),
                     Opcode::Mul.make(vec![]),
                     Opcode::Array.make(vec![3]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
+
+    #[test]
+    fn test_hash_expression() {
+        let tests = vec![
+            CompilerTestCase {
+                input: "{}".to_string(),
+                expected_constants: vec![],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::HashMap.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "{1: 2, 3: 4, 5: 6}".to_string(),
+                expected_constants: vec![
+                    Object::INTEGER(1),
+                    Object::INTEGER(2),
+                    Object::INTEGER(3),
+                    Object::INTEGER(4),
+                    Object::INTEGER(5),
+                    Object::INTEGER(6),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Constant.make(vec![2]),
+                    Opcode::Constant.make(vec![3]),
+                    Opcode::Constant.make(vec![4]),
+                    Opcode::Constant.make(vec![5]),
+                    Opcode::HashMap.make(vec![6]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "{1: 2 + 3, 4: 5 * 6}".to_string(),
+                expected_constants: vec![
+                    Object::INTEGER(1),
+                    Object::INTEGER(2),
+                    Object::INTEGER(3),
+                    Object::INTEGER(4),
+                    Object::INTEGER(5),
+                    Object::INTEGER(6),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Constant.make(vec![2]),
+                    Opcode::Add.make(vec![]),
+                    Opcode::Constant.make(vec![3]),
+                    Opcode::Constant.make(vec![4]),
+                    Opcode::Constant.make(vec![5]),
+                    Opcode::Mul.make(vec![]),
+                    Opcode::HashMap.make(vec![4]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },

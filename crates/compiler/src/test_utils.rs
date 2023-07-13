@@ -34,8 +34,7 @@ pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
     for (expected_constant, constant) in expected.iter().zip(constants.iter()) {
         assert_eq!(
             **expected_constant, *constant,
-            "constant not equal. got={:?}, want={:?}",
-            constant, expected_constant
+            "constant not equal. got={constant:?}, want={expected_constant:?}"
         );
     }
 }

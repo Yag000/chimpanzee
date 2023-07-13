@@ -4,7 +4,7 @@ use compiler::{
 };
 use interpreter::object::Object;
 use num_traits::FromPrimitive;
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
@@ -124,6 +124,13 @@ impl VM {
                     let array = self.build_array(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(array)?;
+                }
+                Opcode::HashMap => {
+                    let num_elements = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    ip += 2;
+                    let hashmap = self.build_hashmap(self.sp - num_elements, self.sp)?;
+                    self.sp -= num_elements;
+                    self.push(hashmap)?;
                 }
             }
             ip += 1;
@@ -269,11 +276,28 @@ impl VM {
     fn build_array(&self, start_index: usize, end_index: usize) -> Result<Rc<Object>, String> {
         let mut elements: Vec<Object> = Vec::new();
         for i in start_index..end_index {
-            elements.push((*self.stack[i]).clone()); // TODO: Chnage this
+            elements
+                .push((**(self.stack.get(i).ok_or("Unable to get element".to_string()))?).clone());
         }
         Ok(Rc::new(Object::ARRAY(elements)))
     }
 
+    fn build_hashmap(&self, start_index: usize, end_index: usize) -> Result<Rc<Object>, String> {
+        let mut elements: HashMap<Object, Object> = HashMap::new();
+        for i in (start_index..end_index).step_by(2) {
+            let key = (**(self.stack.get(i).ok_or("Unable to get element".to_string()))?).clone();
+            let value = (**(self
+                .stack
+                .get(i + 1)
+                .ok_or("Unable to get element".to_string()))?)
+            .clone();
+            if !Object::is_hashable(&key) {
+                return Err(format!("Unusable as a hashmap key: {key:?}",));
+            }
+            elements.insert(key, value);
+        }
+        Ok(Rc::new(Object::HASHMAP(elements)))
+    }
     fn native_boolean_to_boolean_object(&self, input: bool) -> Rc<Object> {
         if input {
             Rc::new(TRUE)
@@ -328,6 +352,8 @@ impl VM {
 #[allow(clippy::too_many_lines)]
 #[cfg(test)]
 mod tests {
+
+    use std::collections::HashMap;
 
     use compiler::{
         compiler::Compiler,
@@ -656,6 +682,39 @@ mod tests {
                     Object::BOOLEAN(false),
                     Object::ARRAY(vec![Object::INTEGER(1), Object::INTEGER(2)]),
                 ]),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+    #[test]
+    fn test_hashmap_expressions() {
+        let tests = vec![
+            VmTestCase {
+                input: "{}".to_string(),
+                expected: Object::HASHMAP(HashMap::new()),
+            },
+            VmTestCase {
+                input: "{1:2, 2:3}".to_string(),
+                expected: Object::HASHMAP(
+                    vec![
+                        (Object::INTEGER(1), Object::INTEGER(2)),
+                        (Object::INTEGER(2), Object::INTEGER(3)),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
+            },
+            VmTestCase {
+                input: "{1+1:2, 2*2:3}".to_string(),
+                expected: Object::HASHMAP(
+                    vec![
+                        (Object::INTEGER(2), Object::INTEGER(2)),
+                        (Object::INTEGER(4), Object::INTEGER(3)),
+                    ]
+                    .into_iter()
+                    .collect(),
+                ),
             },
         ];
 
