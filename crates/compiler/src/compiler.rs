@@ -1,8 +1,8 @@
 use crate::code::{Instructions, Opcode};
 use crate::symbol_table::SymbolTable;
-use interpreter::object::Object;
 use lexer::token::Token;
 use num_traits::FromPrimitive;
+use object::object::Object;
 use parser::ast::Program;
 use parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement};
 
@@ -312,10 +312,11 @@ pub mod tests {
 
     use std::rc::Rc;
 
-    use crate::{
-        code::Opcode,
-        test_utils::{check_constants, check_instructions, parse},
-    };
+    use object::test_utils::check_constants;
+    use parser::parser::parse;
+
+    use crate::code::Opcode;
+    use crate::test_utils::check_instructions;
 
     use super::*;
 

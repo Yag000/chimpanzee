@@ -220,6 +220,12 @@ impl Parser {
     }
 }
 
+pub fn parse(input: &str) -> Program {
+    let lexer = Lexer::new(input);
+    let mut parser = Parser::new(lexer);
+    parser.parse_program()
+}
+
 #[cfg(test)]
 mod tests {
     use lexer::token::Token;

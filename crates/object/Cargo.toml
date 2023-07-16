@@ -1,5 +1,5 @@
 [package]
-name = "interpreter"
+name = "object"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 
-lexer = { path = "../lexer" }
 parser = { path = "../parser" }
-object = { path = "../object" }
+
+

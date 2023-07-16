@@ -2,14 +2,14 @@ use clap_derive::{Parser, ValueEnum};
 use compiler::compiler::{Bytecode, Compiler};
 use compiler::symbol_table::SymbolTable;
 use interpreter::evaluator::Evaluator;
-use interpreter::object::Object;
 use lexer::lexer::Lexer;
 use lexer::token::Token;
+use object::object::{Object, NULL};
 use parser::parser::{Parser, ParserErrors};
 use std::io::{self, Write};
 use std::rc::Rc;
 use std::{error::Error, fs};
-use vm::vm::{GLOBALS_SIZE, NULL, VM};
+use vm::vm::{GLOBALS_SIZE, VM};
 
 use crate::errors::{CompilerError, LexerErrors, RuntimeError};
 

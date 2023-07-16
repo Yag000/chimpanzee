@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 # Internal crates
 
+parser = { path = "../parser" }
 compiler = { path = "../compiler" }
 interpreter = { path = "../interpreter" }
+object = { path = "../object" }
 
 # External crates
 num-traits = "0.2.15"

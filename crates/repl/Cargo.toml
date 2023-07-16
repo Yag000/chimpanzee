@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
+object = { path = "../object" }
 interpreter = { path = "../interpreter" }
 compiler = { path = "../compiler" }
 vm = { path = "../vm" }
@@ -15,5 +16,3 @@ vm = { path = "../vm" }
 # External crates
 clap = "4.3.11"
 clap_derive = "4.3.2"
-
-

@@ -1,17 +1,13 @@
-use crate::{
-    enviroment::Environment,
-    object::{BuiltinFunction, Function, Object},
-};
 use lexer::token::Token;
+use object::{
+    enviroment::Environment,
+    object::{Object, FALSE, NULL, TRUE, Function, BuiltinFunction},
+};
 use parser::ast::{
     BlockStatement, Conditional, Expression, HashMapLiteral, Identifier, IndexExpression,
     Primitive, Program, Statement,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-const TRUE: Object = Object::BOOLEAN(true);
-const FALSE: Object = Object::BOOLEAN(false);
-pub const NULL: Object = Object::NULL;
 
 pub struct Evaluator {
     env: Rc<RefCell<Environment>>,
@@ -102,7 +98,7 @@ impl Evaluator {
             Expression::FunctionLiteral(x) => {
                 let parameters = x.parameters;
                 let body = x.body;
-                Object::FUNCTION(Function {
+                Object::FUNCTION(Function{
                     parameters,
                     body,
                     environment: Rc::clone(&self.env),

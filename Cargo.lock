@@ -129,6 +129,7 @@ dependencies = [
  "lexer",
  "num-derive",
  "num-traits",
+ "object",
  "parser",
 ]
 
@@ -170,6 +171,7 @@ name = "interpreter"
 version = "0.1.0"
 dependencies = [
  "lexer",
+ "object",
  "parser",
 ]
 
@@ -235,6 +237,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "object"
+version = "0.1.0"
+dependencies = [
+ "parser",
+]
+
+[[package]]
 name = "parser"
 version = "0.1.0"
 dependencies = [
@@ -268,6 +277,7 @@ dependencies = [
  "compiler",
  "interpreter",
  "lexer",
+ "object",
  "parser",
  "vm",
 ]
@@ -321,6 +331,8 @@ dependencies = [
  "compiler",
  "interpreter",
  "num-traits",
+ "object",
+ "parser",
 ]
 
 [[package]]

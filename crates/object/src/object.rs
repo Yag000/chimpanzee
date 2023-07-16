@@ -1,7 +1,12 @@
-use super::enviroment::Environment;
-use crate::evaluator::NULL;
-use parser::ast::{BlockStatement, Identifier};
 use std::{cell::RefCell, cmp::Ordering, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
+
+use parser::ast::{BlockStatement, Identifier};
+
+use crate::enviroment::Environment;
+
+pub const TRUE: Object = Object::BOOLEAN(true);
+pub const FALSE: Object = Object::BOOLEAN(false);
+pub const NULL: Object = Object::NULL;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Object {
@@ -123,19 +128,6 @@ impl Display for BuiltinFunction {
 
 #[allow(clippy::needless_pass_by_value)] // false positive
 impl BuiltinFunction {
-    pub fn get_builtins() -> Environment {
-        let mut env = Environment::new();
-        env.set(String::from("len"), Object::BUILTIN(BuiltinFunction::LEN));
-        env.set(
-            String::from("first"),
-            Object::BUILTIN(BuiltinFunction::FIRST),
-        );
-        env.set(String::from("last"), Object::BUILTIN(BuiltinFunction::LAST));
-        env.set(String::from("rest"), Object::BUILTIN(BuiltinFunction::REST));
-        env.set(String::from("push"), Object::BUILTIN(BuiltinFunction::PUSH));
-        env
-    }
-
     pub fn get_builtin(name: &str) -> Option<Object> {
         match name {
             "len" => Some(Object::BUILTIN(BuiltinFunction::LEN)),

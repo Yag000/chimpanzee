@@ -2,16 +2,12 @@ use compiler::{
     code::{read_u16, Instructions, Opcode},
     compiler::Bytecode,
 };
-use interpreter::object::Object;
 use num_traits::FromPrimitive;
+use object::object::{Object, FALSE, NULL, TRUE};
 use std::{collections::HashMap, rc::Rc};
 
 const STACK_SIZE: usize = 2048;
 pub const GLOBALS_SIZE: usize = 65536;
-
-pub const NULL: Object = Object::NULL;
-const TRUE: Object = Object::BOOLEAN(true);
-const FALSE: Object = Object::BOOLEAN(false);
 
 pub struct VM {
     constants: Vec<Rc<Object>>,
@@ -27,9 +23,11 @@ impl VM {
     pub fn new(bytecode: Bytecode) -> Self {
         Self {
             instructions: bytecode.instructions,
-            constants: bytecode.constants.into_iter().map(Rc::new).collect(), // TODO: Improve this
+            constants: bytecode.constants.into_iter().map(Rc::new).collect(),
 
             sp: 0,
+
+            // TODO: Improve this
             stack: {
                 let mut v = Vec::with_capacity(STACK_SIZE);
                 (0..STACK_SIZE).for_each(|_| v.push(Rc::new(NULL)));
@@ -187,12 +185,8 @@ impl VM {
         right: &Rc<Object>,
         op: Opcode,
     ) -> Result<(), String> {
-        let left = self
-            .cast_to_integer(left)
-            .ok_or("Error: Not an integer".to_string())?;
-        let right = self
-            .cast_to_integer(right)
-            .ok_or("Error: Not an integer".to_string())?;
+        let left = self.cast_to_integer(left)?;
+        let right = self.cast_to_integer(right)?;
 
         let result = match op {
             Opcode::Add => left + right,
@@ -234,12 +228,8 @@ impl VM {
         right: &Rc<Object>,
         op: Opcode,
     ) -> Result<(), String> {
-        let left = self
-            .cast_to_integer(left)
-            .ok_or("Error: Not an integer".to_string())?;
-        let right = self
-            .cast_to_integer(right)
-            .ok_or("Error: Not an integer".to_string())?;
+        let left = self.cast_to_integer(left)?;
+        let right = self.cast_to_integer(right)?;
 
         let result = match op {
             Opcode::Equal => left == right,
@@ -326,13 +316,16 @@ impl VM {
                 if !Object::is_hashable(index) {
                     return Err("Unusable as hashmap key".to_string());
                 }
-                let result = elements.get(index);
-                if result.is_none() {
-                    self.push(Rc::new(Object::NULL))?;
-                } else {
-                    self.push(Rc::new(result.unwrap().clone()))?;
+                match elements.get(index) {
+                    Some(value) => {
+                        self.push(Rc::new(value.clone()))?;
+                    }
+                    None => {
+                        self.push(Rc::new(Object::NULL))?;
+                    }
                 }
             }
+
             _ => {
                 return Err("Unsupported types for index operation".to_string());
             }
@@ -379,10 +372,10 @@ impl VM {
         self.stack.get(self.sp - 1).cloned()
     }
 
-    fn cast_to_integer(&self, obj: &Rc<Object>) -> Option<i64> {
+    fn cast_to_integer(&self, obj: &Rc<Object>) -> Result<i64, String> {
         match **obj {
-            Object::INTEGER(i) => Some(i),
-            _ => None,
+            Object::INTEGER(i) => Ok(i),
+            _ => Err("Unable to cast to integer".to_string()),
         }
     }
 
@@ -397,11 +390,9 @@ mod tests {
 
     use std::collections::HashMap;
 
-    use compiler::{
-        compiler::Compiler,
-        test_utils::{check_constants, parse},
-    };
-    use interpreter::object::Object;
+    use compiler::compiler::Compiler;
+    use object::{object::Object, test_utils::check_constants};
+    use parser::parser::parse;
 
     use super::VM;
 
