@@ -132,6 +132,11 @@ impl VM {
                     self.sp -= num_elements;
                     self.push(hashmap)?;
                 }
+                Opcode::Index => {
+                    let index = self.pop().ok_or("Stack underflow".to_string())?;
+                    let left = self.pop().ok_or("Stack underflow".to_string())?;
+                    self.execute_index_expression(&left, &index)?;
+                }
             }
             ip += 1;
         }
@@ -292,12 +297,49 @@ impl VM {
                 .ok_or("Unable to get element".to_string()))?)
             .clone();
             if !Object::is_hashable(&key) {
-                return Err(format!("Unusable as a hashmap key: {key:?}",));
+                return Ok(Rc::new(Object::ERROR(format!(
+                    "Unusable as hashmap key: {key:?}"
+                ))));
             }
             elements.insert(key, value);
         }
         Ok(Rc::new(Object::HASHMAP(elements)))
     }
+
+    fn execute_index_expression(
+        &mut self,
+        left: &Rc<Object>,
+        index: &Rc<Object>,
+    ) -> Result<(), String> {
+        match (&**left, &**index) {
+            (Object::ARRAY(elements), Object::INTEGER(i)) => {
+                if *i < 0 || *i >= elements.len() as i64 {
+                    self.push(Rc::new(Object::NULL))?;
+                } else {
+                    let result = elements
+                        .get(*i as usize)
+                        .ok_or("Index out of bounds".to_string())?;
+                    self.push(Rc::new(result.clone()))?;
+                }
+            }
+            (Object::HASHMAP(elements), _) => {
+                if !Object::is_hashable(index) {
+                    return Err("Unusable as hashmap key".to_string());
+                }
+                let result = elements.get(index);
+                if result.is_none() {
+                    self.push(Rc::new(Object::NULL))?;
+                } else {
+                    self.push(Rc::new(result.unwrap().clone()))?;
+                }
+            }
+            _ => {
+                return Err("Unsupported types for index operation".to_string());
+            }
+        }
+        Ok(())
+    }
+
     fn native_boolean_to_boolean_object(&self, input: bool) -> Rc<Object> {
         if input {
             Rc::new(TRUE)
@@ -715,6 +757,54 @@ mod tests {
                     .into_iter()
                     .collect(),
                 ),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_index_expression() {
+        let tests = vec![
+            VmTestCase {
+                input: "[1, 2, 3][1]".to_string(),
+                expected: Object::INTEGER(2),
+            },
+            VmTestCase {
+                input: "[1, 2, 3][0 + 2]".to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: "[[1, 1, 1]][0][0]".to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: "[][0]".to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: "[1, 2, 3][99]".to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: "[1][-1]".to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: "{1: 1, 2: 2}[1]".to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: "{1: 1, 2: 2}[2]".to_string(),
+                expected: Object::INTEGER(2),
+            },
+            VmTestCase {
+                input: "{1: 1}[0]".to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: "{}[0]".to_string(),
+                expected: Object::NULL,
             },
         ];
 

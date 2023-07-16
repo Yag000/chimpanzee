@@ -105,6 +105,7 @@ pub enum Opcode {
     // Custom types
     Array,
     HashMap,
+    Index,
 
     // Stack
     Pop,
@@ -135,6 +136,7 @@ impl Display for Opcode {
             Opcode::GetGlobal => "OpGetGlobal",
             Opcode::Array => "OpArray",
             Opcode::HashMap => "OpHashMap",
+            Opcode::Index => "OpIndex",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
