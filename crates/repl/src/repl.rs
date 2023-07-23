@@ -154,12 +154,13 @@ impl Cli {
             }
             constants = compiler.constants;
             symbol_table = compiler.symbol_table;
+
             let vm_result: Result<String, Box<dyn Error>> = match vm.last_popped_stack_element() {
-                Some(obj) => match obj.as_ref() {
+                Ok(obj) => match obj.as_ref() {
                     Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
                     x => Ok(x.to_string()),
                 },
-                None => Err(Box::new(RuntimeError::new(String::from(
+                Err(_) => Err(Box::new(RuntimeError::new(String::from(
                     "No object returned from VM",
                 )))),
             };
@@ -324,11 +325,11 @@ fn run_vm(bytecode: Bytecode) -> Result<String, Box<dyn Error>> {
     let mut vm = VM::new(bytecode);
     match vm.run() {
         Ok(()) => match vm.last_popped_stack_element() {
-            Some(obj) => match obj.as_ref() {
+            Ok(obj) => match obj.as_ref() {
                 Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
                 x => Ok(x.to_string()),
             },
-            None => Err(Box::new(RuntimeError::new(String::from(
+            Err(_)=> Err(Box::new(RuntimeError::new(String::from(
                 "No object returned from VM",
             )))),
         },

@@ -1,4 +1,11 @@
-use std::{cell::RefCell, cmp::Ordering, collections::HashMap, fmt::Display, hash::Hash, rc::Rc};
+use std::{
+    cell::RefCell,
+    cmp::Ordering,
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    hash::Hash,
+    rc::Rc,
+};
 
 use parser::ast::{BlockStatement, Identifier};
 
@@ -16,6 +23,7 @@ pub enum Object {
     RETURN(Box<Object>),
     ERROR(String),
     FUNCTION(Function),
+    COMPILEDFUNCTION(CompiledFunction),
     BUILTIN(BuiltinFunction),
     ARRAY(Vec<Object>),
     HASHMAP(HashMap<Object, Object>),
@@ -30,6 +38,7 @@ impl Display for Object {
             Object::STRING(s) => write!(f, "\"{s}\""),
             Object::RETURN(o) => write!(f, "{o}",),
             Object::FUNCTION(o) => write!(f, "{o}"),
+            Object::COMPILEDFUNCTION(o) => write!(f, "{o}"),
             Object::BUILTIN(o) => write!(f, "{o}"),
             Object::ERROR(s) => write!(f, "ERROR: {s}"),
             Object::ARRAY(a) => Self::format_array(f, a),
@@ -65,6 +74,7 @@ impl Object {
             Object::RETURN(_) => String::from("RETURN"),
             Object::ERROR(_) => String::from("ERROR"),
             Object::FUNCTION(_) => String::from("FUNCTION"),
+            Object::COMPILEDFUNCTION(_) => String::from("COMPILEDFUNCTION"),
             Object::BUILTIN(_) => String::from("BUILTIN"),
             Object::ARRAY(_) => String::from("ARRAY"),
             Object::HASHMAP(_) => String::from("HASHMAP"),
@@ -241,6 +251,17 @@ impl BuiltinFunction {
             )));
         }
         None
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CompiledFunction {
+    pub instructions: Vec<u8>,
+}
+
+impl Display for CompiledFunction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "CompiledFunction({:p})", self)
     }
 }
 

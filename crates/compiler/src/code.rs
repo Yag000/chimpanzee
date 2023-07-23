@@ -107,6 +107,11 @@ pub enum Opcode {
     HashMap,
     Index,
 
+    // Functions
+    Call,
+    ReturnValue,
+    Return,
+
     // Stack
     Pop,
 }
@@ -137,6 +142,9 @@ impl Display for Opcode {
             Opcode::Array => "OpArray",
             Opcode::HashMap => "OpHashMap",
             Opcode::Index => "OpIndex",
+            Opcode::Call => "OpCall",
+            Opcode::ReturnValue => "OpReturnValue",
+            Opcode::Return => "OpReturn",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")

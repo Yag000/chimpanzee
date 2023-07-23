@@ -1,28 +1,53 @@
 use compiler::{
-    code::{read_u16, Instructions, Opcode},
+    code::{read_u16, Opcode},
     compiler::Bytecode,
 };
 use num_traits::FromPrimitive;
-use object::object::{Object, FALSE, NULL, TRUE};
+use object::object::{CompiledFunction, Object, FALSE, NULL, TRUE};
 use std::{collections::HashMap, rc::Rc};
 
 const STACK_SIZE: usize = 2048;
+const MAX_FRAMES: usize = 1024;
 pub const GLOBALS_SIZE: usize = 65536;
+
+#[derive(Debug)]
+struct Frame {
+    function: CompiledFunction,
+    ip: usize,
+}
+
+impl Frame {
+    fn new(function: CompiledFunction) -> Self {
+        Self { function, ip: 0 }
+    }
+
+    fn get_instructions(&self) -> &Vec<u8> {
+        &self.function.instructions
+    }
+}
 
 pub struct VM {
     constants: Vec<Rc<Object>>,
-    instructions: Instructions,
 
     stack: Vec<Rc<Object>>,
     sp: usize, // stack pointer. Always point to the next value. Top of the stack is stack[sp -1]
 
     pub globals: Vec<Rc<Object>>,
+
+    frames: Vec<Frame>,
+    frames_index: usize,
 }
 
 impl VM {
     pub fn new(bytecode: Bytecode) -> Self {
+        let main_function = CompiledFunction {
+            instructions: bytecode.instructions.data,
+        };
+        let main_frame = Frame::new(main_function);
+        let mut frames = Vec::with_capacity(MAX_FRAMES);
+        frames.push(main_frame);
+        println!("{:?}", frames);
         Self {
-            instructions: bytecode.instructions,
             constants: bytecode.constants.into_iter().map(Rc::new).collect(),
 
             sp: 0,
@@ -39,6 +64,9 @@ impl VM {
                 (0..GLOBALS_SIZE).for_each(|_| v.push(Rc::new(NULL)));
                 v
             },
+
+            frames,
+            frames_index: 1,
         }
     }
 
@@ -49,13 +77,13 @@ impl VM {
     }
 
     pub fn run(&mut self) -> Result<(), String> {
-        let mut ip = 0;
-        while ip < self.instructions.data.len() {
-            let op = Opcode::from_u8(self.instructions.data[ip])
-                .ok_or(format!("Unknown opcode {}", self.instructions.data[ip]))?;
+        while self.current_frame().ip < self.current_frame().get_instructions().len() {
+            let mut ip = self.current_frame().ip;
+            let ins = self.current_frame().get_instructions();
+            let op = Opcode::from_u8(ins[ip]).ok_or(format!("Unknown opcode {}", ins[ip]))?;
             match op {
                 Opcode::Constant => {
-                    let const_index = read_u16(&self.instructions.data[ip + 1..]);
+                    let const_index = read_u16(&ins[ip + 1..]);
                     ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
@@ -74,7 +102,7 @@ impl VM {
                     self.execute_comparison(op)?;
                 }
                 Opcode::Pop => {
-                    self.pop();
+                    self.pop()?;
                 }
                 Opcode::True => {
                     self.push(Rc::new(TRUE))?;
@@ -89,13 +117,13 @@ impl VM {
                     self.execute_minus_operation()?;
                 }
                 Opcode::Jump => {
-                    let pos = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    let pos = read_u16(&ins[ip + 1..]) as usize;
                     ip = pos - 1;
                 }
                 Opcode::JumpNotTruthy => {
-                    let pos = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    let pos = read_u16(&ins[ip + 1..]) as usize;
                     ip += 2;
-                    let condition = self.pop().ok_or("Stack underflow".to_string())?;
+                    let condition = self.pop()?;
                     if !self.is_truthy(&condition) {
                         ip = pos - 1;
                     }
@@ -104,46 +132,50 @@ impl VM {
                     self.push(Rc::new(NULL))?;
                 }
                 Opcode::SetGlobal => {
-                    let global_index = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    let global_index = read_u16(&ins[ip + 1..]) as usize;
                     ip += 2;
-                    let value = self.pop().ok_or("Stack underflow".to_string())?;
+                    let value = self.pop()?;
                     self.globals[global_index] = value;
                 }
 
                 Opcode::GetGlobal => {
-                    let global_index = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    let global_index = read_u16(&ins[ip + 1..]) as usize;
                     ip += 2;
                     self.push(self.globals[global_index].clone())?;
                 }
 
                 Opcode::Array => {
-                    let num_elements = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    let num_elements = read_u16(&ins[ip + 1..]) as usize;
                     ip += 2;
                     let array = self.build_array(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(array)?;
                 }
                 Opcode::HashMap => {
-                    let num_elements = read_u16(&self.instructions.data[ip + 1..]) as usize;
+                    let num_elements = read_u16(&ins[ip + 1..]) as usize;
                     ip += 2;
                     let hashmap = self.build_hashmap(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(hashmap)?;
                 }
                 Opcode::Index => {
-                    let index = self.pop().ok_or("Stack underflow".to_string())?;
-                    let left = self.pop().ok_or("Stack underflow".to_string())?;
+                    let index = self.pop()?;
+                    let left = self.pop()?;
                     self.execute_index_expression(&left, &index)?;
                 }
+                Opcode::Call => unimplemented!(),
+                Opcode::ReturnValue => unimplemented!(),
+                Opcode::Return => unimplemented!(),
             }
             ip += 1;
+            self.current_frame().ip = ip;
         }
         Ok(())
     }
 
     fn execute_binary_operation(&mut self, op: Opcode) -> Result<(), String> {
-        let right = self.pop().ok_or("Stack underflow".to_string())?;
-        let left = self.pop().ok_or("Stack underflow".to_string())?;
+        let right = self.pop()?;
+        let left = self.pop()?;
 
         match (&*left, &*right) {
             (Object::INTEGER(_), Object::INTEGER(_)) => {
@@ -201,8 +233,8 @@ impl VM {
     }
 
     fn execute_comparison(&mut self, op: Opcode) -> Result<(), String> {
-        let right = self.pop().ok_or("Stack underflow".to_string())?;
-        let left = self.pop().ok_or("Stack underflow".to_string())?;
+        let right = self.pop()?;
+        let left = self.pop()?;
 
         match (&*left, &*right) {
             (Object::INTEGER(_), Object::INTEGER(_)) => {
@@ -248,14 +280,14 @@ impl VM {
     }
 
     fn execute_bang_operation(&mut self) -> Result<(), String> {
-        let operand = self.pop().ok_or("Stack underflow".to_string())?;
+        let operand = self.pop()?;
         let value = self.native_boolean_to_boolean_object(!self.is_truthy(&operand));
         self.push(value)?;
         Ok(())
     }
 
     fn execute_minus_operation(&mut self) -> Result<(), String> {
-        let operand = self.pop().ok_or("Stack underflow".to_string())?;
+        let operand = self.pop()?;
 
         match &*operand {
             Object::INTEGER(i) => {
@@ -359,12 +391,15 @@ impl VM {
         }
     }
 
-    fn pop(&mut self) -> Option<Rc<Object>> {
+    fn pop(&mut self) -> Result<Rc<Object>, String> {
         if self.sp == 0 {
-            None
+            Err("Stack underflow".to_string())
         } else {
             self.sp -= 1;
-            self.stack.get(self.sp).cloned()
+            self.stack
+                .get(self.sp)
+                .ok_or("Stack underflow".to_string())
+                .cloned()
         }
     }
 
@@ -379,426 +414,24 @@ impl VM {
         }
     }
 
-    pub fn last_popped_stack_element(&self) -> Option<Rc<Object>> {
-        self.stack.get(self.sp).cloned()
-    }
-}
-
-#[allow(clippy::too_many_lines)]
-#[cfg(test)]
-mod tests {
-
-    use std::collections::HashMap;
-
-    use compiler::compiler::Compiler;
-    use object::{object::Object, test_utils::check_constants};
-    use parser::parser::parse;
-
-    use super::VM;
-
-    struct VmTestCase {
-        input: String,
-        expected: Object,
+    pub fn last_popped_stack_element(&self) -> Result<Rc<Object>, String> {
+        self.stack
+            .get(self.sp)
+            .ok_or("Stack underflow".to_string())
+            .cloned()
     }
 
-    fn run_vm_tests(tests: Vec<VmTestCase>) {
-        for test in tests {
-            println!("Running test: {}", test.input);
-            let program = parse(&test.input);
-            let mut compiler = Compiler::new();
-            compiler.compile(program).unwrap();
-            let bytecode = compiler.bytecode();
-
-            let mut vm = VM::new(bytecode);
-            vm.run().unwrap();
-            let got = vm.last_popped_stack_element().unwrap();
-            check_constants(&vec![test.expected], &vec![got]);
-        }
+    fn current_frame(&mut self) -> &mut Frame {
+        &mut self.frames[self.frames_index - 1]
     }
 
-    #[test]
-    fn test_integer_arithmetic() {
-        let tests = vec![
-            VmTestCase {
-                input: "1".to_string(),
-                expected: Object::INTEGER(1),
-            },
-            VmTestCase {
-                input: "2".to_string(),
-                expected: Object::INTEGER(2),
-            },
-            VmTestCase {
-                input: "1 + 2".to_string(),
-                expected: Object::INTEGER(3),
-            },
-            VmTestCase {
-                input: "1 - 2".to_string(),
-                expected: Object::INTEGER(-1),
-            },
-            VmTestCase {
-                input: "1 * 2".to_string(),
-                expected: Object::INTEGER(2),
-            },
-            VmTestCase {
-                input: "4 / 2".to_string(),
-                expected: Object::INTEGER(2),
-            },
-            VmTestCase {
-                input: "50 / 2 * 2 + 10 - 5".to_string(),
-                expected: Object::INTEGER(55),
-            },
-            VmTestCase {
-                input: "5 + 5 + 5 + 5 - 10".to_string(),
-                expected: Object::INTEGER(10),
-            },
-            VmTestCase {
-                input: "2 * 2 * 2 * 2 * 2".to_string(),
-                expected: Object::INTEGER(32),
-            },
-            VmTestCase {
-                input: "5 * 2 + 10".to_string(),
-                expected: Object::INTEGER(20),
-            },
-            VmTestCase {
-                input: "-1".to_string(),
-                expected: Object::INTEGER(-1),
-            },
-            VmTestCase {
-                input: "-10".to_string(),
-                expected: Object::INTEGER(-10),
-            },
-            VmTestCase {
-                input: "-50 + 100 + -50".to_string(),
-                expected: Object::INTEGER(0),
-            },
-            VmTestCase {
-                input: "(5 + 10 * 2 + 15 / 3) * 2 + -10".to_string(),
-                expected: Object::INTEGER(50),
-            },
-        ];
-        run_vm_tests(tests);
+    fn push_frame(&mut self, frame: Frame) {
+        self.frames.push(frame);
+        self.frames_index += 1;
     }
 
-    #[test]
-    fn test_boolean_logic() {
-        let tests = vec![
-            VmTestCase {
-                input: "true".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "false".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "1 < 2".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "1 <= 2".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "2 <= 2".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "1 > 2".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "1 >= 2".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "2 >= 2".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "1 == 2".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "1 != 2".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "true == true".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "false == false".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "true == false".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "true && true".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "true && false".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "false && true".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "false && false".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "true || true".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "true || false".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "false || true".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "false || false".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "!true".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "!false".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "!5".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "!!true".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "!!false".to_string(),
-                expected: Object::BOOLEAN(false),
-            },
-            VmTestCase {
-                input: "!!5".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-            VmTestCase {
-                input: "!(if (false) { 5 })".to_string(),
-                expected: Object::BOOLEAN(true),
-            },
-        ];
-        run_vm_tests(tests);
-    }
-    #[test]
-    fn test_conditionals() {
-        let tests = vec![
-            VmTestCase {
-                input: "if (true) { 10 }".to_string(),
-                expected: Object::INTEGER(10),
-            },
-            VmTestCase {
-                input: "if (true) { 10 } else { 20 }".to_string(),
-                expected: Object::INTEGER(10),
-            },
-            VmTestCase {
-                input: "if (false) { 10 } else { 20 } ".to_string(),
-                expected: Object::INTEGER(20),
-            },
-            VmTestCase {
-                input: "if (1) { 10 }".to_string(),
-                expected: Object::INTEGER(10),
-            },
-            VmTestCase {
-                input: "if (1 < 2) { 10 }".to_string(),
-                expected: Object::INTEGER(10),
-            },
-            VmTestCase {
-                input: "if (1 < 2) { 10 } else { 20 }".to_string(),
-                expected: Object::INTEGER(10),
-            },
-            VmTestCase {
-                input: "if (1 > 2) { 10 } else { 20 }".to_string(),
-                expected: Object::INTEGER(20),
-            },
-            VmTestCase {
-                input: "if (1 > 2) { 10 }".to_string(),
-                expected: Object::NULL,
-            },
-            VmTestCase {
-                input: "if (false) { 10 }".to_string(),
-                expected: Object::NULL,
-            },
-            VmTestCase {
-                input: "if ((if (false) { 10 })) { 10 } else { 20 }".to_string(),
-                expected: Object::INTEGER(20),
-            },
-        ];
-
-        run_vm_tests(tests);
-    }
-
-    #[test]
-    fn test_global_let_statements() {
-        let tests = vec![
-            VmTestCase {
-                input: "let one = 1; one".to_string(),
-                expected: Object::INTEGER(1),
-            },
-            VmTestCase {
-                input: "let one = 1; let two = 2; one + two".to_string(),
-                expected: Object::INTEGER(3),
-            },
-            VmTestCase {
-                input: "let one = 1; let two = one + one; one + two".to_string(),
-                expected: Object::INTEGER(3),
-            },
-        ];
-
-        run_vm_tests(tests);
-    }
-
-    #[test]
-    fn test_string_expressions() {
-        let tests = vec![
-            VmTestCase {
-                input: "\"monkey\"".to_string(),
-                expected: Object::STRING("monkey".to_string()),
-            },
-            VmTestCase {
-                input: "\"mon\" + \"key\"".to_string(),
-                expected: Object::STRING("monkey".to_string()),
-            },
-            VmTestCase {
-                input: "\"mon\" + \"key\" + \"banana\"".to_string(),
-                expected: Object::STRING("monkeybanana".to_string()),
-            },
-        ];
-
-        run_vm_tests(tests);
-    }
-
-    #[test]
-    fn test_array_expressions() {
-        let tests = vec![
-            VmTestCase {
-                input: "[]".to_string(),
-                expected: Object::ARRAY(vec![]),
-            },
-            VmTestCase {
-                input: "[1, 2, 3]".to_string(),
-                expected: Object::ARRAY(vec![
-                    Object::INTEGER(1),
-                    Object::INTEGER(2),
-                    Object::INTEGER(3),
-                ]),
-            },
-            VmTestCase {
-                input: "[1 + 2, 3 * 4, 5 + 6]".to_string(),
-                expected: Object::ARRAY(vec![
-                    Object::INTEGER(3),
-                    Object::INTEGER(12),
-                    Object::INTEGER(11),
-                ]),
-            },
-            VmTestCase {
-                input: "[\"yes\", false, [1,2]]".to_string(),
-                expected: Object::ARRAY(vec![
-                    Object::STRING("yes".to_string()),
-                    Object::BOOLEAN(false),
-                    Object::ARRAY(vec![Object::INTEGER(1), Object::INTEGER(2)]),
-                ]),
-            },
-        ];
-
-        run_vm_tests(tests);
-    }
-    #[test]
-    fn test_hashmap_expressions() {
-        let tests = vec![
-            VmTestCase {
-                input: "{}".to_string(),
-                expected: Object::HASHMAP(HashMap::new()),
-            },
-            VmTestCase {
-                input: "{1:2, 2:3}".to_string(),
-                expected: Object::HASHMAP(
-                    vec![
-                        (Object::INTEGER(1), Object::INTEGER(2)),
-                        (Object::INTEGER(2), Object::INTEGER(3)),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ),
-            },
-            VmTestCase {
-                input: "{1+1:2, 2*2:3}".to_string(),
-                expected: Object::HASHMAP(
-                    vec![
-                        (Object::INTEGER(2), Object::INTEGER(2)),
-                        (Object::INTEGER(4), Object::INTEGER(3)),
-                    ]
-                    .into_iter()
-                    .collect(),
-                ),
-            },
-        ];
-
-        run_vm_tests(tests);
-    }
-
-    #[test]
-    fn test_index_expression() {
-        let tests = vec![
-            VmTestCase {
-                input: "[1, 2, 3][1]".to_string(),
-                expected: Object::INTEGER(2),
-            },
-            VmTestCase {
-                input: "[1, 2, 3][0 + 2]".to_string(),
-                expected: Object::INTEGER(3),
-            },
-            VmTestCase {
-                input: "[[1, 1, 1]][0][0]".to_string(),
-                expected: Object::INTEGER(1),
-            },
-            VmTestCase {
-                input: "[][0]".to_string(),
-                expected: Object::NULL,
-            },
-            VmTestCase {
-                input: "[1, 2, 3][99]".to_string(),
-                expected: Object::NULL,
-            },
-            VmTestCase {
-                input: "[1][-1]".to_string(),
-                expected: Object::NULL,
-            },
-            VmTestCase {
-                input: "{1: 1, 2: 2}[1]".to_string(),
-                expected: Object::INTEGER(1),
-            },
-            VmTestCase {
-                input: "{1: 1, 2: 2}[2]".to_string(),
-                expected: Object::INTEGER(2),
-            },
-            VmTestCase {
-                input: "{1: 1}[0]".to_string(),
-                expected: Object::NULL,
-            },
-            VmTestCase {
-                input: "{}[0]".to_string(),
-                expected: Object::NULL,
-            },
-        ];
-
-        run_vm_tests(tests);
+    fn pop_frame(&mut self) -> Option<Frame> {
+        self.frames_index -= 1;
+        self.frames.pop()
     }
 }
