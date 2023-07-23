@@ -415,4 +415,95 @@ mod tests {
 
         run_vm_tests(tests);
     }
+
+    #[test]
+    fn test_calling_functions_without_arguments() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let fivePlusTen = fn() { 5 + 10; };
+                    fivePlusTen();"#
+                    .to_string(),
+                expected: Object::INTEGER(15),
+            },
+            VmTestCase {
+                input: r#"
+                    let one = fn() { 1; };
+                    let two = fn() { 2; };
+                    one() + two()"#
+                    .to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = fn() { 1 };
+                    let b = fn() { a() + 1 };
+                    let c = fn() { b() + 1 };
+                    c();"#
+                    .to_string(),
+                expected: Object::INTEGER(3),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_functions_with_return_statements() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let earlyExit = fn() { return 99; 100; };
+                    earlyExit();"#
+                    .to_string(),
+                expected: Object::INTEGER(99),
+            },
+            VmTestCase {
+                input: r#"
+                    let earlyExit = fn() { return 99; return 100; };
+                    earlyExit();"#
+                    .to_string(),
+                expected: Object::INTEGER(99),
+            },
+        ];
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_functions_without_return_value() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let noReturn = fn() { };
+                    noReturn();"#
+                    .to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: r#"
+                    let noReturn = fn() { };
+                    let noReturnTwo = fn() { noReturn(); };
+                    noReturn();
+                    noReturnTwo();"#
+                    .to_string(),
+                expected: Object::NULL,
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_first_clas_functions() {
+        let tests = vec![VmTestCase {
+            input: r#"
+                let returnsOne = fn() { 1; };
+                let returnsOneReturner = fn() { returnsOne; };
+                returnsOneReturner()();"#
+                .to_string(),
+            expected: Object::INTEGER(1),
+        }];
+
+        run_vm_tests(tests);
+    }
 }

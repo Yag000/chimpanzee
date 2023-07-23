@@ -655,4 +655,20 @@ pub mod tests {
 
         run_compiler(tests);
     }
+
+    #[test]
+    fn test_function_with_no_return_value() {
+        let tests = vec![CompilerTestCase {
+            input: "fn() { }".to_string(),
+            expected_constants: vec![Object::COMPILEDFUNCTION(CompiledFunction {
+                instructions: flatten_u8_instructions(vec![Opcode::Return.make(vec![])]),
+            })],
+            expected_instructions: flatten_instructions(vec![
+                Opcode::Constant.make(vec![0]),
+                Opcode::Pop.make(vec![]),
+            ]),
+        }];
+
+        run_compiler(tests);
+    }
 }

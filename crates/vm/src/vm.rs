@@ -13,12 +13,12 @@ pub const GLOBALS_SIZE: usize = 65536;
 #[derive(Debug)]
 struct Frame {
     function: CompiledFunction,
-    ip: usize,
+    ip: i32,
 }
 
 impl Frame {
     fn new(function: CompiledFunction) -> Self {
-        Self { function, ip: 0 }
+        Self { function, ip: -1 }
     }
 
     fn get_instructions(&self) -> &Vec<u8> {
@@ -46,7 +46,6 @@ impl VM {
         let main_frame = Frame::new(main_function);
         let mut frames = Vec::with_capacity(MAX_FRAMES);
         frames.push(main_frame);
-        println!("{:?}", frames);
         Self {
             constants: bytecode.constants.into_iter().map(Rc::new).collect(),
 
@@ -77,14 +76,15 @@ impl VM {
     }
 
     pub fn run(&mut self) -> Result<(), String> {
-        while self.current_frame().ip < self.current_frame().get_instructions().len() {
-            let mut ip = self.current_frame().ip;
+        while self.current_frame().ip < self.current_frame().get_instructions().len() as i32 - 1 {
+            self.current_frame().ip += 1;
+            let ip = self.current_frame().ip as usize;
             let ins = self.current_frame().get_instructions();
             let op = Opcode::from_u8(ins[ip]).ok_or(format!("Unknown opcode {}", ins[ip]))?;
             match op {
                 Opcode::Constant => {
                     let const_index = read_u16(&ins[ip + 1..]);
-                    ip += 2;
+                    self.current_frame().ip += 2;
                     self.push(self.constants[const_index as usize].clone())?;
                 }
                 Opcode::Add
@@ -117,15 +117,15 @@ impl VM {
                     self.execute_minus_operation()?;
                 }
                 Opcode::Jump => {
-                    let pos = read_u16(&ins[ip + 1..]) as usize;
-                    ip = pos - 1;
+                    let pos = read_u16(&ins[ip + 1..]) as i32;
+                    self.current_frame().ip = pos - 1;
                 }
                 Opcode::JumpNotTruthy => {
-                    let pos = read_u16(&ins[ip + 1..]) as usize;
-                    ip += 2;
+                    let pos = read_u16(&ins[ip + 1..]) as i32;
+                    self.current_frame().ip += 2;
                     let condition = self.pop()?;
                     if !self.is_truthy(&condition) {
-                        ip = pos - 1;
+                        self.current_frame().ip = pos - 1;
                     }
                 }
                 Opcode::Null => {
@@ -133,27 +133,27 @@ impl VM {
                 }
                 Opcode::SetGlobal => {
                     let global_index = read_u16(&ins[ip + 1..]) as usize;
-                    ip += 2;
+                    self.current_frame().ip += 2;
                     let value = self.pop()?;
                     self.globals[global_index] = value;
                 }
 
                 Opcode::GetGlobal => {
                     let global_index = read_u16(&ins[ip + 1..]) as usize;
-                    ip += 2;
+                    self.current_frame().ip += 2;
                     self.push(self.globals[global_index].clone())?;
                 }
 
                 Opcode::Array => {
                     let num_elements = read_u16(&ins[ip + 1..]) as usize;
-                    ip += 2;
+                    self.current_frame().ip += 2;
                     let array = self.build_array(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(array)?;
                 }
                 Opcode::HashMap => {
                     let num_elements = read_u16(&ins[ip + 1..]) as usize;
-                    ip += 2;
+                    self.current_frame().ip += 2;
                     let hashmap = self.build_hashmap(self.sp - num_elements, self.sp)?;
                     self.sp -= num_elements;
                     self.push(hashmap)?;
@@ -163,12 +163,34 @@ impl VM {
                     let left = self.pop()?;
                     self.execute_index_expression(&left, &index)?;
                 }
-                Opcode::Call => unimplemented!(),
-                Opcode::ReturnValue => unimplemented!(),
-                Opcode::Return => unimplemented!(),
+                Opcode::Call => {
+                    let func = self
+                        .stack
+                        .get(self.sp - 1)
+                        .ok_or("Stack underflow")?
+                        .as_ref();
+                    if let Object::COMPILEDFUNCTION(compiled) = func {
+                        let frame = Frame::new(compiled.clone());
+                        self.push_frame(frame);
+                    } else {
+                        Err("Calling non-function")?;
+                    }
+                }
+                Opcode::ReturnValue => {
+                    let return_value = self.pop()?;
+
+                    self.pop_frame();
+                    self.pop()?;
+
+                    self.push(return_value)?;
+                }
+                Opcode::Return => {
+                    self.pop_frame();
+                    self.pop()?;
+
+                    self.push(Rc::new(NULL))?;
+                }
             }
-            ip += 1;
-            self.current_frame().ip = ip;
         }
         Ok(())
     }

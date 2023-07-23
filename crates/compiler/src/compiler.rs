@@ -162,6 +162,9 @@ impl Compiler {
                 if self.last_instruction_is(Opcode::Pop) {
                     self.replace_last_pop_with_return();
                 }
+                if !self.last_instruction_is(Opcode::ReturnValue) {
+                    self.emit(Opcode::Return, vec![]);
+                }
 
                 let instructions = self.leave_scope().data;
 
