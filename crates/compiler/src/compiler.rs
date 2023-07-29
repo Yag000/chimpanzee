@@ -321,7 +321,7 @@ impl Compiler {
         if let Some(last) = self.scopes[self.scope_index].last_instruction.clone() {
             let previous = self.scopes[self.scope_index].previous_instruction.clone();
 
-            let old = self.current_instructions().data.clone();
+            let old = self.current_instructions().data;
             let new = old[..last.position].to_vec();
 
             self.scopes[self.scope_index].instructions.data = new;

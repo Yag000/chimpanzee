@@ -201,7 +201,7 @@ impl Opcode {
                     offset += 2;
                 }
                 1 => {
-                    operands.push(ins[offset] as i32);
+                    operands.push(i32::from(ins[offset]));
                     offset += 1;
                 }
                 _ => panic!("Unrecognized operand width: {width}"),

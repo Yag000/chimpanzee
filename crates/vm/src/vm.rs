@@ -82,6 +82,7 @@ impl VM {
         vm
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn run(&mut self) -> Result<(), String> {
         while self.current_frame().ip < self.current_frame().get_instructions().len() as i32 - 1 {
             self.current_frame().ip += 1;
@@ -124,11 +125,11 @@ impl VM {
                     self.execute_minus_operation()?;
                 }
                 Opcode::Jump => {
-                    let pos = read_u16(&ins[ip + 1..]) as i32;
+                    let pos = i32::from(read_u16(&ins[ip + 1..]));
                     self.current_frame().ip = pos - 1;
                 }
                 Opcode::JumpNotTruthy => {
-                    let pos = read_u16(&ins[ip + 1..]) as i32;
+                    let pos = i32::from(read_u16(&ins[ip + 1..]));
                     self.current_frame().ip += 2;
                     let condition = self.pop()?;
                     if !self.is_truthy(&condition) {

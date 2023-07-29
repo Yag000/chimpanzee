@@ -263,7 +263,11 @@ pub struct CompiledFunction {
 
 impl Display for CompiledFunction {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CompiledFunction({:p})", self)
+        write!(
+            f,
+            "CompiledFunction(num_locals={}, num_parameters={}, instructions={:?})",
+            self.num_locals, self.num_parameters, self.instructions
+        )
     }
 }
 
