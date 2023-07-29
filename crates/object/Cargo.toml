@@ -8,3 +8,10 @@ edition = "2021"
 [dependencies]
 
 parser = { path = "../parser" }
+
+# External
+
+num-derive = "0.4.0"
+num-traits = "0.2.15"
+strum = "0.25"
+strum_macros = "0.25"

@@ -1,7 +1,8 @@
 use lexer::token::Token;
 use object::{
+    builtins::BuiltinFunction,
     enviroment::Environment,
-    object::{Object, FALSE, NULL, TRUE, Function, BuiltinFunction},
+    object::{Function, Object, FALSE, NULL, TRUE},
 };
 use parser::ast::{
     BlockStatement, Conditional, Expression, HashMapLiteral, Identifier, IndexExpression,
@@ -98,7 +99,7 @@ impl Evaluator {
             Expression::FunctionLiteral(x) => {
                 let parameters = x.parameters;
                 let body = x.body;
-                Object::FUNCTION(Function{
+                Object::FUNCTION(Function {
                     parameters,
                     body,
                     environment: Rc::clone(&self.env),

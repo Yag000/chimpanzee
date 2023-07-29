@@ -114,6 +114,7 @@ pub enum Opcode {
     Call,
     ReturnValue,
     Return,
+    GetBuiltin,
 
     // Stack
     Pop,
@@ -150,6 +151,7 @@ impl Display for Opcode {
             Opcode::Call => "OpCall",
             Opcode::ReturnValue => "OpReturnValue",
             Opcode::Return => "OpReturn",
+            Opcode::GetBuiltin => "OpBuiltIn",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -166,7 +168,7 @@ impl Opcode {
             | Opcode::GetGlobal
             | Opcode::Array
             | Opcode::HashMap => vec![2],
-            Opcode::Call | Opcode::SetLocal | Opcode::GetLocal => vec![1],
+            Opcode::Call | Opcode::SetLocal | Opcode::GetLocal | Opcode::GetBuiltin => vec![1],
             _ => vec![],
         }
     }

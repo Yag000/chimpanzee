@@ -4,6 +4,7 @@ use std::{collections::HashMap, rc::Rc};
 pub enum SymbolScope {
     Global,
     Local,
+    Builtin,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -53,6 +54,16 @@ impl SymbolTable {
         self.num_definitions += 1;
 
         symbol
+    }
+
+    pub fn define_builtin(&mut self, index: usize, name: String) -> Symbol {
+        let sym = Symbol {
+            name: name.clone(),
+            scope: SymbolScope::Builtin,
+            index,
+        };
+        self.store.insert(name, sym.clone());
+        sym
     }
 
     pub fn resolve(&self, name: &str) -> Option<Symbol> {
@@ -290,6 +301,50 @@ mod tests {
             let (local, test) = test;
             for sym in test {
                 let result = local.resolve(&sym.name);
+
+                assert!(result.is_some());
+                assert_eq!(result.unwrap(), sym);
+            }
+        }
+    }
+
+    #[test]
+    fn test_resolve_builtins() {
+        let mut global = SymbolTable::default();
+
+        let expected = vec![
+            Symbol {
+                name: "a".to_string(),
+                scope: SymbolScope::Builtin,
+                index: 0,
+            },
+            Symbol {
+                name: "c".to_string(),
+                scope: SymbolScope::Builtin,
+                index: 1,
+            },
+            Symbol {
+                name: "e".to_string(),
+                scope: SymbolScope::Builtin,
+                index: 2,
+            },
+            Symbol {
+                name: "f".to_string(),
+                scope: SymbolScope::Builtin,
+                index: 3,
+            },
+        ];
+
+        for (i, sym) in expected.iter().enumerate() {
+            global.define_builtin(i, sym.name.clone());
+        }
+
+        let first_local = SymbolTable::new_enclosed(Rc::new(global.clone()));
+        let second_local = SymbolTable::new_enclosed(Rc::new(first_local.clone()));
+
+        for table in vec![global, first_local, second_local] {
+            for sym in expected.clone() {
+                let result = table.resolve(&sym.name);
 
                 assert!(result.is_some());
                 assert_eq!(result.unwrap(), sym);

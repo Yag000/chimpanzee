@@ -3,7 +3,10 @@ use compiler::{
     compiler::Bytecode,
 };
 use num_traits::FromPrimitive;
-use object::object::{CompiledFunction, Object, FALSE, NULL, TRUE};
+use object::{
+    builtins::BuiltinFunction,
+    object::{CompiledFunction, Object, FALSE, NULL, TRUE},
+};
 use std::{collections::HashMap, rc::Rc};
 
 const STACK_SIZE: usize = 2048;
@@ -151,7 +154,6 @@ impl VM {
                     self.current_frame().ip += 2;
                     self.push(self.globals[global_index].clone())?;
                 }
-
                 Opcode::SetLocal => {
                     let local_index = ins[ip + 1] as usize;
                     self.current_frame().ip += 1;
@@ -165,6 +167,16 @@ impl VM {
                     let base_pointer = self.current_frame().base_pointer;
                     let value = Rc::clone(&self.stack[base_pointer + local_index]);
                     self.push(value)?;
+                }
+
+                Opcode::GetBuiltin => {
+                    let builtin_index = ins[ip + 1] as usize;
+                    self.current_frame().ip += 1;
+
+                    let def = BuiltinFunction::get_builtin_by_id(builtin_index)
+                        .ok_or(format!("Unknown builtin function id {}", builtin_index))?;
+
+                    self.push(Rc::new(def))?;
                 }
                 Opcode::Array => {
                     let num_elements = read_u16(&ins[ip + 1..]) as usize;
@@ -189,7 +201,7 @@ impl VM {
                     let num_args = ins[ip + 1] as usize;
                     self.current_frame().ip += 1;
 
-                    self.call_function(num_args)?;
+                    self.execute_call(num_args)?;
                 }
                 Opcode::ReturnValue => {
                     let return_value = self.pop()?;
@@ -406,28 +418,52 @@ impl VM {
         Ok(())
     }
 
-    fn call_function(&mut self, num_args: usize) -> Result<(), String> {
-        let func = self
+    fn execute_call(&mut self, num_args: usize) -> Result<(), String> {
+        let callee = self
             .stack
             .get(self.sp - 1 - num_args)
-            .ok_or("Stack underflow")?
-            .as_ref();
+            .ok_or("Stack underflow")?;
 
-        if let Object::COMPILEDFUNCTION(compiled) = func {
-            if num_args != compiled.num_parameters {
-                return Err(format!(
-                    "Wrong number of arguments: want={}, got={}",
-                    compiled.num_parameters, num_args
-                ));
+        match callee.as_ref().clone() {
+            Object::COMPILEDFUNCTION(func) => self.call_function(func, num_args),
+            Object::BUILTIN(func) => self.call_builtin_function(func, num_args),
+            _ => {
+                return Err("Calling non-function".to_string());
             }
-
-            let frame = Frame::new(compiled.clone(), self.sp - num_args);
-            self.sp = frame.base_pointer + compiled.num_locals;
-            self.push_frame(frame);
-            Ok(())
-        } else {
-            Err("Calling non-function".to_string())
         }
+    }
+
+    fn call_function(&mut self, func: CompiledFunction, num_args: usize) -> Result<(), String> {
+        if num_args != func.num_parameters {
+            return Err(format!(
+                "Wrong number of arguments: want={}, got={}",
+                func.num_parameters, num_args
+            ));
+        }
+
+        let num_locals = func.num_locals;
+        let frame = Frame::new(func, self.sp - num_args);
+        self.sp = frame.base_pointer + num_locals;
+        self.push_frame(frame);
+        Ok(())
+    }
+
+    fn call_builtin_function(
+        &mut self,
+        callee: BuiltinFunction,
+        num_args: usize,
+    ) -> Result<(), String> {
+        let mut args: Vec<Object> = Vec::new();
+        for _ in 0..num_args {
+            args.push(self.pop()?.as_ref().clone());
+        }
+        args.reverse();
+
+        let result = callee.call(args);
+
+        self.sp -= 1;
+        self.push(Rc::new(result))?;
+        Ok(())
     }
 
     fn native_boolean_to_boolean_object(&self, input: bool) -> Rc<Object> {

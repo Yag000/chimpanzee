@@ -4,6 +4,7 @@ use compiler::symbol_table::SymbolTable;
 use interpreter::evaluator::Evaluator;
 use lexer::lexer::Lexer;
 use lexer::token::Token;
+use object::builtins::BuiltinFunction;
 use object::object::{Object, NULL};
 use parser::parser::{Parser, ParserErrors};
 use std::io::{self, Write};
@@ -129,6 +130,9 @@ impl Cli {
         self.greeting_message();
         Cli::print_entry_header();
         let mut symbol_table = SymbolTable::new();
+        for (i, builtin) in BuiltinFunction::get_builtins_names().iter().enumerate() {
+            symbol_table.define_builtin(i, builtin.to_owned());
+        }
         let mut constants = Vec::new();
         let mut globals = {
             let mut v = Vec::with_capacity(GLOBALS_SIZE);
@@ -329,7 +333,7 @@ fn run_vm(bytecode: Bytecode) -> Result<String, Box<dyn Error>> {
                 Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
                 x => Ok(x.to_string()),
             },
-            Err(_)=> Err(Box::new(RuntimeError::new(String::from(
+            Err(_) => Err(Box::new(RuntimeError::new(String::from(
                 "No object returned from VM",
             )))),
         },

@@ -687,4 +687,90 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_builtin_functions() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"len("")"#.to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: r#"len("four")"#.to_string(),
+                expected: Object::INTEGER(4),
+            },
+            VmTestCase {
+                input: r#"len("hello world")"#.to_string(),
+                expected: Object::INTEGER(11),
+            },
+            VmTestCase {
+                input: r#"len(1)"#.to_string(),
+                expected: Object::ERROR("argument to `len` not supported, got INTEGER".to_string()),
+            },
+            VmTestCase {
+                input: r#"len("one", "two")"#.to_string(),
+                expected: Object::ERROR("wrong number of arguments. got=2, want=1".to_string()),
+            },
+            VmTestCase {
+                input: r#"len([1, 2, 3])"#.to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"len([])"#.to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: r#"len([1, 2, 3], [4, 5, 6])"#.to_string(),
+                expected: Object::ERROR("wrong number of arguments. got=2, want=1".to_string()),
+            },
+            VmTestCase {
+                input: r#"first([1, 2, 3])"#.to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"first([])"#.to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: r#"first(1)"#.to_string(),
+                expected: Object::ERROR(
+                    "argument to `first` not supported, must be ARRAY, got INTEGER".to_string(),
+                ),
+            },
+            VmTestCase {
+                input: r#"last([1, 2, 3])"#.to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"last([])"#.to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: r#"last(1)"#.to_string(),
+                expected: Object::ERROR(
+                    "argument to `last` not supported, must be ARRAY, got INTEGER".to_string(),
+                ),
+            },
+            VmTestCase {
+                input: r#"rest([1, 2, 3])"#.to_string(),
+                expected: Object::ARRAY(vec![Object::INTEGER(2), Object::INTEGER(3)]),
+            },
+            VmTestCase {
+                input: r#"rest([])"#.to_string(),
+                expected: Object::NULL,
+            },
+            VmTestCase {
+                input: r#"push([], 1)"#.to_string(),
+                expected: Object::ARRAY(vec![Object::INTEGER(1)]),
+            },
+            VmTestCase {
+                input: r#"push(1, 1)"#.to_string(),
+                expected: Object::ERROR(
+                    "argument to `push` not supported, must be ARRAY, got INTEGER".to_string(),
+                ),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
 }

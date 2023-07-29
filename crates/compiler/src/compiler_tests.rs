@@ -865,4 +865,44 @@ pub mod tests {
 
         run_compiler(tests);
     }
+
+    #[test]
+    fn test_builtins() {
+        let tests = vec![
+            CompilerTestCase {
+                input: "len([]); push([], 1);".to_string(),
+                expected_constants: vec![Object::INTEGER(1)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::GetBuiltin.make(vec![0]),
+                    Opcode::Array.make(vec![0]),
+                    Opcode::Call.make(vec![1]),
+                    Opcode::Pop.make(vec![]),
+                    Opcode::GetBuiltin.make(vec![4]),
+                    Opcode::Array.make(vec![0]),
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Call.make(vec![2]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: "fn() { len([]); }".to_string(),
+                expected_constants: vec![Object::COMPILEDFUNCTION(CompiledFunction {
+                    instructions: flatten_u8_instructions(vec![
+                        Opcode::GetBuiltin.make(vec![0]),
+                        Opcode::Array.make(vec![0]),
+                        Opcode::Call.make(vec![1]),
+                        Opcode::ReturnValue.make(vec![]),
+                    ]),
+                    num_locals: 0,
+                    num_parameters: 0,
+                })],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
 }

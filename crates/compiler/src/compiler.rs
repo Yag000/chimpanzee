@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
 use crate::code::{Instructions, Opcode};
-use crate::symbol_table::{SymbolScope, SymbolTable};
+use crate::symbol_table::{Symbol, SymbolScope, SymbolTable};
 use lexer::token::Token;
 use num_traits::FromPrimitive;
+use object::builtins::BuiltinFunction;
 use object::object::{CompiledFunction, Object};
 use parser::ast::Program;
 use parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement};
@@ -55,10 +56,15 @@ impl Default for Compiler {
 impl Compiler {
     pub fn new() -> Self {
         let main_scope = CompilerScope::default();
+        let mut symbol_table = SymbolTable::new();
+        for (i, builtin) in BuiltinFunction::get_builtins_names().iter().enumerate() {
+            symbol_table.define_builtin(i, builtin.to_string());
+        }
+
         Compiler {
             constants: vec![],
 
-            symbol_table: SymbolTable::new(),
+            symbol_table,
 
             scopes: vec![main_scope],
             scope_index: 0,
@@ -105,6 +111,9 @@ impl Compiler {
                     SymbolScope::Local => {
                         self.emit(Opcode::SetLocal, vec![symbol.index as i32]);
                     }
+                    SymbolScope::Builtin => {
+                        unreachable!("Builtin symbols should not be set, the compiler should panic before this")
+                    }
                 }
             }
             Statement::Return(r) => {
@@ -135,14 +144,7 @@ impl Compiler {
             Expression::Identifier(ident) => {
                 let symbol = self.symbol_table.resolve(&ident.value);
                 match symbol {
-                    Some(symbol) => match symbol.scope {
-                        SymbolScope::Global => {
-                            self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);
-                        }
-                        SymbolScope::Local => {
-                            self.emit(Opcode::GetLocal, vec![symbol.index as i32]);
-                        }
-                    },
+                    Some(symbol) => self.load_symbol(symbol),
                     None => {
                         return Err(format!("Undefined variable: {}", ident.value));
                     }
@@ -410,6 +412,20 @@ impl Compiler {
             .as_mut()
             .unwrap()
             .opcode = Opcode::ReturnValue;
+    }
+
+    fn load_symbol(&mut self, symbol: Symbol) -> () {
+        match symbol.scope {
+            SymbolScope::Global => {
+                self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);
+            }
+            SymbolScope::Local => {
+                self.emit(Opcode::GetLocal, vec![symbol.index as i32]);
+            }
+            SymbolScope::Builtin => {
+                self.emit(Opcode::GetBuiltin, vec![symbol.index as i32]);
+            }
+        }
     }
 
     pub fn bytecode(&self) -> Bytecode {
