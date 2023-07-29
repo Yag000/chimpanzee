@@ -14,11 +14,16 @@ pub const GLOBALS_SIZE: usize = 65536;
 struct Frame {
     function: CompiledFunction,
     ip: i32,
+    base_pointer: usize,
 }
 
 impl Frame {
-    fn new(function: CompiledFunction) -> Self {
-        Self { function, ip: -1 }
+    fn new(function: CompiledFunction, base_pointer: usize) -> Self {
+        Self {
+            function,
+            ip: -1,
+            base_pointer,
+        }
     }
 
     fn get_instructions(&self) -> &Vec<u8> {
@@ -42,8 +47,10 @@ impl VM {
     pub fn new(bytecode: Bytecode) -> Self {
         let main_function = CompiledFunction {
             instructions: bytecode.instructions.data,
+            num_locals: 0,
+            num_parameters: 0,
         };
-        let main_frame = Frame::new(main_function);
+        let main_frame = Frame::new(main_function, 0);
         let mut frames = Vec::with_capacity(MAX_FRAMES);
         frames.push(main_frame);
         Self {
@@ -144,6 +151,20 @@ impl VM {
                     self.push(self.globals[global_index].clone())?;
                 }
 
+                Opcode::SetLocal => {
+                    let local_index = ins[ip + 1] as usize;
+                    self.current_frame().ip += 1;
+                    let value = self.pop()?;
+                    let base_pointer = self.current_frame().base_pointer;
+                    self.stack[base_pointer + local_index] = value;
+                }
+                Opcode::GetLocal => {
+                    let local_index = ins[ip + 1] as usize;
+                    self.current_frame().ip += 1;
+                    let base_pointer = self.current_frame().base_pointer;
+                    let value = Rc::clone(&self.stack[base_pointer + local_index]);
+                    self.push(value)?;
+                }
                 Opcode::Array => {
                     let num_elements = read_u16(&ins[ip + 1..]) as usize;
                     self.current_frame().ip += 2;
@@ -164,29 +185,26 @@ impl VM {
                     self.execute_index_expression(&left, &index)?;
                 }
                 Opcode::Call => {
-                    let func = self
-                        .stack
-                        .get(self.sp - 1)
-                        .ok_or("Stack underflow")?
-                        .as_ref();
-                    if let Object::COMPILEDFUNCTION(compiled) = func {
-                        let frame = Frame::new(compiled.clone());
-                        self.push_frame(frame);
-                    } else {
-                        Err("Calling non-function")?;
-                    }
+                    let num_args = ins[ip + 1] as usize;
+                    self.current_frame().ip += 1;
+
+                    self.call_function(num_args)?;
                 }
                 Opcode::ReturnValue => {
                     let return_value = self.pop()?;
 
-                    self.pop_frame();
-                    self.pop()?;
+                    match self.pop_frame() {
+                        Some(frame) => self.sp = frame.base_pointer - 1,
+                        None => Err("There was no frame")?,
+                    }
 
                     self.push(return_value)?;
                 }
                 Opcode::Return => {
-                    self.pop_frame();
-                    self.pop()?;
+                    match self.pop_frame() {
+                        Some(frame) => self.sp = frame.base_pointer - 1,
+                        None => Err("There was no frame")?,
+                    }
 
                     self.push(Rc::new(NULL))?;
                 }
@@ -385,6 +403,30 @@ impl VM {
             }
         }
         Ok(())
+    }
+
+    fn call_function(&mut self, num_args: usize) -> Result<(), String> {
+        let func = self
+            .stack
+            .get(self.sp - 1 - num_args)
+            .ok_or("Stack underflow")?
+            .as_ref();
+
+        if let Object::COMPILEDFUNCTION(compiled) = func {
+            if num_args != compiled.num_parameters {
+                return Err(format!(
+                    "Wrong number of arguments: want={}, got={}",
+                    compiled.num_parameters, num_args
+                ));
+            }
+
+            let frame = Frame::new(compiled.clone(), self.sp - num_args);
+            self.sp = frame.base_pointer + compiled.num_locals;
+            self.push_frame(frame);
+            Ok(())
+        } else {
+            Err("Calling non-function".to_string())
+        }
     }
 
     fn native_boolean_to_boolean_object(&self, input: bool) -> Rc<Object> {

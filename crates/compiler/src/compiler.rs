@@ -1,5 +1,7 @@
+use std::rc::Rc;
+
 use crate::code::{Instructions, Opcode};
-use crate::symbol_table::SymbolTable;
+use crate::symbol_table::{SymbolScope, SymbolTable};
 use lexer::token::Token;
 use num_traits::FromPrimitive;
 use object::object::{CompiledFunction, Object};
@@ -56,7 +58,7 @@ impl Compiler {
         Compiler {
             constants: vec![],
 
-            symbol_table: SymbolTable::default(),
+            symbol_table: SymbolTable::new(),
 
             scopes: vec![main_scope],
             scope_index: 0,
@@ -96,7 +98,14 @@ impl Compiler {
                 self.compile_expression(s.value)?;
 
                 let symbol = self.symbol_table.define(s.name.value);
-                self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
+                match symbol.scope {
+                    SymbolScope::Global => {
+                        self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
+                    }
+                    SymbolScope::Local => {
+                        self.emit(Opcode::SetLocal, vec![symbol.index as i32]);
+                    }
+                }
             }
             Statement::Return(r) => {
                 self.compile_expression(r.return_value)?;
@@ -126,9 +135,14 @@ impl Compiler {
             Expression::Identifier(ident) => {
                 let symbol = self.symbol_table.resolve(&ident.value);
                 match symbol {
-                    Some(symbol) => {
-                        self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);
-                    }
+                    Some(symbol) => match symbol.scope {
+                        SymbolScope::Global => {
+                            self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);
+                        }
+                        SymbolScope::Local => {
+                            self.emit(Opcode::GetLocal, vec![symbol.index as i32]);
+                        }
+                    },
                     None => {
                         return Err(format!("Undefined variable: {}", ident.value));
                     }
@@ -157,6 +171,13 @@ impl Compiler {
             }
             Expression::FunctionLiteral(fun) => {
                 self.enter_scope();
+
+                let num_parameters = fun.parameters.len();
+
+                for param in fun.parameters {
+                    self.symbol_table.define(param.value);
+                }
+
                 self.compile_block_statement(fun.body)?;
 
                 if self.last_instruction_is(Opcode::Pop) {
@@ -166,17 +187,30 @@ impl Compiler {
                     self.emit(Opcode::Return, vec![]);
                 }
 
+                let num_locals = self.symbol_table.num_definitions;
                 let instructions = self.leave_scope().data;
 
-                let compiled_function = Object::COMPILEDFUNCTION(CompiledFunction { instructions });
+                let compiled_function = Object::COMPILEDFUNCTION(CompiledFunction {
+                    instructions,
+                    num_locals,
+                    num_parameters,
+                });
                 let operands = i32::from_usize(self.add_constant(compiled_function))
                     .ok_or("Invalid integer type")?;
+
                 self.emit(Opcode::Constant, vec![operands]);
             }
             Expression::FunctionCall(call) => {
                 self.compile_expression(*call.function)?;
 
-                self.emit(Opcode::Call, vec![]);
+                let args_length =
+                    i32::from_usize(call.arguments.len()).ok_or("Invalid argument length")?;
+
+                for argument in call.arguments {
+                    self.compile_expression(argument)?;
+                }
+
+                self.emit(Opcode::Call, vec![args_length]);
             }
         }
 
@@ -348,12 +382,15 @@ impl Compiler {
 
     fn enter_scope(&mut self) {
         let scope = CompilerScope::default();
+        self.symbol_table = SymbolTable::new_enclosed(Rc::new(self.symbol_table.clone()));
         self.scopes.push(scope);
         self.scope_index += 1;
     }
 
     fn leave_scope(&mut self) -> Instructions {
         let instructions = self.current_instructions();
+
+        self.symbol_table = self.symbol_table.outer.as_ref().unwrap().as_ref().clone();
 
         self.scopes.pop();
         self.scope_index -= 1;
@@ -397,6 +434,8 @@ impl Bytecode {
 #[cfg(test)]
 pub mod tests {
 
+    use std::rc::Rc;
+
     use super::*;
 
     #[test]
@@ -404,6 +443,9 @@ pub mod tests {
         let mut compiler = Compiler::new();
 
         assert_eq!(compiler.scope_index, 0);
+
+        let global_symbol_table = compiler.symbol_table.clone();
+
         compiler.emit(Opcode::Mul, vec![]);
 
         compiler.enter_scope();
@@ -424,8 +466,20 @@ pub mod tests {
             .unwrap();
         assert_eq!(last.opcode, Opcode::Sub);
 
+        assert_eq!(
+            compiler.symbol_table.outer,
+            Some(Rc::new(global_symbol_table.clone())),
+            "Compiler did not enclose symbol table when entering new scope"
+        );
+
         compiler.leave_scope();
         assert_eq!(compiler.scope_index, 0);
+
+        assert_eq!(
+            compiler.symbol_table,
+            (global_symbol_table),
+            "Compiler did not restore global symbol table after leaving scope"
+        );
 
         compiler.emit(Opcode::Add, vec![]);
         assert_eq!(

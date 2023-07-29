@@ -257,6 +257,8 @@ impl BuiltinFunction {
 #[derive(Debug, Clone, PartialEq)]
 pub struct CompiledFunction {
     pub instructions: Vec<u8>,
+    pub num_locals: usize,
+    pub num_parameters: usize,
 }
 
 impl Display for CompiledFunction {

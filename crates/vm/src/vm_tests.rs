@@ -494,16 +494,197 @@ mod tests {
     }
 
     #[test]
-    fn test_first_clas_functions() {
-        let tests = vec![VmTestCase {
-            input: r#"
+    fn test_first_class_functions() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
                 let returnsOne = fn() { 1; };
                 let returnsOneReturner = fn() { returnsOne; };
                 returnsOneReturner()();"#
-                .to_string(),
-            expected: Object::INTEGER(1),
-        }];
+                    .to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"
+                    let returnsOneReturner = fn() {
+                        let returnsOne = fn() { 1; };
+                        returnsOne;
+                    };
+                    returnsOneReturner()();"#
+                    .to_string(),
+                expected: Object::INTEGER(1),
+            },
+        ];
 
         run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_function_with_bindings() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let one = fn() { let one = 1; one };
+                    one();"#
+                    .to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"
+                    let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+                    oneAndTwo();"#
+                    .to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"
+                    let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
+                    let threeAndFour = fn() { let three = 3; let four = 4; three + four; };
+                    oneAndTwo() + threeAndFour();"#
+                    .to_string(),
+                expected: Object::INTEGER(10),
+            },
+            VmTestCase {
+                input: r#"
+                    let firstFoobar = fn() { let foobar = 50; foobar; };
+                    let secondFoobar = fn() { let foobar = 100; foobar; };
+                    firstFoobar() + secondFoobar();"#
+                    .to_string(),
+                expected: Object::INTEGER(150),
+            },
+            VmTestCase {
+                input: r#"
+                    let globalSeed = 50;
+                    let minusOne = fn() {
+                        let num = 1;
+                        globalSeed - num;
+                    }
+                    let minusTwo = fn() {
+                        let num = 2;
+                        globalSeed - num;
+                    }
+                    minusOne() + minusTwo();"#
+                    .to_string(),
+                expected: Object::INTEGER(97),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_functions_with_arguments_and_bindings() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let identity = fn(a) { a; };
+                    identity(4);"#
+                    .to_string(),
+                expected: Object::INTEGER(4),
+            },
+            VmTestCase {
+                input: r#"
+                    let sum = fn(a, b) { a + b; };
+                    sum(1, 2);"#
+                    .to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"
+                    let sum = fn(a, b) {
+                        let c = a + b;
+                        c;
+                    };
+                    sum(1, 2);"#
+                    .to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"
+                    let sum = fn(a, b) {
+                        let c = a + b;
+                        c;
+                    };
+                    sum(1, 2) + sum(3, 4);"#
+                    .to_string(),
+                expected: Object::INTEGER(10),
+            },
+            VmTestCase {
+                input: r#"
+                    let sum = fn(a, b) {
+                        let c = a + b;
+                        c;
+                    };
+                    let outer = fn() {
+                        sum(1, 2) + sum(3, 4);
+                    };
+                    outer();"#
+                    .to_string(),
+                expected: Object::INTEGER(10),
+            },
+            VmTestCase {
+                input: r#"
+                    let globalNum = 10;
+                    let sum = fn(a, b) {
+                        let c = a + b;
+                        c + globalNum;
+                    };
+                    let outer = fn() {
+                        sum(1, 2) + sum(3, 4) + globalNum;
+                    };
+                    outer() + globalNum;"#
+                    .to_string(),
+                expected: Object::INTEGER(50),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_calling_functions_with_wrong_arguments() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    fn() { 1; }(1);"#
+                    .to_string(),
+                expected: Object::ERROR("Wrong number of arguments: want=0, got=1".to_string()),
+            },
+            VmTestCase {
+                input: r#"
+                    fn(a) { a; }();"#
+                    .to_string(),
+                expected: Object::ERROR("Wrong number of arguments: want=1, got=0".to_string()),
+            },
+            VmTestCase {
+                input: r#"
+                    fn(a, b) { a + b; }(1);"#
+                    .to_string(),
+                expected: Object::ERROR("Wrong number of arguments: want=2, got=1".to_string()),
+            },
+        ];
+
+        for test in tests {
+            println!("Running test: {}", test.input);
+            let program = parse(&test.input);
+            let mut compiler = Compiler::new();
+            compiler.compile(program).unwrap();
+            let bytecode = compiler.bytecode();
+
+            let mut vm = VM::new(bytecode);
+            match vm.run() {
+                Ok(_) => {
+                    panic!("Expected error, but got no error");
+                }
+                Err(e) => match test.expected {
+                    Object::ERROR(msg) => {
+                        assert_eq!(e, msg);
+                    }
+                    _ => {
+                        unreachable!("Poorly written test, the expected value should be an error");
+                    }
+                },
+            }
+        }
     }
 }

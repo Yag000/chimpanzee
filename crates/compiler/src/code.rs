@@ -102,6 +102,9 @@ pub enum Opcode {
     SetGlobal,
     GetGlobal,
 
+    SetLocal,
+    GetLocal,
+
     // Custom types
     Array,
     HashMap,
@@ -139,6 +142,8 @@ impl Display for Opcode {
             Opcode::Null => "OpNull",
             Opcode::SetGlobal => "OpSetGlobal",
             Opcode::GetGlobal => "OpGetGlobal",
+            Opcode::SetLocal => "OpSetLocal",
+            Opcode::GetLocal => "OpGetLocal",
             Opcode::Array => "OpArray",
             Opcode::HashMap => "OpHashMap",
             Opcode::Index => "OpIndex",
@@ -161,6 +166,7 @@ impl Opcode {
             | Opcode::GetGlobal
             | Opcode::Array
             | Opcode::HashMap => vec![2],
+            Opcode::Call | Opcode::SetLocal | Opcode::GetLocal => vec![1],
             _ => vec![],
         }
     }
@@ -176,6 +182,7 @@ impl Opcode {
                 2 => instructions
                     .write_u16::<BigEndian>(*operand as u16)
                     .unwrap(),
+                1 => instructions.write_u8(*operand as u8).unwrap(),
                 _ => panic!("Unrecognized operand width: {width}"),
             }
         }
@@ -192,6 +199,10 @@ impl Opcode {
                 2 => {
                     operands.push(i32::from(read_u16(&ins[offset..offset + 2])));
                     offset += 2;
+                }
+                1 => {
+                    operands.push(ins[offset] as i32);
+                    offset += 1;
                 }
                 _ => panic!("Unrecognized operand width: {width}"),
             }
@@ -241,6 +252,11 @@ mod tests {
                 vec![Opcode::Constant as u8, 255, 254],
             ),
             (Opcode::Add, vec![], vec![Opcode::Add as u8]),
+            (
+                Opcode::GetLocal,
+                vec![255],
+                vec![Opcode::GetLocal as u8, 255],
+            ),
         ];
 
         for (op, operands, expected) in tests {
@@ -263,7 +279,8 @@ mod tests {
     #[test]
     fn test_instructions_string() {
         let instructions = vec![
-            Opcode::Add.make(vec![1]),
+            Opcode::Add.make(vec![]),
+            Opcode::GetLocal.make(vec![1]),
             Opcode::Constant.make(vec![2]),
             Opcode::Constant.make(vec![65535]),
         ];
@@ -273,14 +290,17 @@ mod tests {
             test_instruction.append(instruction);
         }
 
-        let expected = "0000 OpAdd\n0001 OpConstant 2\n0004 OpConstant 65535\n";
+        let expected = "0000 OpAdd\n0001 OpGetLocal 1\n0003 OpConstant 2\n0006 OpConstant 65535\n";
 
         assert_eq!(test_instruction.to_string(), expected);
     }
 
     #[test]
     fn test_read_operands() {
-        let tests = vec![(Opcode::Constant, vec![65535], 2)];
+        let tests = vec![
+            (Opcode::Constant, vec![65535], 2),
+            (Opcode::GetLocal, vec![255], 1),
+        ];
 
         for (op, operands, bytes_read) in tests {
             let instructions = op.make(operands.clone());
