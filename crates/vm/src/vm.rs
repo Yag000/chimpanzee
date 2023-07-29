@@ -174,7 +174,7 @@ impl VM {
                     self.current_frame().ip += 1;
 
                     let def = BuiltinFunction::get_builtin_by_id(builtin_index)
-                        .ok_or(format!("Unknown builtin function id {}", builtin_index))?;
+                        .ok_or(format!("Unknown builtin function id {builtin_index}"))?;
 
                     self.push(Rc::new(def))?;
                 }
@@ -426,10 +426,8 @@ impl VM {
 
         match callee.as_ref().clone() {
             Object::COMPILEDFUNCTION(func) => self.call_function(func, num_args),
-            Object::BUILTIN(func) => self.call_builtin_function(func, num_args),
-            _ => {
-                return Err("Calling non-function".to_string());
-            }
+            Object::BUILTIN(func) => self.call_builtin_function(&func, num_args),
+            _ => Err("Calling non-function".to_string()),
         }
     }
 
@@ -450,7 +448,7 @@ impl VM {
 
     fn call_builtin_function(
         &mut self,
-        callee: BuiltinFunction,
+        callee: &BuiltinFunction,
         num_args: usize,
     ) -> Result<(), String> {
         let mut args: Vec<Object> = Vec::new();

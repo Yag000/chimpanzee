@@ -144,7 +144,7 @@ impl Compiler {
             Expression::Identifier(ident) => {
                 let symbol = self.symbol_table.resolve(&ident.value);
                 match symbol {
-                    Some(symbol) => self.load_symbol(symbol),
+                    Some(symbol) => self.load_symbol(&symbol),
                     None => {
                         return Err(format!("Undefined variable: {}", ident.value));
                     }
@@ -414,7 +414,7 @@ impl Compiler {
             .opcode = Opcode::ReturnValue;
     }
 
-    fn load_symbol(&mut self, symbol: Symbol) -> () {
+    fn load_symbol(&mut self, symbol: &Symbol) {
         match symbol.scope {
             SymbolScope::Global => {
                 self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);

@@ -131,7 +131,7 @@ impl Cli {
         Cli::print_entry_header();
         let mut symbol_table = SymbolTable::new();
         for (i, builtin) in BuiltinFunction::get_builtins_names().iter().enumerate() {
-            symbol_table.define_builtin(i, builtin.to_owned());
+            symbol_table.define_builtin(i, builtin.clone());
         }
         let mut constants = Vec::new();
         let mut globals = {
