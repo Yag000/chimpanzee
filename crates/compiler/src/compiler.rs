@@ -200,7 +200,7 @@ impl Compiler {
                 let operands = i32::from_usize(self.add_constant(compiled_function))
                     .ok_or("Invalid integer type")?;
 
-                self.emit(Opcode::Constant, vec![operands]);
+                self.emit(Opcode::Closure, vec![operands, 0]);
             }
             Expression::FunctionCall(call) => {
                 self.compile_expression(*call.function)?;

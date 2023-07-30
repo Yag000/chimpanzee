@@ -576,7 +576,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![2]),
+                    Opcode::Closure.make(vec![2, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -597,7 +597,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![2]),
+                    Opcode::Closure.make(vec![2, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -618,7 +618,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![2]),
+                    Opcode::Closure.make(vec![2, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -636,7 +636,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![1]),
+                    Opcode::Closure.make(vec![1, 0]),
                     Opcode::Call.make(vec![0]),
                     Opcode::Pop.make(vec![]),
                 ]),
@@ -655,7 +655,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![1]),
+                    Opcode::Closure.make(vec![1, 0]),
                     Opcode::SetGlobal.make(vec![0]),
                     Opcode::GetGlobal.make(vec![0]),
                     Opcode::Call.make(vec![0]),
@@ -673,7 +673,7 @@ pub mod tests {
                     Object::INTEGER(24),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![0]),
+                    Opcode::Closure.make(vec![0, 0]),
                     Opcode::SetGlobal.make(vec![0]),
                     Opcode::GetGlobal.make(vec![0]),
                     Opcode::Constant.make(vec![1]),
@@ -694,7 +694,7 @@ pub mod tests {
                     Object::INTEGER(26),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![0]),
+                    Opcode::Closure.make(vec![0, 0]),
                     Opcode::SetGlobal.make(vec![0]),
                     Opcode::GetGlobal.make(vec![0]),
                     Opcode::Constant.make(vec![1]),
@@ -718,7 +718,7 @@ pub mod tests {
                     Object::INTEGER(24),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![0]),
+                    Opcode::Closure.make(vec![0, 0]),
                     Opcode::SetGlobal.make(vec![0]),
                     Opcode::GetGlobal.make(vec![0]),
                     Opcode::Constant.make(vec![1]),
@@ -746,7 +746,7 @@ pub mod tests {
                     Object::INTEGER(26),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![0]),
+                    Opcode::Closure.make(vec![0, 0]),
                     Opcode::SetGlobal.make(vec![0]),
                     Opcode::GetGlobal.make(vec![0]),
                     Opcode::Constant.make(vec![1]),
@@ -771,7 +771,7 @@ pub mod tests {
                 num_parameters: 0,
             })],
             expected_instructions: flatten_instructions(vec![
-                Opcode::Constant.make(vec![0]),
+                Opcode::Closure.make(vec![0, 0]),
                 Opcode::Pop.make(vec![]),
             ]),
         }];
@@ -801,7 +801,7 @@ pub mod tests {
                 expected_instructions: flatten_instructions(vec![
                     Opcode::Constant.make(vec![0]),
                     Opcode::SetGlobal.make(vec![0]),
-                    Opcode::Constant.make(vec![1]),
+                    Opcode::Closure.make(vec![1, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -826,7 +826,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![1]),
+                    Opcode::Closure.make(vec![1, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -857,7 +857,7 @@ pub mod tests {
                     }),
                 ],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![2]),
+                    Opcode::Closure.make(vec![2, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },
@@ -897,7 +897,7 @@ pub mod tests {
                     num_parameters: 0,
                 })],
                 expected_instructions: flatten_instructions(vec![
-                    Opcode::Constant.make(vec![0]),
+                    Opcode::Closure.make(vec![0, 0]),
                     Opcode::Pop.make(vec![]),
                 ]),
             },

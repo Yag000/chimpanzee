@@ -23,6 +23,7 @@ pub enum Object {
     ERROR(String),
     FUNCTION(Function),
     COMPILEDFUNCTION(CompiledFunction),
+    CLOSURE(Closure),
     BUILTIN(BuiltinFunction),
     ARRAY(Vec<Object>),
     HASHMAP(HashMap<Object, Object>),
@@ -38,6 +39,7 @@ impl Display for Object {
             Object::RETURN(o) => write!(f, "{o}",),
             Object::FUNCTION(o) => write!(f, "{o}"),
             Object::COMPILEDFUNCTION(o) => write!(f, "{o}"),
+            Object::CLOSURE(o) => write!(f, "{o}"),
             Object::BUILTIN(o) => write!(f, "{o}"),
             Object::ERROR(s) => write!(f, "ERROR: {s}"),
             Object::ARRAY(a) => Self::format_array(f, a),
@@ -74,6 +76,7 @@ impl Object {
             Object::ERROR(_) => String::from("ERROR"),
             Object::FUNCTION(_) => String::from("FUNCTION"),
             Object::COMPILEDFUNCTION(_) => String::from("COMPILEDFUNCTION"),
+            Object::CLOSURE(_) => String::from("CLOSURE"),
             Object::BUILTIN(_) => String::from("BUILTIN"),
             Object::ARRAY(_) => String::from("ARRAY"),
             Object::HASHMAP(_) => String::from("HASHMAP"),
@@ -126,6 +129,39 @@ impl Display for CompiledFunction {
             "CompiledFunction(num_locals={}, num_parameters={}, instructions={:?})",
             self.num_locals, self.num_parameters, self.instructions
         )
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Closure {
+    pub function: CompiledFunction,
+    pub free: Vec<Object>,
+}
+
+impl Display for Closure {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Closure(function={}, free={:?}",
+            self.function, self.free
+        )
+    }
+}
+
+impl Closure {
+    pub fn new(function: CompiledFunction) -> Self {
+        Self {
+            function,
+            free: Vec::new(),
+        }
+    }
+
+    pub fn add_free_variable(&mut self, variable: Object) {
+        self.free.push(variable);
+    }
+
+    pub fn extend_free_varaibles(&mut self, variables: Vec<Object>) {
+        self.free.extend(variables);
     }
 }
 

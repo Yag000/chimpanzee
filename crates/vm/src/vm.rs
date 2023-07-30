@@ -5,7 +5,7 @@ use compiler::{
 use num_traits::FromPrimitive;
 use object::{
     builtins::BuiltinFunction,
-    object::{CompiledFunction, Object, FALSE, NULL, TRUE},
+    object::{Closure, CompiledFunction, Object, FALSE, NULL, TRUE},
 };
 use std::{collections::HashMap, rc::Rc};
 
@@ -15,13 +15,13 @@ pub const GLOBALS_SIZE: usize = 65536;
 
 #[derive(Debug)]
 struct Frame {
-    function: CompiledFunction,
+    function: Closure,
     ip: i32,
     base_pointer: usize,
 }
 
 impl Frame {
-    fn new(function: CompiledFunction, base_pointer: usize) -> Self {
+    fn new(function: Closure, base_pointer: usize) -> Self {
         Self {
             function,
             ip: -1,
@@ -30,7 +30,7 @@ impl Frame {
     }
 
     fn get_instructions(&self) -> &Vec<u8> {
-        &self.function.instructions
+        &self.function.function.instructions
     }
 }
 
@@ -53,7 +53,8 @@ impl VM {
             num_locals: 0,
             num_parameters: 0,
         };
-        let main_frame = Frame::new(main_function, 0);
+        let main_closure = Closure::new(main_function);
+        let main_frame = Frame::new(main_closure, 0);
         let mut frames = Vec::with_capacity(MAX_FRAMES);
         frames.push(main_frame);
         Self {
@@ -220,6 +221,14 @@ impl VM {
                     }
 
                     self.push(Rc::new(NULL))?;
+                }
+                Opcode::Closure => {
+                    let const_index = read_u16(&ins[ip + 1..]) as usize;
+                    let _free = ins[ip + 3] as usize;
+
+                    self.current_frame().ip += 3;
+
+                    self.push_closure(const_index)?;
                 }
             }
         }
@@ -425,21 +434,21 @@ impl VM {
             .ok_or("Stack underflow")?;
 
         match callee.as_ref().clone() {
-            Object::COMPILEDFUNCTION(func) => self.call_function(func, num_args),
+            Object::CLOSURE(func) => self.call_closure(func, num_args),
             Object::BUILTIN(func) => self.call_builtin_function(&func, num_args),
             _ => Err("Calling non-function".to_string()),
         }
     }
 
-    fn call_function(&mut self, func: CompiledFunction, num_args: usize) -> Result<(), String> {
-        if num_args != func.num_parameters {
+    fn call_closure(&mut self, func: Closure, num_args: usize) -> Result<(), String> {
+        if num_args != func.function.num_parameters {
             return Err(format!(
                 "Wrong number of arguments: want={}, got={}",
-                func.num_parameters, num_args
+                func.function.num_parameters, num_args
             ));
         }
 
-        let num_locals = func.num_locals;
+        let num_locals = func.function.num_locals;
         let frame = Frame::new(func, self.sp - num_args);
         self.sp = frame.base_pointer + num_locals;
         self.push_frame(frame);
@@ -462,6 +471,16 @@ impl VM {
         self.sp -= 1;
         self.push(Rc::new(result))?;
         Ok(())
+    }
+
+    fn push_closure(&mut self, const_index: usize) -> Result<(), String> {
+        match (*self.constants[const_index]).clone() {
+            Object::COMPILEDFUNCTION(func) => {
+                let closure = Closure::new(func);
+                self.push(Rc::new(Object::CLOSURE(closure)))
+            }
+            x => Err(format!["Function expected, got {}", x.get_type()]),
+        }
     }
 
     fn native_boolean_to_boolean_object(&self, input: bool) -> Rc<Object> {

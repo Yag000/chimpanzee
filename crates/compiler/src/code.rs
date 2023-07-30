@@ -55,7 +55,8 @@ impl Instructions {
         }
 
         match operand_count {
-            1 => format!("{} {}", operand, operands[0]),
+            2 => format!("{operand} {} {}", operands[0], operands[1]),
+            1 => format!("{operand} {}", operands[0]),
             0 => format!("{operand}"),
             _ => format!("Unhandeled operand_count for {operand}"),
         }
@@ -115,6 +116,7 @@ pub enum Opcode {
     ReturnValue,
     Return,
     GetBuiltin,
+    Closure,
 
     // Stack
     Pop,
@@ -152,6 +154,7 @@ impl Display for Opcode {
             Opcode::ReturnValue => "OpReturnValue",
             Opcode::Return => "OpReturn",
             Opcode::GetBuiltin => "OpBuiltIn",
+            Opcode::Closure => "OpClosure",
             Opcode::Pop => "OpPop",
         };
         write!(f, "{op}")
@@ -169,6 +172,7 @@ impl Opcode {
             | Opcode::Array
             | Opcode::HashMap => vec![2],
             Opcode::Call | Opcode::SetLocal | Opcode::GetLocal | Opcode::GetBuiltin => vec![1],
+            Opcode::Closure => vec![2, 1],
             _ => vec![],
         }
     }
@@ -259,6 +263,11 @@ mod tests {
                 vec![255],
                 vec![Opcode::GetLocal as u8, 255],
             ),
+            (
+                Opcode::Closure,
+                vec![65534, 255],
+                vec![Opcode::Closure as u8, 255, 254, 255],
+            ),
         ];
 
         for (op, operands, expected) in tests {
@@ -285,6 +294,7 @@ mod tests {
             Opcode::GetLocal.make(vec![1]),
             Opcode::Constant.make(vec![2]),
             Opcode::Constant.make(vec![65535]),
+            Opcode::Closure.make(vec![65535, 255]),
         ];
 
         let mut test_instruction = Instructions::default();
@@ -292,7 +302,7 @@ mod tests {
             test_instruction.append(instruction);
         }
 
-        let expected = "0000 OpAdd\n0001 OpGetLocal 1\n0003 OpConstant 2\n0006 OpConstant 65535\n";
+        let expected = "0000 OpAdd\n0001 OpGetLocal 1\n0003 OpConstant 2\n0006 OpConstant 65535\n0009 OpClosure 65535 255\n";
 
         assert_eq!(test_instruction.to_string(), expected);
     }
@@ -302,6 +312,7 @@ mod tests {
         let tests = vec![
             (Opcode::Constant, vec![65535], 2),
             (Opcode::GetLocal, vec![255], 1),
+            (Opcode::Closure, vec![65535, 255], 3),
         ];
 
         for (op, operands, bytes_read) in tests {
