@@ -102,9 +102,10 @@ impl Compiler {
                 self.emit(Opcode::Pop, vec![]);
             }
             Statement::Let(s) => {
+                let symbol = self.symbol_table.define(s.name.value);
+
                 self.compile_expression(s.value)?;
 
-                let symbol = self.symbol_table.define(s.name.value);
                 match symbol.scope {
                     SymbolScope::Global => {
                         self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
@@ -113,10 +114,15 @@ impl Compiler {
                         self.emit(Opcode::SetLocal, vec![symbol.index as i32]);
                     }
                     SymbolScope::Free => {
-                        unimplemented!();
+                        unreachable!(
+                            "Free symbols should not be set, the compiler should panic before this"
+                        )
                     }
                     SymbolScope::Builtin => {
                         unreachable!("Builtin symbols should not be set, the compiler should panic before this")
+                    }
+                    SymbolScope::Function => {
+                        unreachable!("Function symbols should not be set, the compiler should panic before this")
                     }
                 }
             }
@@ -291,6 +297,10 @@ impl Compiler {
     fn compile_function_literal(&mut self, fun: FunctionLiteral) -> Result<(), String> {
         self.enter_scope();
 
+        if let Some(name) = fun.name {
+            self.symbol_table.define_function_name(name);
+        }
+
         let num_parameters = fun.parameters.len();
 
         for param in fun.parameters {
@@ -448,6 +458,7 @@ impl Compiler {
             SymbolScope::Local => Opcode::GetLocal,
             SymbolScope::Builtin => Opcode::GetBuiltin,
             SymbolScope::Free => Opcode::GetFree,
+            SymbolScope::Function => Opcode::CurrentClosure,
         };
 
         self.emit(opcode, vec![symbol.index as i32]);

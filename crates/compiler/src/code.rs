@@ -107,6 +107,7 @@ pub enum Opcode {
     GetLocal,
 
     GetFree,
+    CurrentClosure,
 
     // Custom types
     Array,
@@ -150,6 +151,7 @@ impl Display for Opcode {
             Opcode::SetLocal => "OpSetLocal",
             Opcode::GetLocal => "OpGetLocal",
             Opcode::GetFree => "OpGetFree",
+            Opcode::CurrentClosure => "OpCurrentClosure",
             Opcode::Array => "OpArray",
             Opcode::HashMap => "OpHashMap",
             Opcode::Index => "OpIndex",

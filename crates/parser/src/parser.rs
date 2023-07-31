@@ -124,12 +124,16 @@ impl Parser {
 
         self.next_token();
 
-        let value = match Expression::parse(self, Precedence::Lowest) {
+        let mut value = match Expression::parse(self, Precedence::Lowest) {
             Ok(x) => x,
             Err(s) => {
                 self.push_error(s);
                 return None;
             }
+        };
+
+        if let Expression::FunctionLiteral(literal) = &mut value {
+            literal.name = Some(name.token.to_string());
         };
 
         if self.peek_token_is(&Token::Semicolon) {
@@ -756,6 +760,42 @@ mod tests {
                 _ => panic!("It is not an hash literal"),
             },
             _ => panic!("It is not an expression statement"),
+        }
+    }
+
+    #[test]
+    fn test_parsing_function_literal_with_name() {
+        let input = "let myFunction = fn(){};";
+
+        let program = generate_program(input);
+
+        assert_eq!(program.statements.len(), 1);
+        match program.statements[0].clone() {
+            Statement::Let(l) => match l.value {
+                Expression::FunctionLiteral(f) => {
+                    assert_eq!(f.name, Some("myFunction".to_string()));
+                }
+                _ => panic!("It is not a function literal"),
+            },
+            _ => panic!("It is not a let statement"),
+        }
+    }
+
+    #[test]
+    fn test_parsing_function_literal_without_name() {
+        let input = "fn(){};";
+
+        let program = generate_program(input);
+
+        assert_eq!(program.statements.len(), 1);
+        match program.statements[0].clone() {
+            Statement::Expression(exp) => match exp {
+                Expression::FunctionLiteral(f) => {
+                    assert!(f.name.is_none());
+                }
+                _ => panic!("It is not a function literal"),
+            },
+            _ => panic!("It is not an expression"),
         }
     }
 

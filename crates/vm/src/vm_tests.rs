@@ -4,7 +4,7 @@ mod tests {
 
     use std::collections::HashMap;
 
-    use compiler::compiler::Compiler;
+    use compiler::{code::Instructions, compiler::Compiler};
     use object::{object::Object, test_utils::check_constants};
     use parser::parser::parse;
 
@@ -22,6 +22,19 @@ mod tests {
             let mut compiler = Compiler::new();
             compiler.compile(program).unwrap();
             let bytecode = compiler.bytecode();
+
+            for (i, constant) in bytecode.constants.iter().enumerate() {
+                match constant {
+                    Object::COMPILEDFUNCTION(cf) => {
+                        println!("Compiled function:");
+                        let instructions = Instructions::new(cf.instructions.clone());
+                        println!("{}", instructions);
+                    }
+                    _ => {
+                        println!("{}: {}", i, constant);
+                    }
+                }
+            }
 
             let mut vm = VM::new(bytecode);
             vm.run().unwrap();
@@ -848,6 +861,59 @@ mod tests {
                 closure();"#
                     .to_string(),
                 expected: Object::INTEGER(99),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_recursive_functions() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                let countDown = fn(x) {
+                    if (x == 0) {
+                        return 0;
+                    } else {
+                        countDown(x - 1);
+                    }
+                };
+                countDown(1);"#
+                    .to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: r#"
+                let countDown = fn(x) {
+                    if (x == 0) {
+                        return 0;
+                    } else {
+                        countDown(x - 1);
+                    }
+                };
+                let wrapper = fn() {
+                    countDown(1);
+                };
+                wrapper();"#
+                    .to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: r#"
+                let wrapper = fn() {
+                    let countDown = fn(x) {
+                        if (x == 0) {
+                            return 0;
+                        } else {
+                            countDown(x - 1);
+                        }
+                    };
+                    countDown(1);
+                };
+                wrapper();"#
+                    .to_string(),
+                expected: Object::INTEGER(0),
             },
         ];
 

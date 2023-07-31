@@ -1064,4 +1064,91 @@ pub mod tests {
 
         run_compiler(tests);
     }
+
+    #[test]
+    fn test_recursive_functions() {
+        let tests = vec![
+            CompilerTestCase {
+                input: r#"
+                let countDown = fn(x){
+                    countDown(x - 1);
+                };
+                countDown(1);"#
+                    .to_string(),
+                expected_constants: vec![
+                    Object::INTEGER(1),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::CurrentClosure.make(vec![]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Constant.make(vec![0]),
+                            Opcode::Sub.make(vec![]),
+                            Opcode::Call.make(vec![1]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                    Object::INTEGER(1),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Closure.make(vec![1, 0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                    Opcode::GetGlobal.make(vec![0]),
+                    Opcode::Constant.make(vec![2]),
+                    Opcode::Call.make(vec![1]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#"
+                let wrapper = fn() {
+                    let countDown = fn(x) {
+                        countDown(x - 1);
+                    };
+                    countDown(1);
+                };
+                wrapper();
+                "#
+                .to_string(),
+                expected_constants: vec![
+                    Object::INTEGER(1),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::CurrentClosure.make(vec![]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Constant.make(vec![0]),
+                            Opcode::Sub.make(vec![]),
+                            Opcode::Call.make(vec![1]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                    Object::INTEGER(1),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::Closure.make(vec![1, 0]),
+                            Opcode::SetLocal.make(vec![0]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Constant.make(vec![2]),
+                            Opcode::Call.make(vec![1]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 0,
+                    }),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Closure.make(vec![3, 0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                    Opcode::GetGlobal.make(vec![0]),
+                    Opcode::Call.make(vec![0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
 }

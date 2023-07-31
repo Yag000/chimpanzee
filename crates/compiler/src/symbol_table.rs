@@ -6,6 +6,7 @@ pub enum SymbolScope {
     Local,
     Builtin,
     Free,
+    Function,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -103,6 +104,16 @@ impl SymbolTable {
         self.free_symbols.push(original);
         self.store.insert(sym.name.clone(), sym.clone());
         sym
+    }
+
+    pub fn define_function_name(&mut self, name: String) -> Symbol {
+        let symbol = Symbol {
+            name,
+            scope: SymbolScope::Function,
+            index: 0,
+        };
+        self.store.insert(symbol.name.clone(), symbol.clone());
+        symbol
     }
 }
 
@@ -543,5 +554,40 @@ mod tests {
 
             assert!(result.is_none());
         }
+    }
+
+    #[test]
+    fn test_defini_and_resolve_function_name() {
+        let mut global = SymbolTable::new();
+        global.define_function_name("a".to_string());
+
+        let expected = Symbol {
+            name: "a".to_string(),
+            scope: SymbolScope::Function,
+            index: 0,
+        };
+
+        let result = global.resolve(expected.name.as_str());
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_shadowing_function_name() {
+        let mut global = SymbolTable::new();
+        global.define_function_name("a".to_string());
+        global.define("a".to_string());
+
+        let expected = Symbol {
+            name: "a".to_string(),
+            scope: SymbolScope::Global,
+            index: 0,
+        };
+
+        let result = global.resolve(expected.name.as_str());
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), expected);
     }
 }

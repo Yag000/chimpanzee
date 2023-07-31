@@ -237,6 +237,10 @@ impl VM {
                     let free = self.current_frame().function.free[free_index].clone();
                     self.push(Rc::new(free))?;
                 }
+                Opcode::CurrentClosure => {
+                    let current_closure = self.current_frame().function.clone();
+                    self.push(Rc::new(Object::CLOSURE(current_closure)))?;
+                }
             }
         }
         Ok(())

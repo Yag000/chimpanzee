@@ -312,6 +312,7 @@ impl BlockStatement {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FunctionLiteral {
+    pub name: Option<String>,
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
 }
@@ -337,7 +338,11 @@ impl FunctionLiteral {
             return Err(String::new());
         }
         let body = BlockStatement::parse(parser);
-        Ok(FunctionLiteral { parameters, body })
+        Ok(FunctionLiteral {
+            name: None,
+            parameters,
+            body,
+        })
     }
 
     fn parse_function_parameters(parser: &mut Parser) -> Result<Vec<Identifier>, String> {
