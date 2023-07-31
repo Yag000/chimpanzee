@@ -224,14 +224,18 @@ impl VM {
                 }
                 Opcode::Closure => {
                     let const_index = read_u16(&ins[ip + 1..]) as usize;
-                    let _free = ins[ip + 3] as usize;
+                    let num_free = ins[ip + 3] as usize;
 
                     self.current_frame().ip += 3;
 
-                    self.push_closure(const_index)?;
+                    self.push_closure(const_index, num_free)?;
                 }
                 Opcode::GetFree => {
-                    unimplemented!();
+                    let free_index = ins[ip + 1] as usize;
+                    self.current_frame().ip += 1;
+
+                    let free = self.current_frame().function.free[free_index].clone();
+                    self.push(Rc::new(free))?;
                 }
             }
         }
@@ -476,10 +480,16 @@ impl VM {
         Ok(())
     }
 
-    fn push_closure(&mut self, const_index: usize) -> Result<(), String> {
+    fn push_closure(&mut self, const_index: usize, num_free: usize) -> Result<(), String> {
         match (*self.constants[const_index]).clone() {
             Object::COMPILEDFUNCTION(func) => {
-                let closure = Closure::new(func);
+                let mut closure = Closure::new(func);
+
+                for obj in self.stack[self.sp - num_free..self.sp].iter() {
+                    closure.add_free_variable(obj.as_ref().clone());
+                }
+
+                self.sp -= num_free;
                 self.push(Rc::new(Object::CLOSURE(closure)))
             }
             x => Err(format!["Function expected, got {}", x.get_type()]),
