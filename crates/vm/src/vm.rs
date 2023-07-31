@@ -230,6 +230,9 @@ impl VM {
 
                     self.push_closure(const_index)?;
                 }
+                Opcode::GetFree => {
+                    unimplemented!();
+                }
             }
         }
         Ok(())

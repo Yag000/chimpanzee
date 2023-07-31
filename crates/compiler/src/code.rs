@@ -106,6 +106,8 @@ pub enum Opcode {
     SetLocal,
     GetLocal,
 
+    GetFree,
+
     // Custom types
     Array,
     HashMap,
@@ -147,6 +149,7 @@ impl Display for Opcode {
             Opcode::GetGlobal => "OpGetGlobal",
             Opcode::SetLocal => "OpSetLocal",
             Opcode::GetLocal => "OpGetLocal",
+            Opcode::GetFree => "OpGetFree",
             Opcode::Array => "OpArray",
             Opcode::HashMap => "OpHashMap",
             Opcode::Index => "OpIndex",
@@ -171,8 +174,14 @@ impl Opcode {
             | Opcode::GetGlobal
             | Opcode::Array
             | Opcode::HashMap => vec![2],
-            Opcode::Call | Opcode::SetLocal | Opcode::GetLocal | Opcode::GetBuiltin => vec![1],
+
+            Opcode::Call
+            | Opcode::SetLocal
+            | Opcode::GetLocal
+            | Opcode::GetBuiltin
+            | Opcode::GetFree => vec![1],
             Opcode::Closure => vec![2, 1],
+
             _ => vec![],
         }
     }

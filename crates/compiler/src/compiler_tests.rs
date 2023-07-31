@@ -905,4 +905,163 @@ pub mod tests {
 
         run_compiler(tests);
     }
+
+    #[test]
+
+    fn test_closures() {
+        let tests = vec![
+            CompilerTestCase {
+                input: r#"
+                fn(a){
+                    fn(b){
+                        a + b
+                    }
+                }"#
+                .to_string(),
+                expected_constants: vec![
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::GetFree.make(vec![0]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Add.make(vec![]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Closure.make(vec![0, 1]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Closure.make(vec![1, 0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#"
+                    fn(a) {
+                        fn(b) {
+                            fn(c) {
+                                a + b + c
+                            }
+                        }
+                    };"#
+                .to_string(),
+
+                expected_constants: vec![
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::GetFree.make(vec![0]),
+                            Opcode::GetFree.make(vec![1]),
+                            Opcode::Add.make(vec![]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Add.make(vec![]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::GetFree.make(vec![0]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Closure.make(vec![0, 2]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Closure.make(vec![1, 1]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 1,
+                    }),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Closure.make(vec![2, 0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#"
+                    let global = 55;
+                   fn() {
+                        let a = 66;
+                        fn() {
+                            let b = 77;
+                            fn() {
+                                let c = 88;
+                                global + a + b + c;
+                            }
+                        }
+                    }
+                    "#
+                .to_string(),
+                expected_constants: vec![
+                    Object::INTEGER(55),
+                    Object::INTEGER(66),
+                    Object::INTEGER(77),
+                    Object::INTEGER(88),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::Constant.make(vec![3]),
+                            Opcode::SetLocal.make(vec![0]),
+                            Opcode::GetGlobal.make(vec![0]),
+                            Opcode::GetFree.make(vec![0]),
+                            Opcode::Add.make(vec![]),
+                            Opcode::GetFree.make(vec![1]),
+                            Opcode::Add.make(vec![]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Add.make(vec![]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 0,
+                    }),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::Constant.make(vec![2]),
+                            Opcode::SetLocal.make(vec![0]),
+                            Opcode::GetFree.make(vec![0]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Closure.make(vec![4, 2]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 0,
+                    }),
+                    Object::COMPILEDFUNCTION(CompiledFunction {
+                        instructions: flatten_u8_instructions(vec![
+                            Opcode::Constant.make(vec![1]),
+                            Opcode::SetLocal.make(vec![0]),
+                            Opcode::GetLocal.make(vec![0]),
+                            Opcode::Closure.make(vec![5, 1]),
+                            Opcode::ReturnValue.make(vec![]),
+                        ]),
+                        num_locals: 1,
+                        num_parameters: 0,
+                    }),
+                ],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                    Opcode::Closure.make(vec![6, 0]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
+        ];
+
+        run_compiler(tests);
+    }
 }

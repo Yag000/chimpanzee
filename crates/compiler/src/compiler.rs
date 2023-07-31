@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::code::{Instructions, Opcode};
@@ -6,8 +7,8 @@ use lexer::token::Token;
 use num_traits::FromPrimitive;
 use object::builtins::BuiltinFunction;
 use object::object::{CompiledFunction, Object};
-use parser::ast::Program;
 use parser::ast::{BlockStatement, Conditional, Expression, InfixOperator, Primitive, Statement};
+use parser::ast::{FunctionLiteral, Program};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -111,6 +112,9 @@ impl Compiler {
                     SymbolScope::Local => {
                         self.emit(Opcode::SetLocal, vec![symbol.index as i32]);
                     }
+                    SymbolScope::Free => {
+                        unimplemented!();
+                    }
                     SymbolScope::Builtin => {
                         unreachable!("Builtin symbols should not be set, the compiler should panic before this")
                     }
@@ -172,35 +176,7 @@ impl Compiler {
                 self.emit(Opcode::Index, vec![]);
             }
             Expression::FunctionLiteral(fun) => {
-                self.enter_scope();
-
-                let num_parameters = fun.parameters.len();
-
-                for param in fun.parameters {
-                    self.symbol_table.define(param.value);
-                }
-
-                self.compile_block_statement(fun.body)?;
-
-                if self.last_instruction_is(Opcode::Pop) {
-                    self.replace_last_pop_with_return();
-                }
-                if !self.last_instruction_is(Opcode::ReturnValue) {
-                    self.emit(Opcode::Return, vec![]);
-                }
-
-                let num_locals = self.symbol_table.num_definitions;
-                let instructions = self.leave_scope().data;
-
-                let compiled_function = Object::COMPILEDFUNCTION(CompiledFunction {
-                    instructions,
-                    num_locals,
-                    num_parameters,
-                });
-                let operands = i32::from_usize(self.add_constant(compiled_function))
-                    .ok_or("Invalid integer type")?;
-
-                self.emit(Opcode::Closure, vec![operands, 0]);
+                self.compile_function_literal(fun)?;
             }
             Expression::FunctionCall(call) => {
                 self.compile_expression(*call.function)?;
@@ -312,6 +288,50 @@ impl Compiler {
         Ok(())
     }
 
+    fn compile_function_literal(&mut self, fun: FunctionLiteral) -> Result<(), String> {
+        self.enter_scope();
+
+        let num_parameters = fun.parameters.len();
+
+        for param in fun.parameters {
+            self.symbol_table.define(param.value);
+        }
+
+        self.compile_block_statement(fun.body)?;
+
+        if self.last_instruction_is(Opcode::Pop) {
+            self.replace_last_pop_with_return();
+        }
+        if !self.last_instruction_is(Opcode::ReturnValue) {
+            self.emit(Opcode::Return, vec![]);
+        }
+
+        let free_symbols = self.symbol_table.free_symbols.clone();
+        let free_symbols_len = free_symbols.len();
+
+        let num_locals = self.symbol_table.num_definitions;
+        let instructions = self.leave_scope().data;
+
+        for symbol in free_symbols {
+            // Te symbols must be loaded after the scope is left, but
+            // we need to get them before leaving the scope.
+            self.load_symbol(&symbol);
+        }
+
+        let compiled_function = Object::COMPILEDFUNCTION(CompiledFunction {
+            instructions,
+            num_locals,
+            num_parameters,
+        });
+
+        let operands =
+            i32::from_usize(self.add_constant(compiled_function)).ok_or("Invalid integer type")?;
+
+        self.emit(Opcode::Closure, vec![operands, free_symbols_len as i32]);
+
+        Ok(())
+    }
+
     fn last_instruction_is(&self, opcode: Opcode) -> bool {
         match self.scopes[self.scope_index].last_instruction {
             Some(ref last) => last.opcode == opcode,
@@ -384,7 +404,8 @@ impl Compiler {
 
     fn enter_scope(&mut self) {
         let scope = CompilerScope::default();
-        self.symbol_table = SymbolTable::new_enclosed(Rc::new(self.symbol_table.clone()));
+        self.symbol_table =
+            SymbolTable::new_enclosed(Rc::new(RefCell::new(self.symbol_table.clone())));
         self.scopes.push(scope);
         self.scope_index += 1;
     }
@@ -392,7 +413,14 @@ impl Compiler {
     fn leave_scope(&mut self) -> Instructions {
         let instructions = self.current_instructions();
 
-        self.symbol_table = self.symbol_table.outer.as_ref().unwrap().as_ref().clone();
+        self.symbol_table = self
+            .symbol_table
+            .outer
+            .clone()
+            .unwrap()
+            .as_ref()
+            .clone()
+            .into_inner();
 
         self.scopes.pop();
         self.scope_index -= 1;
@@ -415,17 +443,14 @@ impl Compiler {
     }
 
     fn load_symbol(&mut self, symbol: &Symbol) {
-        match symbol.scope {
-            SymbolScope::Global => {
-                self.emit(Opcode::GetGlobal, vec![symbol.index as i32]);
-            }
-            SymbolScope::Local => {
-                self.emit(Opcode::GetLocal, vec![symbol.index as i32]);
-            }
-            SymbolScope::Builtin => {
-                self.emit(Opcode::GetBuiltin, vec![symbol.index as i32]);
-            }
-        }
+        let opcode = match symbol.scope {
+            SymbolScope::Global => Opcode::GetGlobal,
+            SymbolScope::Local => Opcode::GetLocal,
+            SymbolScope::Builtin => Opcode::GetBuiltin,
+            SymbolScope::Free => Opcode::GetFree,
+        };
+
+        self.emit(opcode, vec![symbol.index as i32]);
     }
 
     pub fn bytecode(&self) -> Bytecode {
@@ -484,7 +509,7 @@ pub mod tests {
 
         assert_eq!(
             compiler.symbol_table.outer,
-            Some(Rc::new(global_symbol_table.clone())),
+            Some(Rc::new(RefCell::new(global_symbol_table.clone()))),
             "Compiler did not enclose symbol table when entering new scope"
         );
 
