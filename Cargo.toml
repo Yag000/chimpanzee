@@ -12,6 +12,10 @@ repository = "https://github.com/Yag000/monkey-rs"
 [workspace]
 members = ["crates/*"]
 
+[lib]
+name = "monkey"
+path = "lib/lib.rs"
+
 
 [dependencies]
 # local crates
@@ -21,7 +25,20 @@ interpreter = { path = "./crates/interpreter" }
 compiler = { path = "./crates/compiler" }
 vm = { path = "./crates/vm" }
 repl = { path = "./crates/repl" }
+object = { path = "./crates/object" }
 
 # external crates
 clap = "4.3.11"
 clap_derive = "4.3.2"
+criterion = "0.5.1"
+chrono = "0.4.26"
+
+[[bench]]
+name = "fibonacci_bench"
+harness = false
+
+
+[[bench]]
+name = "array_bench"
+harness = false
+
