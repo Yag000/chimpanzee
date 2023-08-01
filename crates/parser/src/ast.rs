@@ -2,6 +2,7 @@ use crate::parser::Parser;
 use lexer::token::Token;
 use std::fmt::Display;
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct Program {
     pub statements: Vec<Statement>,
 }

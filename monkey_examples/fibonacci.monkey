@@ -8,5 +8,5 @@ let fibonacci = fn(x) {
 }
 
 
-puts(fibonacci(20));
+puts(fibonacci(30));
 

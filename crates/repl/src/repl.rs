@@ -32,7 +32,7 @@ pub struct Cli {
     /// Input file, if not specified, the REPL will be launched
     filename: Option<String>,
 
-    /// Set the mode to use, if not specified, interpreter is used
+    /// Set the mode to use, if not specified, compiler is used
     #[arg(short, long, value_name = "MODE")]
     mode: Option<Mode>,
 
@@ -51,7 +51,7 @@ impl Cli {
     fn get_mode(&self) -> Mode {
         match &self.mode {
             Some(mode) => *mode,
-            None => Mode::Interpreter, // TODO: Change to compiler when ready
+            None => Mode::Compiler,
         }
     }
 
