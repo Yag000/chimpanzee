@@ -1,4 +1,4 @@
-use parser::ast::{ BlockStatement, Expression, Precedence, Program, Statement};
+use parser::ast::{BlockStatement, Expression, Precedence, Program, Statement};
 
 pub struct Formatter {
     /// The current indentation level.
@@ -7,7 +7,7 @@ pub struct Formatter {
     /// Current precedence.
     preference: Precedence,
 
-    /// Indicates if the current expression is nested.
+    /// Indicates if the current expression is inside a function definition.
     is_inside_function: bool,
 
     /// Previos expression on the ast
@@ -15,26 +15,24 @@ pub struct Formatter {
 
     /// The output buffer.
     output: String,
-
-    /// Program to format.
-    program: Program,
 }
 
 impl Formatter {
-    pub fn new(program: Program) -> Self {
+    fn new() -> Self {
         Self {
             indent: 0,
             preference: Precedence::Lowest,
             is_inside_function: false,
             last_expression: None,
             output: String::new(),
-            program,
         }
     }
 
-    pub fn format(&mut self) -> String {
-        self.visit_program(self.program.clone());
-        self.output.clone()
+    pub fn format(program: Program) -> String {
+        let mut formatter = Self::new();
+
+        formatter.visit_program(program);
+        formatter.output.clone()
     }
 
     fn visit_program(&mut self, program: Program) {
@@ -93,7 +91,8 @@ impl Formatter {
                             needs_parenthesis = true;
                         }
                         Expression::Infix(last_infix) => {
-                            if Precedence::from(&last_infix.token) > Precedence::from(&infix.token) {
+                            if Precedence::from(&last_infix.token) > Precedence::from(&infix.token)
+                            {
                                 self.push("(");
                                 needs_parenthesis = true;
                             }
@@ -122,11 +121,12 @@ impl Formatter {
                 self.visit_expression(&if_exp.condition);
                 self.push(") {");
                 self.push("\n");
-                self.indent += 1;
 
+                self.indent += 1;
                 self.last_expression = Some(exp.clone());
                 self.visit_block_statement(&if_exp.consequence);
                 self.indent -= 1;
+
                 self.push_indent();
                 self.push("}");
                 if let Some(alternative) = &if_exp.alternative {
@@ -151,12 +151,10 @@ impl Formatter {
                 self.push(") {");
                 self.push("\n");
 
-                self.is_inside_function = true;
-                self.indent += 1;
+                self.enter_function();
                 self.last_expression = Some(exp.clone());
                 self.visit_block_statement(&func.body);
-                self.indent -= 1;
-                self.is_inside_function = false;
+                self.leave_function();
 
                 self.push_indent();
                 self.push("}");
@@ -208,6 +206,16 @@ impl Formatter {
             Expression::Prefix(prefix) => Precedence::from(&prefix.token),
             _ => Precedence::Lowest,
         }
+    }
+
+    fn enter_function(&mut self) {
+        self.is_inside_function = true;
+        self.indent += 1;
+    }
+
+    fn leave_function(&mut self) {
+        self.indent -= 1;
+        self.is_inside_function = false;
     }
 
     fn push(&mut self, s: &str) {
@@ -420,7 +428,6 @@ puts(fibonacci(30));
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
         let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        formatter.format()
+        Formatter::format(program)
     }
 }
