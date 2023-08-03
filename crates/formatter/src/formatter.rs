@@ -1,4 +1,4 @@
-use parser::ast::{precedence_of, BlockStatement, Expression, Precedence, Program, Statement};
+use parser::ast::{ BlockStatement, Expression, Precedence, Program, Statement};
 
 pub struct Formatter {
     /// The current indentation level.
@@ -93,7 +93,7 @@ impl Formatter {
                             needs_parenthesis = true;
                         }
                         Expression::Infix(last_infix) => {
-                            if precedence_of(&last_infix.token) > precedence_of(&infix.token) {
+                            if Precedence::from(&last_infix.token) > Precedence::from(&infix.token) {
                                 self.push("(");
                                 needs_parenthesis = true;
                             }
@@ -204,8 +204,8 @@ impl Formatter {
 
     fn get_precedence(&self, exp: &Expression) -> Precedence {
         match exp {
-            Expression::Infix(infix) => precedence_of(&infix.token),
-            Expression::Prefix(prefix) => precedence_of(&prefix.token),
+            Expression::Infix(infix) => Precedence::from(&infix.token),
+            Expression::Prefix(prefix) => Precedence::from(&prefix.token),
             _ => Precedence::Lowest,
         }
     }

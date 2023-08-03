@@ -1,6 +1,5 @@
 use crate::ast::{
-    precedence_of, Expression, Identifier, LetStatement, Precedence, Program, ReturnStatement,
-    Statement,
+    Expression, Identifier, LetStatement, Precedence, Program, ReturnStatement, Statement,
 };
 use lexer::{lexer::Lexer, token::Token};
 use std::{
@@ -210,11 +209,11 @@ impl Parser {
     }
 
     pub fn peek_precedence(&mut self) -> Precedence {
-        precedence_of(&self.peek_token)
+        Precedence::from(&self.peek_token)
     }
 
     pub fn current_precedence(&mut self) -> Precedence {
-        precedence_of(&self.current_token)
+        Precedence::from(&self.current_token)
     }
 
     fn push_error(&mut self, message: String) {
@@ -653,7 +652,7 @@ mod tests {
     fn test_parsing_index_expression_string_conversion() {
         let tests = vec![
             ("myArray[1]", "myArray", "1"),
-            ("myArray[\"hello\"]", "myArray", "hello"),
+            ("myArray[\"hello\"]", "myArray", "\"hello\""),
             ("[1,2,3,4][2]", "[1, 2, 3, 4]", "2"),
             ("test()[call()]", "test()", "call()"),
         ];
@@ -723,9 +722,9 @@ mod tests {
                 Expression::HashMapLiteral(h) => {
                     assert_eq!(h.pairs.len(), 3);
                     let expected = vec![
-                        ("one", "(1 + 34)"),
-                        ("two", "(2 / 5)"),
-                        ("three", "(3 - 1)"),
+                        ("\"one\"", "(1 + 34)"),
+                        ("\"two\"", "(2 / 5)"),
+                        ("\"three\"", "(3 - 1)"),
                     ];
                     for (i, (key, value)) in expected.iter().enumerate() {
                         let pair = h.pairs.get(i).unwrap();
@@ -750,7 +749,7 @@ mod tests {
             Statement::Expression(exp) => match exp {
                 Expression::HashMapLiteral(h) => {
                     assert_eq!(h.pairs.len(), 3);
-                    let expected = vec![("1", "true"), ("2", "Hi"), ("three", "(3 - 1)")];
+                    let expected = vec![("1", "true"), ("2", "\"Hi\""), ("\"three\"", "(3 - 1)")];
                     for (i, (key, value)) in expected.iter().enumerate() {
                         let pair = h.pairs.get(i).unwrap();
                         assert_eq!(pair.0.to_string(), **key);
