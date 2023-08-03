@@ -10,6 +10,7 @@ pub struct Formatter {
     /// Indicates if the current expression is nested.
     is_inside_function: bool,
 
+    /// Previos expression on the ast
     last_expression: Option<Expression>,
 
     /// The output buffer.
@@ -242,11 +243,8 @@ mod tests {
         } else {return false;
         }
         "#;
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        let formatted = formatter.format();
+
+        let formatted = format(input);
         let expected = r#"let x = 5;
 let y = 10;
 let foobar = 838383;
@@ -278,11 +276,7 @@ if (5 < 10) {
         let e = [1, 2, 3, 4, 5][1] * 2 + 3;
         let f = {"one": 1, "two": 2}["one"] * 2 + 3;
     "#;
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        let formatted = formatter.format();
+        let formatted = format(input);
         let expected = r#"let x = 5 * 9 + 10;
 let z = 5 * (9 + 10);
 let y = 10 / 5 - 2;
@@ -301,24 +295,20 @@ let f = {"one": 1, "two": 2}["one"] * 2 + 3;
     #[test]
     fn test_prefix_formatting() {
         let input = r#"let x = -5;
-    let y = !true;
-    let a = -5 + 10;
-    let b = !(true == false);
-    let b = !(true );
-    let c = -(5 + 10);
-    let c = -(-5 + 10);
-    let c = --(5 + 10);
-    let c = -(-(5 + 10));
-    let c = ---(5 + 10);
-    let d = !!true;
-    let d = !(!true);
-"#;
+        let y = !true;
+        let a = -5 + 10;
+        let b = !(true == false);
+        let b = !(true );
+        let c = -(5 + 10);
+        let c = -(-5 + 10);
+        let c = --(5 + 10);
+        let c = -(-(5 + 10));
+        let c = ---(5 + 10);
+        let d = !!true;
+        let d = !(!true);
+        "#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        let formatted = formatter.format();
+        let formatted = format(input);
         let expected = r#"let x = -5;
 let y = !true;
 let a = -5 + 10;
@@ -341,11 +331,7 @@ let d = !!true;
         let input = r#"let x = "hello";
 "#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        let formatted = formatter.format();
+        let formatted = format(input);
         let expected = r#"let x = "hello";
 "#;
 
@@ -356,30 +342,26 @@ let d = !!true;
     #[test]
     fn test_fibonacci_it_formatting() {
         let input = r#"
-let fibonacci_it= fn(x) {
-if (x < 2){
-    return x;
-}
-	        let iter = fn (i, table) {
-		if (i > x) {
-		return table[x];
-		} else {
-			let table = push(table, table[i - 1] + table[i - 2]);
-			return iter(i + 1, table);
-		}
-	};
-	return iter(2, [0,1]);
-};
+            let fibonacci_it= fn(x) {
+                if (x < 2){
+                    return x;
+                }
+                let iter = fn (i, table) {
+                    if (i > x) {
+                        return table[x];
+                    } else {
+                        let table = push(table, table[i - 1] + table[i - 2]);
+                        return iter(i + 1, table);
+                    }
+                };
+                return iter(2, [0,1]);
+            };
 
-let fib = fibonacci_it(20);
+        let fib = fibonacci_it(20);
 
-puts(fib);"#;
+        puts(fib);"#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        let formatted = formatter.format();
+        let formatted = format(input);
 
         let expected = r#"let fibonacci_it = fn (x) {
     if (x < 2) {
@@ -406,25 +388,20 @@ puts(fib);
     #[test]
     fn format_implicit_return() {
         let input = r#"
-let fibonacci = fn(x) {
-	if (x < 2) {
-		x
-	}
-	else{
-		fibonacci(x - 1) + fibonacci(x - 2)
-	}
-}
+            let fibonacci = fn(x) {
+                if (x < 2) {
+                    x
+                }
+                else{
+                    fibonacci(x - 1) + fibonacci(x - 2)
+                }
+            }
 
 
-puts(fibonacci(30));
-            "#;
+        puts(fibonacci(30));
+        "#;
 
-        let lexer = Lexer::new(input);
-        let mut parser = Parser::new(lexer);
-        let program = parser.parse_program();
-        let mut formatter = Formatter::new(program);
-        let formatted = formatter.format();
-
+        let formatted = format(input);
         let expected = r#"let fibonacci = fn (x) {
     if (x < 2) {
         x
@@ -437,5 +414,13 @@ puts(fibonacci(30));
         println!("{}", formatted);
 
         assert_eq!(formatted, expected);
+    }
+
+    fn format(input: &str) -> String {
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        let mut formatter = Formatter::new(program);
+        formatter.format()
     }
 }
