@@ -8,7 +8,7 @@ pub struct Formatter {
     preference: Precedence,
 
     /// Indicates if the current expression is nested.
-    is_nested: bool,
+    is_inside_function: bool,
 
     last_expression: Option<Expression>,
 
@@ -24,7 +24,7 @@ impl Formatter {
         Self {
             indent: 0,
             preference: Precedence::Lowest,
-            is_nested: false,
+            is_inside_function: false,
             last_expression: None,
             output: String::new(),
             program,
@@ -44,7 +44,6 @@ impl Formatter {
 
     fn visit_statement(&mut self, stmt: &Statement) {
         self.push_indent();
-        self.is_nested = false;
         match stmt {
             Statement::Let(let_stmt) => {
                 self.push("let ");
@@ -61,7 +60,7 @@ impl Formatter {
             Statement::Expression(exp_stmt) => {
                 self.visit_expression(&exp_stmt);
                 if let Some(Expression::Conditional(_)) = self.last_expression {
-                } else {
+                } else if !self.is_inside_function {
                     self.push(";");
                 }
             }
@@ -104,7 +103,6 @@ impl Formatter {
 
                 self.last_expression = Some(exp.clone());
                 self.visit_expression(&infix.left);
-                self.is_nested = true;
                 self.push(" ");
                 self.push(infix.token.to_string().as_str());
                 self.push(" ");
@@ -152,10 +150,12 @@ impl Formatter {
                 self.push(") {");
                 self.push("\n");
 
+                self.is_inside_function = true;
                 self.indent += 1;
                 self.last_expression = Some(exp.clone());
                 self.visit_block_statement(&func.body);
                 self.indent -= 1;
+                self.is_inside_function = false;
 
                 self.push_indent();
                 self.push("}");
@@ -251,7 +251,7 @@ mod tests {
 let y = 10;
 let foobar = 838383;
 let add = fn (x, y) {
-    x + y;
+    x + y
 };
 let result = add(x, y);
 if (5 < 10) {
@@ -397,6 +397,42 @@ puts(fib);"#;
 };
 let fib = fibonacci_it(20);
 puts(fib);
+"#;
+        println!("{}", formatted);
+
+        assert_eq!(formatted, expected);
+    }
+
+    #[test]
+    fn format_implicit_return() {
+        let input = r#"
+let fibonacci = fn(x) {
+	if (x < 2) {
+		x
+	}
+	else{
+		fibonacci(x - 1) + fibonacci(x - 2)
+	}
+}
+
+
+puts(fibonacci(30));
+            "#;
+
+        let lexer = Lexer::new(input);
+        let mut parser = Parser::new(lexer);
+        let program = parser.parse_program();
+        let mut formatter = Formatter::new(program);
+        let formatted = formatter.format();
+
+        let expected = r#"let fibonacci = fn (x) {
+    if (x < 2) {
+        x
+    } else {
+        fibonacci(x - 1) + fibonacci(x - 2)
+    }
+};
+puts(fibonacci(30));
 "#;
         println!("{}", formatted);
 
