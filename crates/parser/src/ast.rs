@@ -164,7 +164,7 @@ impl Display for Primitive {
         match self {
             Primitive::IntegerLiteral(x) => write!(f, "{x}"),
             Primitive::BooleanLiteral(x) => write!(f, "{x}"),
-            Primitive::StringLiteral(x) => write!(f, "{x}"),
+            Primitive::StringLiteral(x) => write!(f, "\"{x}\""),
         }
     }
 }
