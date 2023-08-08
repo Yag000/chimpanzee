@@ -2,7 +2,7 @@
 // the source code and that the evaluation of a formatted code is the same as
 // the evaluation of the source code.
 
-use formatter::formatter::Formatter;
+use formatter::formatter::formatter::Formatter;
 use monkey::run_input;
 
 fn run_test(input: &str) {

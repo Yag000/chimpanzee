@@ -339,6 +339,8 @@ dependencies = [
 name = "formatter"
 version = "0.1.0"
 dependencies = [
+ "clap",
+ "clap_derive",
  "lexer",
  "parser",
 ]

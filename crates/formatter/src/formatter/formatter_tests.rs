@@ -1,7 +1,7 @@
 use lexer::lexer::Lexer;
 use parser::parser::Parser;
 
-use crate::formatter::Formatter;
+use crate::formatter::formatter::Formatter;
 
 #[allow(dead_code)]
 fn format(input: &str) -> String {
