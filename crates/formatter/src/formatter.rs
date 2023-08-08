@@ -1,4 +1,38 @@
-use parser::ast::{BlockStatement, Expression, Precedence, Program, Statement};
+use parser::ast::{BlockStatement, Expression, FunctionLiteral, Precedence, Program, Statement};
+
+/// A formatter function scope.
+///
+/// This is used to keep track of the current function being formatted.
+/// In particular it is used to determine if a semicolon should be added
+/// to the end of a statement, due to implicit return rules.
+#[derive(Debug, Clone)]
+struct FormatterFunctionScope {
+    outer: Option<Box<FormatterFunctionScope>>,
+    block_statement_length: usize,
+    current_position: usize,
+}
+
+impl FormatterFunctionScope {
+    fn new(outer: Option<Box<FormatterFunctionScope>>, block_statement_length: usize) -> Self {
+        Self {
+            outer,
+            block_statement_length,
+            current_position: 0,
+        }
+    }
+
+    fn leave_scope(&mut self) -> Option<Box<FormatterFunctionScope>> {
+        self.outer.take()
+    }
+
+    fn next(&mut self) {
+        self.current_position += 1;
+    }
+
+    fn is_end(&self) -> bool {
+        self.current_position == self.block_statement_length - 1
+    }
+}
 
 pub struct Formatter {
     /// The current indentation level.
@@ -7,11 +41,11 @@ pub struct Formatter {
     /// Current precedence.
     preference: Precedence,
 
-    /// Indicates if the current expression is inside a function definition.
-    is_inside_function: bool,
-
-    /// Previos expression on the ast
+    /// Previous expression on the ast
     last_expression: Option<Expression>,
+
+    /// The current formatter function scope.
+    formatter_function_scope: Option<Box<FormatterFunctionScope>>,
 
     /// The output buffer.
     output: String,
@@ -22,8 +56,8 @@ impl Formatter {
         Self {
             indent: 0,
             preference: Precedence::Lowest,
-            is_inside_function: false,
             last_expression: None,
+            formatter_function_scope: None,
             output: String::new(),
         }
     }
@@ -59,7 +93,11 @@ impl Formatter {
             Statement::Expression(exp_stmt) => {
                 self.visit_expression(&exp_stmt);
                 if let Some(Expression::Conditional(_)) = self.last_expression {
-                } else if !self.is_inside_function {
+                } else if self.formatter_function_scope.is_some() {
+                    if !self.formatter_function_scope.clone().unwrap().is_end() {
+                        self.push(";");
+                    }
+                } else {
                     self.push(";");
                 }
             }
@@ -140,25 +178,7 @@ impl Formatter {
                     self.push("}");
                 }
             }
-            Expression::FunctionLiteral(func) => {
-                self.push("fn (");
-                let parameters = func
-                    .parameters
-                    .iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<String>>();
-                self.push(parameters.join(", ").as_str());
-                self.push(") {");
-                self.push("\n");
-
-                self.enter_function();
-                self.last_expression = Some(exp.clone());
-                self.visit_block_statement(&func.body);
-                self.leave_function();
-
-                self.push_indent();
-                self.push("}");
-            }
+            Expression::FunctionLiteral(func) => self.visit_function_literal(func),
             Expression::FunctionCall(call) => {
                 self.last_expression = Some(exp.clone());
                 self.visit_expression(&call.function);
@@ -194,6 +214,28 @@ impl Formatter {
         self.preference = self.get_precedence(exp);
     }
 
+    fn visit_function_literal(&mut self, func: &FunctionLiteral) {
+        self.push("fn (");
+        let parameters = func
+            .parameters
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<String>>();
+        self.push(parameters.join(", ").as_str());
+        self.push(") {");
+        self.push("\n");
+
+        self.enter_function(func);
+        for stmt in &func.body.statements {
+            self.visit_statement(&stmt);
+            self.formatter_function_scope.as_mut().unwrap().next();
+        }
+        self.leave_function();
+
+        self.push_indent();
+        self.push("}");
+    }
+
     fn visit_block_statement(&mut self, block: &BlockStatement) {
         for stmt in &block.statements {
             self.visit_statement(&stmt);
@@ -208,14 +250,21 @@ impl Formatter {
         }
     }
 
-    fn enter_function(&mut self) {
-        self.is_inside_function = true;
+    fn enter_function(&mut self, function: &FunctionLiteral) {
+        self.formatter_function_scope = Some(Box::new(FormatterFunctionScope::new(
+            self.formatter_function_scope.clone(),
+            function.body.statements.len(),
+        )));
+
         self.indent += 1;
     }
 
     fn leave_function(&mut self) {
         self.indent -= 1;
-        self.is_inside_function = false;
+        match self.formatter_function_scope.clone() {
+            Some(ref mut scope) => self.formatter_function_scope = scope.leave_scope(),
+            None => {}
+        }
     }
 
     fn push(&mut self, s: &str) {
@@ -388,14 +437,15 @@ let d = !!true;
 let fib = fibonacci_it(20);
 puts(fib);
 "#;
-        println!("{}", formatted);
+        println!("{formatted}");
 
         assert_eq!(formatted, expected);
     }
 
     #[test]
     fn format_implicit_return() {
-        let input = r#"
+        let inputs = vec![
+            r#"
             let fibonacci = fn(x) {
                 if (x < 2) {
                     x
@@ -407,10 +457,25 @@ puts(fib);
 
 
         puts(fibonacci(30));
-        "#;
+        "#,
+            r#"
+            let fibonacci = fn(x) {
+                puts(x);
+                if (x < 2) {
+                    x
+                }
+                else{
+                    fibonacci(x - 1) + fibonacci(x - 2)
+                }
+            }
 
-        let formatted = format(input);
-        let expected = r#"let fibonacci = fn (x) {
+
+        puts(fibonacci(30));
+        "#,
+        ];
+
+        let expected_values = vec![
+            r#"let fibonacci = fn (x) {
     if (x < 2) {
         x
     } else {
@@ -418,8 +483,77 @@ puts(fib);
     }
 };
 puts(fibonacci(30));
+"#,
+            r#"let fibonacci = fn (x) {
+    puts(x);
+    if (x < 2) {
+        x
+    } else {
+        fibonacci(x - 1) + fibonacci(x - 2)
+    }
+};
+puts(fibonacci(30));
+"#,
+        ];
+        for (input, expected) in inputs.iter().zip(expected_values) {
+            let formatted = format(input);
+            println!("{formatted}");
+
+            assert_eq!(formatted, expected);
+        }
+    }
+
+    #[test]
+    fn format_nested_functions() {
+        let input = r#"
+            let counter = fn(x) {
+                puts(x);
+                let count = fn(y) {
+                    puts(x + y);
+                    x + y
+                };
+                puts(count(1));
+                return count;
+            };
+            let second_counter = fn (x) {
+                puts(x);
+                let count = fn(y) {
+                    puts(x + y);
+                    x + y
+                };
+                puts(count(1));
+                count
+            };
+            let c = counter(1);
+            let d = second_counter(2);
+            puts(c(2));
+        "#;
+
+        let formatted = format(input);
+
+        let expected = r#"let counter = fn (x) {
+    puts(x);
+    let count = fn (y) {
+        puts(x + y);
+        x + y
+    };
+    puts(count(1));
+    return count;
+};
+let second_counter = fn (x) {
+    puts(x);
+    let count = fn (y) {
+        puts(x + y);
+        x + y
+    };
+    puts(count(1));
+    count
+};
+let c = counter(1);
+let d = second_counter(2);
+puts(c(2));
 "#;
-        println!("{}", formatted);
+        println!("{formatted}");
 
         assert_eq!(formatted, expected);
     }
