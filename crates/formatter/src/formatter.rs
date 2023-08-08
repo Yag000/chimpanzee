@@ -524,6 +524,17 @@ puts(fibonacci(30));
                 puts(count(1));
                 count
             };
+            let third = fn (x) {
+                let max = fn(y) {
+                    if (x < y) {
+                        y
+                    }
+                    else{
+                        x
+                    }
+                };
+                count(max(1,x))
+            };
             let c = counter(1);
             let d = second_counter(2);
             puts(c(2));
@@ -548,6 +559,16 @@ let second_counter = fn (x) {
     };
     puts(count(1));
     count
+};
+let third = fn (x) {
+    let max = fn (y) {
+        if (x < y) {
+            y
+        } else {
+            x
+        }
+    };
+    count(max(1, x))
 };
 let c = counter(1);
 let d = second_counter(2);
