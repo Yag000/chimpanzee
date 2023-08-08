@@ -1,8 +1,8 @@
 use clap::Parser;
-use repl::repl::Cli;
+use repl::repl::ReplCli;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let args = Cli::parse();
+    let args = ReplCli::parse();
     args.run()
 }

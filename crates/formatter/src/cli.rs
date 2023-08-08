@@ -1,6 +1,6 @@
 use clap_derive::Parser;
 
-use crate::formatter::formatter::Formatter;
+use crate::formatter::Formatter;
 
 trait Logger {
     fn log(&mut self, msg: &str) -> Result<(), Box<dyn std::error::Error>>;
@@ -27,7 +27,7 @@ impl Logger for FileLogger {
 }
 
 #[derive(Parser)]
-pub struct Cli {
+pub struct FormatterCli {
     /// Input file
     filename: String,
 
@@ -37,7 +37,7 @@ pub struct Cli {
     replace: bool,
 }
 
-impl Cli {
+impl FormatterCli {
     fn get_logger(&self) -> Box<dyn Logger> {
         if self.replace {
             Box::new(FileLogger {
@@ -79,7 +79,7 @@ mod tests {
         let filename = "ressources/test_formatting.monkey".to_string();
         let input = std::fs::read_to_string(&filename).unwrap();
 
-        let cli = Cli {
+        let cli = FormatterCli {
             filename,
             replace: false,
         };

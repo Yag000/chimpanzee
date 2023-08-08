@@ -28,7 +28,7 @@ enum Mode {
 }
 
 #[derive(Parser)]
-pub struct Cli {
+pub struct ReplCli {
     /// Input file, if not specified, the REPL will be launched
     filename: Option<String>,
 
@@ -41,7 +41,7 @@ pub struct Cli {
     logo: bool,
 }
 
-impl Cli {
+impl ReplCli {
     fn get_input_type(&self) -> InputType {
         match &self.filename {
             Some(filename) => InputType::File(filename.to_string()),
@@ -69,7 +69,7 @@ impl Cli {
 
     fn rlpl(&self) -> Result<(), LexerErrors> {
         self.greeting_message();
-        Cli::print_entry_header();
+        ReplCli::print_entry_header();
         let mut errors = LexerErrors::new();
         std::io::stdin().lines().for_each(|line| {
             if let Ok(line) = line {
@@ -78,7 +78,7 @@ impl Cli {
                     errors.add_errors(err);
                 }
             }
-            Cli::print_entry_header();
+            ReplCli::print_entry_header();
         });
         if errors.is_empty() {
             Ok(())
@@ -89,7 +89,7 @@ impl Cli {
 
     pub fn rppl(&self) -> Result<(), ParserErrors> {
         self.greeting_message();
-        Cli::print_entry_header();
+        ReplCli::print_entry_header();
         let mut errors = ParserErrors::new();
         std::io::stdin().lines().for_each(|line| {
             if let Ok(line) = line {
@@ -98,7 +98,7 @@ impl Cli {
                     errors.add_errors(err.errors);
                 }
             }
-            Cli::print_entry_header();
+            ReplCli::print_entry_header();
         });
 
         if errors.is_empty() {
@@ -110,7 +110,7 @@ impl Cli {
 
     pub fn interpreter(&self) -> Result<(), Box<dyn Error>> {
         self.greeting_message();
-        Cli::print_entry_header();
+        ReplCli::print_entry_header();
         let mut evaluator = Evaluator::new();
         for line in std::io::stdin().lines().flatten() {
             match interpret(&mut evaluator, &line) {
@@ -121,14 +121,14 @@ impl Cli {
                 }
                 Err(err) => eprintln!("{err}",),
             }
-            Cli::print_entry_header();
+            ReplCli::print_entry_header();
         }
         Ok(())
     }
 
     pub fn compiler(&self) -> Result<(), Box<dyn Error>> {
         self.greeting_message();
-        Cli::print_entry_header();
+        ReplCli::print_entry_header();
         let mut symbol_table = SymbolTable::new();
         for (i, builtin) in BuiltinFunction::get_builtins_names().iter().enumerate() {
             symbol_table.define_builtin(i, builtin.clone());
@@ -179,7 +179,7 @@ impl Cli {
                 Err(err) => eprintln!("{err}",),
             }
 
-            Cli::print_entry_header();
+            ReplCli::print_entry_header();
         }
         Ok(())
     }
@@ -239,7 +239,7 @@ impl Cli {
     }
 
     fn run_file(&self, file_path: &str) -> Result<(), Box<dyn Error>> {
-        let contents = Cli::read_file_contents(file_path)?;
+        let contents = ReplCli::read_file_contents(file_path)?;
 
         match self.get_mode() {
             Mode::Lexer => lex(&contents)?,

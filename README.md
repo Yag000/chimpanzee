@@ -16,7 +16,7 @@ There are some issues that I want to fix before I can call this implementation c
 To start the REPL, run the following command:
 
 ```bash
-cargo run --release
+cargo run --release --bin monkey
 ```
 
 ### File interpreter
@@ -24,7 +24,7 @@ cargo run --release
 To run a Monkey file, run the following command:
 
 ```bash
-cargo run --release -- <path-to-file>
+cargo run --release --bin monkey -- <path-to-file>
 ```
 
 ### Other modes
@@ -40,7 +40,7 @@ Where `<mode>` can be `compiler`, `parser`, `lexer` or `interpreter`.
 Example:
 
 ```bash
-cargo run --release -- <path-to-file> --mode compiler
+cargo run --release --bin monkey -- <path-to-file> --mode compiler
 ```
 
 ### Help
@@ -48,8 +48,21 @@ cargo run --release -- <path-to-file> --mode compiler
 To see the help, run the following command:
 
 ```bash
-cargo run --release -- --help
+cargo run --release --bin monkey -- --help
 ```
+
+### Formatter
+
+A monkey formatter is also available, with the binary `monkeyfmt`. I will format any correct piece of monkey code.
+To use it you only need to run the following command:
+
+```bash
+cargo run --release --bin monkeyfmt -- <path-to-file>
+```
+
+Adding the `-r` flag after the file name will replace the contents of the file with the
+formatted code. If the flag is not activated, the formatted code will be printed to
+`stdout`.
 
 ## Monkey syntax
 
