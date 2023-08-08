@@ -26,6 +26,7 @@ compiler = { path = "./crates/compiler" }
 vm = { path = "./crates/vm" }
 repl = { path = "./crates/repl" }
 object = { path = "./crates/object" }
+formatter = { path = "./crates/formatter" }
 
 # external crates
 clap = "4.3.11"

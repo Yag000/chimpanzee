@@ -474,6 +474,7 @@ dependencies = [
  "clap_derive",
  "compiler",
  "criterion",
+ "formatter",
  "interpreter",
  "lexer",
  "object",

@@ -4,10 +4,10 @@ let fibonacci_it= fn(x) {
 	}
 	let iter = fn (i, table) {
 		if (i > x) {
-			return table[x];
+			return last(table);
 		} else {
-			let table = push(table, table[i - 1] + table[i - 2]);
-			return iter(i + 1, table);
+			let new_table = push(table, table[i-1] + table[i - 2]);
+			return iter(i + 1, new_table);
 		}
 	};
 	return iter(2, [0,1]);
