@@ -7,13 +7,13 @@ let push_n = fn(arr, n) {
     if (n < 0) {
         arr
     } else{
-        let new_arr = arr.push(n):
-            push_n(new_arr, n - 1);
+        let new_arr = push(arr,n);
+        push_n(new_arr, n - 1)
     }
 };
 
 let a = [];
-push_n(a, 100);
+push_n(a, 500)
 "#;
 
 pub fn array_append_compiler_benchmark(c: &mut Criterion) {
