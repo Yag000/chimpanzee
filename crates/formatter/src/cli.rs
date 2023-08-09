@@ -10,7 +10,7 @@ struct StdoutLogger;
 
 impl Logger for StdoutLogger {
     fn log(&mut self, msg: &str) -> Result<(), Box<dyn std::error::Error>> {
-        println!("{}", msg);
+        println!("{msg}");
         Ok(())
     }
 }
@@ -85,7 +85,7 @@ mod tests {
         };
 
         let mut logger = TestLogger {
-            msg: "".to_string(),
+            msg: String::new(),
         };
 
         cli.run_with_logger(&mut logger).unwrap();

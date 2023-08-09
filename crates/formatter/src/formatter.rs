@@ -99,7 +99,7 @@ impl Formatter {
                 self.push(";");
             }
             Statement::Expression(exp_stmt) => {
-                self.visit_expression(&exp_stmt);
+                self.visit_expression(exp_stmt);
                 if let Some(Expression::Conditional(_)) = self.last_expression {
                 } else if self.formatter_function_scope.is_some() {
                     if !self.formatter_function_scope.clone().unwrap().is_end() {
@@ -235,7 +235,7 @@ impl Formatter {
 
         self.enter_function(func);
         for stmt in &func.body.statements {
-            self.visit_statement(&stmt);
+            self.visit_statement(stmt);
             self.formatter_function_scope.as_mut().unwrap().next();
         }
         self.leave_function();
@@ -246,7 +246,7 @@ impl Formatter {
 
     fn visit_block_statement(&mut self, block: &BlockStatement) {
         for stmt in &block.statements {
-            self.visit_statement(&stmt);
+            self.visit_statement(stmt);
         }
     }
 
@@ -269,9 +269,8 @@ impl Formatter {
 
     fn leave_function(&mut self) {
         self.indent -= 1;
-        match self.formatter_function_scope.clone() {
-            Some(ref mut scope) => self.formatter_function_scope = scope.leave_scope(),
-            None => {}
+        if let Some(ref mut scope) = self.formatter_function_scope {
+            self.formatter_function_scope = scope.leave_scope();
         }
     }
 

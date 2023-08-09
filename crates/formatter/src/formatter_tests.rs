@@ -46,7 +46,7 @@ if (5 < 10) {
     return false;
 }
 "#;
-        println!("{}", formatted);
+        println!("{formatted}");
         assert_eq!(formatted, expected);
     }
 
@@ -76,7 +76,7 @@ let d = (5 * (9 + 10) / 2 + 3) * 4;
 let e = [1, 2, 3, 4, 5][1] * 2 + 3;
 let f = {"one": 1, "two": 2}["one"] * 2 + 3;
 "#;
-        println!("{}", formatted);
+        println!("{formatted}");
         assert_eq!(formatted, expected);
     }
 
@@ -110,7 +110,7 @@ let c = ---(5 + 10);
 let d = !!true;
 let d = !!true;
 "#;
-        println!("{}", formatted);
+        println!("{formatted}");
         assert_eq!(formatted, expected);
     }
 
@@ -123,7 +123,7 @@ let d = !!true;
         let expected = r#"let x = "hello";
 "#;
 
-        println!("{}", formatted);
+        println!("{formatted}");
         assert_eq!(formatted, expected);
     }
 
