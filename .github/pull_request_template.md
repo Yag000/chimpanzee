@@ -1,7 +1,7 @@
 # Pull Request
 
-<!-- Provide a general summary of your changes in the Title above -->
-<!-- Optional fileds can be removed if not applicable -->
+<!-- Provide a general summary of your changes in the title above -->
+<!-- Optional fields can be removed if not applicable -->
 
 ## Description
 
