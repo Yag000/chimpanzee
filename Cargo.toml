@@ -34,6 +34,11 @@ clap_derive = "4.3.2"
 criterion = "0.5.1"
 chrono = "0.4.26"
 
+
+[[bench]]
+name = "formatter_bench"
+harness = false
+
 [[bench]]
 name = "fibonacci_bench"
 harness = false
@@ -42,4 +47,6 @@ harness = false
 [[bench]]
 name = "array_bench"
 harness = false
+
+
 
