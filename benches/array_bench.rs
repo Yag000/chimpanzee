@@ -3,17 +3,16 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use monkey::{compile_program, execute_interpreter, execute_vm, parse_program};
 
 const ARRAY_APPEND: &str = r#"
-let push_n = fn(arr, n) {
+let push_n = fn (arr, n) {
     if (n < 0) {
         arr
-    } else{
-        let new_arr = push(arr,n);
+    } else {
+        let new_arr = push(arr, n);
         push_n(new_arr, n - 1)
     }
 };
-
 let a = [];
-push_n(a, 500)
+push_n(a, 500);
 "#;
 
 pub fn array_append_compiler_benchmark(c: &mut Criterion) {
