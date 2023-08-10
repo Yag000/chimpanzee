@@ -164,7 +164,7 @@ impl Display for Primitive {
         match self {
             Primitive::IntegerLiteral(x) => write!(f, "{x}"),
             Primitive::BooleanLiteral(x) => write!(f, "{x}"),
-            Primitive::StringLiteral(x) => write!(f, "{x}"),
+            Primitive::StringLiteral(x) => write!(f, "\"{x}\""),
         }
     }
 }
@@ -585,15 +585,17 @@ pub enum Precedence {
     Index = 7,       // array[index]
 }
 
-pub fn precedence_of(token: &Token) -> Precedence {
-    match token {
-        Token::Equal | Token::NotEqual => Precedence::Equals,
-        Token::LT | Token::GT | Token::LTE | Token::GTE => Precedence::LessGreater,
-        Token::Plus | Token::Minus | Token::Or => Precedence::Sum,
-        Token::Slash | Token::Asterisk | Token::And => Precedence::Product,
-        Token::LParen => Precedence::Call,
-        Token::LSquare => Precedence::Index,
-        _ => Precedence::Lowest,
+impl From<&Token> for Precedence {
+    fn from(value: &Token) -> Self {
+        match value {
+            Token::Equal | Token::NotEqual => Precedence::Equals,
+            Token::LT | Token::GT | Token::LTE | Token::GTE => Precedence::LessGreater,
+            Token::Plus | Token::Minus | Token::Or => Precedence::Sum,
+            Token::Slash | Token::Asterisk | Token::And => Precedence::Product,
+            Token::LParen => Precedence::Call,
+            Token::LSquare => Precedence::Index,
+            _ => Precedence::Lowest,
+        }
     }
 }
 

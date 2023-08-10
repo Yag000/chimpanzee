@@ -336,6 +336,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "formatter"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "clap_derive",
+ "lexer",
+ "parser",
+]
+
+[[package]]
 name = "half"
 version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -466,6 +476,7 @@ dependencies = [
  "clap_derive",
  "compiler",
  "criterion",
+ "formatter",
  "interpreter",
  "lexer",
  "object",

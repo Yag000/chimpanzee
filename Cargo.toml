@@ -26,12 +26,18 @@ compiler = { path = "./crates/compiler" }
 vm = { path = "./crates/vm" }
 repl = { path = "./crates/repl" }
 object = { path = "./crates/object" }
+formatter = { path = "./crates/formatter" }
 
 # external crates
 clap = "4.3.11"
 clap_derive = "4.3.2"
 criterion = "0.5.1"
 chrono = "0.4.26"
+
+
+[[bench]]
+name = "formatter_bench"
+harness = false
 
 [[bench]]
 name = "fibonacci_bench"
@@ -41,4 +47,6 @@ harness = false
 [[bench]]
 name = "array_bench"
 harness = false
+
+
 
