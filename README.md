@@ -8,7 +8,7 @@ The Monkey language is a language created by Thorsten Ball for his book [Writing
 
 Monkey-rs is an implementation of the Monkey language in Rust. It is based on the books [Writing an Interpreter in Go](https://interpreterbook.com/) and [Writing a Compiler in Go](https://compilerbook.com/).
 
-This implemenattion is still in development. For now an interpreter and a compiler are fully implemented, allowing to run a REPL and to run Monkey files (`.monkey` extension).
+This implementation is still in development. For now an interpreter and a compiler are fully implemented, allowing to run a REPL and to run Monkey files (`.monkey` extension).
 There are some issues that I want to fix before I can call this implementation complete.
 
 ### REPL
@@ -43,14 +43,6 @@ Example:
 cargo run --release --bin monkey -- <path-to-file> --mode compiler
 ```
 
-### Help
-
-To see the help, run the following command:
-
-```bash
-cargo run --release --bin monkey -- --help
-```
-
 ### Formatter
 
 A monkey formatter is also available, with the binary `monkeyfmt`. I will format any correct piece of monkey code.
@@ -63,6 +55,14 @@ cargo run --release --bin monkeyfmt -- <path-to-file>
 Adding the `-r` flag after the file name will replace the contents of the file with the
 formatted code. If the flag is not activated, the formatted code will be printed to
 `stdout`.
+
+### Help
+
+To see the help, run the following command:
+
+```bash
+cargo run --release --bin monkey -- --help
+```
 
 ## Monkey syntax
 
