@@ -982,48 +982,6 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_use_same_variable_same_line_() {
-        let tests = vec![
-            VmTestCase {
-                input: r#"
-                    let a = 1;
-                    let b = a * a + 2
-                    b"#
-                .to_string(),
-                expected: Object::INTEGER(3),
-            },
-            VmTestCase {
-                input: r#"
-                    let a = 1;
-                    let a = a + 1;
-                    a"#
-                .to_string(),
-                expected: Object::INTEGER(2),
-            },
-            VmTestCase {
-                input: r#"
-                   let a = 1;
-                   let b = a + 1;
-                   let a = a + b;
-                   a"#
-                .to_string(),
-                expected: Object::INTEGER(3),
-            },
-            VmTestCase {
-                input: r#"
-                       let a = "hello";
-                       let a = a + "world";
-                       let a = a + "world";
-                       a"#
-                .to_string(),
-                expected: Object::STRING("helloworldworld".to_string()),
-            },
-        ];
-
-        run_vm_tests(tests);
-    }
-
-    #[test]
     fn test_array_multiple_ussage() {
         let tests = vec![
             VmTestCase {
@@ -1133,6 +1091,123 @@ mod tests {
                     x"#
                 .to_string(),
                 expected: Object::INTEGER(5),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_shadowing_using_previous_value() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let a = 1;
+                    let b = a * a + 2
+                    b"#
+                .to_string(),
+                expected: Object::INTEGER(3),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 1;
+                    let a = a + 1;
+                    a"#
+                .to_string(),
+                expected: Object::INTEGER(2),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = fn() { 
+                        let a = 1;
+                        a
+                    };
+                    a()
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"
+                    let f = fn(a){
+                        let a = 1;
+                        a
+                    };
+                    f(1)
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"
+                    let f = fn(){
+                        let a = 1;
+                        let h = fn(){
+                            let a = 2;
+                            a
+                        };
+                        h() + a
+                    };
+                    f()
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(3),
+            },
+            // Addition of a global variable a with 10 as its value
+            VmTestCase {
+                input: r#"
+                    let a = 10;
+                    let a = fn() { 
+                        let a = 1;
+                        a
+                    };
+                    a()
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 10;
+                    let f = fn(a){
+                        let a = 1;
+                        a
+                    };
+                    f(1) + a
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(11),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 10;
+                    let f = fn(){
+                        let h = fn(){
+                            let a = 2;
+                            a
+                        };
+                        h()
+                    };
+                    f() + a
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(12),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 10;
+                    let f = fn(){
+                        let a = 1;
+                        let h = fn(){
+                            let a = 2;
+                            a
+                        };
+                        h() + a
+                    };
+                    f() + a
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(13),
             },
         ];
 

@@ -319,6 +319,16 @@ pub mod tests {
         let tests = vec![
             CompilerTestCase {
                 input: r#"
+                let one = 1;"#
+                    .to_string(),
+                expected_constants: vec![Object::INTEGER(1)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::SetGlobal.make(vec![0]),
+                ]),
+            },
+            CompilerTestCase {
+                input: r#"
                 let one = 1;    
                 let two = 2"#
                     .to_string(),
@@ -1148,6 +1158,28 @@ pub mod tests {
                 ]),
             },
         ];
+
+        run_compiler(tests);
+    }
+
+    #[test]
+    fn test_shadowing_with_itself() {
+        let tests = vec![CompilerTestCase {
+            input: r#"
+                let a = 1;
+                let a = a + 1;"#
+                .to_string(),
+
+            expected_constants: vec![Object::INTEGER(1), Object::INTEGER(1)],
+            expected_instructions: flatten_instructions(vec![
+                Opcode::Constant.make(vec![0]),
+                Opcode::SetGlobal.make(vec![0]),
+                Opcode::GetGlobal.make(vec![0]),
+                Opcode::Constant.make(vec![1]),
+                Opcode::Add.make(vec![]),
+                Opcode::SetGlobal.make(vec![0]),
+            ]),
+        }];
 
         run_compiler(tests);
     }
