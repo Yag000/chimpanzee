@@ -8,6 +8,8 @@ description = "Monkey programming language implementation in Rust (interpreter a
 readme = "README.md"
 homepage = "https://github.com/Yag000/monkey-rs"
 repository = "https://github.com/Yag000/monkey-rs"
+documentation = "https://github.com/Yag000/monkey-rs"
+keywords = ["monkey", "interpreter", "compiler", "programming-language"]
 
 [workspace]
 members = ["crates/*"]
