@@ -105,14 +105,15 @@ impl Compiler {
                 // This step is extremely important. If it is not done then when shadowing variables
                 // and using the previous value we get an error. Because we would have assigned
                 // a new index to the symbol and the GetGlobal instruction would get a NULL
-                // value instead of the previous value. (corresponds to issue #11)
+                // value instead of the previous value. (corresponds to issue #8)
                 let symbol = match self.symbol_table.resolve(&s.name.value) {
                     Some(symbol) => match symbol.scope {
                         SymbolScope::Global => {
                             // A Local variable should never replace a global one
                             if self.symbol_table.has_outer() {
                                 // This means that the symbol will
-                                // be local and not global
+                                // be local and not global, and thus not
+                                // replace the global one
                                 self.symbol_table.define(s.name.value)
                             } else {
                                 symbol
