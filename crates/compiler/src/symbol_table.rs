@@ -115,6 +115,10 @@ impl SymbolTable {
         self.store.insert(symbol.name.clone(), symbol.clone());
         symbol
     }
+
+    pub fn has_outer(&self) -> bool{
+        self.outer.is_some()
+    }
 }
 
 #[cfg(test)]
