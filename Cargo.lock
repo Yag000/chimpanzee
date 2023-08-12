@@ -124,6 +124,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "chimpanzee"
+version = "0.0.0"
+dependencies = [
+ "byteorder",
+ "chrono",
+ "clap",
+ "clap_derive",
+ "criterion",
+ "num-derive",
+ "num-traits",
+ "strum",
+ "strum_macros",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -209,19 +224,6 @@ name = "colorchoice"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
-
-[[package]]
-name = "compiler"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "interpreter",
- "lexer",
- "num-derive",
- "num-traits",
- "object",
- "parser",
-]
 
 [[package]]
 name = "core-foundation-sys"
@@ -336,16 +338,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "formatter"
-version = "0.1.0"
-dependencies = [
- "clap",
- "clap_derive",
- "lexer",
- "parser",
-]
-
-[[package]]
 name = "half"
 version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -387,15 +379,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "interpreter"
-version = "0.1.0"
-dependencies = [
- "lexer",
- "object",
- "parser",
-]
-
-[[package]]
 name = "is-terminal"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -431,10 +414,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lexer"
-version = "0.1.0"
-
-[[package]]
 name = "libc"
 version = "0.2.147"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -468,24 +447,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "monkey-rs"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "clap_derive",
- "compiler",
- "criterion",
- "formatter",
- "interpreter",
- "lexer",
- "object",
- "parser",
- "repl",
- "vm",
-]
-
-[[package]]
 name = "num-derive"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -498,9 +459,9 @@ dependencies = [
 
 [[package]]
 name = "num-traits"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+checksum = "f30b0abd723be7e2ffca1272140fac1a2f084c77ec3e123c192b66af1ee9e6c2"
 dependencies = [
  "autocfg",
 ]
@@ -516,17 +477,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "object"
-version = "0.1.0"
-dependencies = [
- "num-derive",
- "num-traits",
- "parser",
- "strum",
- "strum_macros",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -537,13 +487,6 @@ name = "oorandom"
 version = "11.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ab1bc2a289d34bd04a330323ac98a1b4bc82c9d9fcb1e66b63caa84da26b575"
-
-[[package]]
-name = "parser"
-version = "0.1.0"
-dependencies = [
- "lexer",
-]
 
 [[package]]
 name = "plotters"
@@ -643,20 +586,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5ea92a5b6195c6ef2a0295ea818b312502c6fc94dde986c5553242e18fd4ce2"
 
 [[package]]
-name = "repl"
-version = "0.1.0"
-dependencies = [
- "clap",
- "clap_derive",
- "compiler",
- "interpreter",
- "lexer",
- "object",
- "parser",
- "vm",
-]
-
-[[package]]
 name = "rustix"
 version = "0.38.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -741,9 +670,9 @@ checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
 
 [[package]]
 name = "strum_macros"
-version = "0.25.1"
+version = "0.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6069ca09d878a33f883cc06aaa9718ede171841d3832450354410b718b097232"
+checksum = "ad8d03b598d3d0fff69bf533ee3ef19b8eeb342729596df84bcc7e1f96ec4059"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -795,17 +724,6 @@ name = "utf8parse"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
-
-[[package]]
-name = "vm"
-version = "0.1.0"
-dependencies = [
- "compiler",
- "interpreter",
- "num-traits",
- "object",
- "parser",
-]
 
 [[package]]
 name = "walkdir"

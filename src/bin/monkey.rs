@@ -1,5 +1,5 @@
 use clap::Parser;
-use repl::repl::ReplCli;
+use chimpanzee::repl::repl::ReplCli;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
