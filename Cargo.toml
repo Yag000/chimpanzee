@@ -1,40 +1,32 @@
 [package]
-name = "monkey-rs"
-version = "0.1.0"
+name = "chimpanzee"
+version = "0.0.0"
 edition = "2021"
 authors = ["Yago Iglesias <yagoiglesias7@gmail.com>"]
 license = "MIT OR Apache-2.0"
-description = "Monkey programming language implementation in Rust (interpreter and compiler)"
+description = "Monkey programming language implementation (interpreter, compiler and formatter), with added features"
 readme = "README.md"
 homepage = "https://github.com/Yag000/monkey-rs"
 repository = "https://github.com/Yag000/monkey-rs"
 documentation = "https://github.com/Yag000/monkey-rs"
 keywords = ["monkey", "interpreter", "compiler", "programming-language"]
 
-[workspace]
-members = ["crates/*"]
 
 [lib]
-name = "monkey"
-path = "lib/lib.rs"
+name = "chimpanzee"
+path = "src/lib.rs"
 
 
 [dependencies]
-# local crates
-lexer = { path = "./crates/lexer" }
-parser = { path = "./crates/parser" }
-interpreter = { path = "./crates/interpreter" }
-compiler = { path = "./crates/compiler" }
-vm = { path = "./crates/vm" }
-repl = { path = "./crates/repl" }
-object = { path = "./crates/object" }
-formatter = { path = "./crates/formatter" }
-
-# external crates
 clap = "4.3.11"
 clap_derive = "4.3.2"
 criterion = "0.5.1"
 chrono = "0.4.26"
+byteorder = "1.4.3"
+num-derive = "0.4.0"
+num-traits = "0.2.16"
+strum = "0.25.0"
+strum_macros = "0.25.2"
 
 
 [[bench]]
