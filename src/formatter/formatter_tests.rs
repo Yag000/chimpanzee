@@ -1,4 +1,4 @@
-use crate::{formatter::formatter::Formatter, lexer::lexer::Lexer, parser::parser::Parser};
+use crate::{formatter::Formatter, lexer::Lexer, parser::Parser};
 
 #[allow(dead_code)]
 fn format(input: &str) -> String {

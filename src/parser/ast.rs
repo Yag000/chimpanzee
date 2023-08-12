@@ -1,4 +1,4 @@
-use crate::{lexer::token::Token, parser::parser::Parser};
+use crate::{lexer::token::Token, parser::Parser};
 use std::fmt::Display;
 
 #[derive(PartialEq, Debug, Clone)]

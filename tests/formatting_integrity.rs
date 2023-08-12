@@ -2,7 +2,7 @@
 // the source code and that the evaluation of a formatted code is the same as
 // the evaluation of the source code.
 
-use chimpanzee::{formatter::formatter::Formatter, utils::run_input};
+use chimpanzee::{formatter::Formatter, utils::run_input};
 
 fn run_test(input: &str) {
     let input_evaluation = run_input(input);

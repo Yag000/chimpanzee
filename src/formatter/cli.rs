@@ -1,6 +1,6 @@
 use clap_derive::Parser;
 
-use crate::formatter::formatter::Formatter;
+use crate::formatter::Formatter;
 
 trait Logger {
     fn log(&mut self, msg: &str) -> Result<(), Box<dyn std::error::Error>>;
@@ -84,9 +84,7 @@ mod tests {
             replace: false,
         };
 
-        let mut logger = TestLogger {
-            msg: String::new(),
-        };
+        let mut logger = TestLogger { msg: String::new() };
 
         cli.run_with_logger(&mut logger).unwrap();
 

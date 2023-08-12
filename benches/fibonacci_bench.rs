@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use monkey::{compile_program, execute_interpreter, execute_vm, parse_program};
+use chimpanzee::utils::{compile_program, execute_interpreter, execute_vm, parse_program};
 
 const FIBONACCI_20: &str = r#"
         let fibonacci = fn(x) {

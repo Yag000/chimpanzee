@@ -4,7 +4,7 @@ use std::{cmp::Ordering, fmt::Display};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::object::object::{Object, NULL};
+use crate::object::{Object, NULL};
 
 #[derive(Debug, PartialEq, Clone, FromPrimitive, ToPrimitive, EnumIter)]
 pub enum BuiltinFunction {

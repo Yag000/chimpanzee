@@ -1,10 +1,10 @@
 use crate::{
-    compiler::compiler::Compiler,
+    compiler::Compiler,
     interpreter::evaluator::Evaluator,
-    lexer::lexer::Lexer,
-    object::object::Object,
-    parser::{ast::Program, parser::Parser},
-    vm::vm::VM,
+    lexer::Lexer,
+    object::Object,
+    parser::{ast::Program, Parser},
+    vm::VM,
 };
 
 pub fn parse_program(input: &str) -> Program {
@@ -37,4 +37,3 @@ pub fn run_input(input: &str) -> Object {
     let compiler = compile_program(program.clone());
     execute_vm(&compiler)
 }
-

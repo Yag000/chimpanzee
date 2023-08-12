@@ -7,12 +7,14 @@ pub mod tests {
     use crate::{
         compiler::{
             code::{Instructions, Opcode},
-            compiler::Compiler,
             test_utils::check_instructions,
+            Compiler,
         },
-        object::object::{CompiledFunction, Object},
-        object::test_utils::check_constants,
-        parser::parser::parse,
+        object::{
+            test_utils::check_constants,
+            {CompiledFunction, Object},
+        },
+        parser::parse,
     };
 
     struct CompilerTestCase {

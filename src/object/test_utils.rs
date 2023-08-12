@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::object::object::Object;
+use crate::object::Object;
 
 pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
     assert_eq!(

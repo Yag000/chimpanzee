@@ -116,7 +116,7 @@ impl SymbolTable {
         symbol
     }
 
-    pub fn has_outer(&self) -> bool{
+    pub fn has_outer(&self) -> bool {
         self.outer.is_some()
     }
 }

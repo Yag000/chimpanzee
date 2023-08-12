@@ -3,7 +3,7 @@ use crate::{
     object::{
         builtins::BuiltinFunction,
         enviroment::Environment,
-        object::{Function, Object, FALSE, NULL, TRUE},
+        {Function, Object, FALSE, NULL, TRUE},
     },
     parser::ast::{
         BlockStatement, Conditional, Expression, HashMapLiteral, Identifier, IndexExpression,
@@ -355,7 +355,7 @@ impl Evaluator {
 mod tests {
 
     use super::*;
-    use crate::{lexer::lexer::Lexer, parser::parser::Parser};
+    use crate::{lexer::Lexer, parser::Parser};
     use std::collections::HashMap;
 
     #[test]

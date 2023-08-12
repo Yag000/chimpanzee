@@ -5,10 +5,10 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::{
-        compiler::{code::Instructions, compiler::Compiler},
-        object::{object::Object, test_utils::check_constants},
-        parser::parser::parse,
-        vm::vm::VM,
+        compiler::{code::Instructions, Compiler},
+        object::{test_utils::check_constants, Object},
+        parser::parse,
+        vm::VM,
     };
 
     struct VmTestCase {
