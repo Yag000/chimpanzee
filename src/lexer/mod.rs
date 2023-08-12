@@ -110,6 +110,7 @@ impl Lexer {
                     "if" => Token::If,
                     "else" => Token::Else,
                     "return" => Token::Return,
+                    "while" => Token::While,
                     _ => Token::Ident(ident_string),
                 };
             }
@@ -220,6 +221,10 @@ mod tests {
             {"foo": "bar"}
             true && false || true && false;
             12 <= 12 && 12 >= 12;
+
+            while (true) {
+                return false;
+            }
         "#;
 
         let mut lexer = Lexer::new(input);
@@ -335,6 +340,16 @@ mod tests {
             Token::GTE,
             Token::Int(String::from("12")),
             Token::Semicolon,
+            //
+            Token::While,
+            Token::LParen,
+            Token::True,
+            Token::RParen,
+            Token::LSquirly,
+            Token::Return,
+            Token::False,
+            Token::Semicolon,
+            Token::RSquirly,
             //
             Token::Eof,
         ];
