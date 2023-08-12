@@ -297,7 +297,7 @@ impl Display for BlockStatement {
 }
 
 impl BlockStatement {
-    fn parse(parser: &mut Parser) -> Self {
+    pub(crate) fn parse(parser: &mut Parser) -> Self {
         parser.next_token();
         let mut statements: Vec<Statement> = Vec::new();
         while !parser.current_token_is(&Token::RSquirly) && !parser.current_token_is(&Token::Eof) {
@@ -406,6 +406,7 @@ pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
     Expression(Expression),
+    While(WhileStatement),
 }
 
 impl Display for Statement {
@@ -414,6 +415,7 @@ impl Display for Statement {
             Statement::Let(statement) => write!(f, "{statement}"),
             Statement::Return(statement) => write!(f, "{statement}"),
             Statement::Expression(expression) => write!(f, "{expression}"),
+            Statement::While(statement) => write!(f, "{statement}"),
         }
     }
 }
@@ -474,6 +476,18 @@ pub struct ReturnStatement {
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "return {};", &self.return_value)
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct WhileStatement {
+    pub condition: Expression,
+    pub body: BlockStatement,
+}
+
+impl Display for WhileStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "while {} {{\n{}}}", self.condition, self.body)
     }
 }
 
