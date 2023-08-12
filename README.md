@@ -1,12 +1,12 @@
-# Monkey-rs
+# Chimpanzee
 
 ## What is the Monkey language?
 
 The Monkey language is a language created by Thorsten Ball for his book [Writing an Interpreter in Go](https://interpreterbook.com/). It is a dynamically typed language with C-like syntax. It supports integers, booleans, strings, arrays, hashes, and functions. It also has first-class functions, closures, and lexical scope.
 
-## Monkey-rs
+## Chimpazee
 
-Monkey-rs is an implementation of the Monkey language in Rust. It is based on the books [Writing an Interpreter in Go](https://interpreterbook.com/) and [Writing a Compiler in Go](https://compilerbook.com/).
+Chimpazee is an implementation of the Monkey language in Rust. It is based on the books [Writing an Interpreter in Go](https://interpreterbook.com/) and [Writing a Compiler in Go](https://compilerbook.com/).
 
 This implementation is still in development. For now an interpreter and a compiler are fully implemented, allowing to run a REPL and to run Monkey files (`.monkey` extension).
 There are some issues that I want to fix before I can call this implementation complete.
