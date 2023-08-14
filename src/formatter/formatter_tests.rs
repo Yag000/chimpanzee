@@ -540,4 +540,40 @@ let length = len(arr);
 
         assert_eq!(format(input), expected);
     }
+
+    #[test]
+    fn test_while() {
+        let input = r#"
+        let a = 1;
+    while (a<3){
+let a = a + 1,
+puts(21);
+    }
+    let a = fn (x){
+        let a = 1;
+        while (x > 0){
+            let a = a * 2;
+        }
+        a
+    };
+    a(12);
+        "#;
+
+        let expected = r#"let a = 1;
+while (a < 3) {
+    let a = a + 1;
+    puts(21);
+}
+let a = fn (x) {
+    let a = 1;
+    while (x > 0) {
+        let a = a * 2;
+    }
+    a
+};
+a(12);
+"#;
+
+        assert_eq!(format(input), expected);
+    }
 }
