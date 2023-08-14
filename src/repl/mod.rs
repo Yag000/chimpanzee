@@ -11,7 +11,7 @@ use crate::{
         builtins::BuiltinFunction,
         {Object, NULL},
     },
-    parser::{Parser, ParserErrors},
+    parser::{parser_errors::ParserErrors, Parser},
     repl::errors::{CompilerError, LexerErrors, RuntimeError},
     vm::{GLOBALS_SIZE, VM},
 };

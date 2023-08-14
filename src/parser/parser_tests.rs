@@ -5,8 +5,8 @@ mod tests {
         lexer::{token::Token, Lexer},
         parser::{
             ast::{
-                BlockStatement, Expression, Identifier, InfixOperator, LetStatement, Primitive,
-                Program, ReturnStatement, Statement, WhileStatement,
+                BlockStatement, Expression, FunctionCall, Identifier, InfixOperator, LetStatement,
+                Primitive, Program, ReturnStatement, Statement, WhileStatement,
             },
             Parser,
         },
@@ -575,6 +575,7 @@ mod tests {
     fn test_parsing_while_statements() {
         let input = "while(x < 3){
             let x = x + 3;
+            puts(x);
         }";
 
         let expected = WhileStatement {
@@ -587,24 +588,38 @@ mod tests {
                 right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(3))),
             }),
             body: BlockStatement {
-                statements: vec![Statement::Let(LetStatement {
-                    name: Identifier {
-                        token: Token::Ident("x".to_string()),
-                        value: "x".to_string(),
-                    },
-                    value: Expression::Infix(InfixOperator {
-                        token: Token::Plus,
-                        left: Box::new(Expression::Identifier(Identifier {
+                statements: vec![
+                    Statement::Let(LetStatement {
+                        name: Identifier {
                             token: Token::Ident("x".to_string()),
                             value: "x".to_string(),
-                        })),
-                        right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(3))),
+                        },
+                        value: Expression::Infix(InfixOperator {
+                            token: Token::Plus,
+                            left: Box::new(Expression::Identifier(Identifier {
+                                token: Token::Ident("x".to_string()),
+                                value: "x".to_string(),
+                            })),
+                            right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(3))),
+                        }),
                     }),
-                })],
+                    Statement::Expression(Expression::FunctionCall(FunctionCall {
+                        function: Box::new(Expression::Identifier(Identifier {
+                            token: Token::Ident("puts".to_string()),
+                            value: "puts".to_string(),
+                        })),
+                        arguments: vec![Expression::Identifier(Identifier {
+                            token: Token::Ident("x".to_string()),
+                            value: "x".to_string(),
+                        })],
+                    })),
+                ],
             },
         };
 
+        println!("Input:\n{input}");
         let program = generate_program(input);
+        println!("Parsed:\n{program}");
 
         assert_eq!(program.statements.len(), 1);
 

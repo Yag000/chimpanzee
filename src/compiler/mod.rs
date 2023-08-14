@@ -17,7 +17,7 @@ use crate::{
     },
     parser::ast::{
         BlockStatement, Conditional, Expression, FunctionLiteral, InfixOperator, Primitive,
-        Program, Statement,
+        Program, Statement, WhileStatement,
     },
 };
 
@@ -167,6 +167,9 @@ impl Compiler {
             Statement::Return(r) => {
                 self.compile_expression(r.return_value)?;
                 self.emit(Opcode::ReturnValue, vec![]);
+            }
+            Statement::While(wh) => {
+                self.compile_while_statement(wh)?;
             }
         }
 
@@ -376,6 +379,23 @@ impl Compiler {
             i32::from_usize(self.add_constant(compiled_function)).ok_or("Invalid integer type")?;
 
         self.emit(Opcode::Closure, vec![operands, free_symbols_len as i32]);
+
+        Ok(())
+    }
+
+    fn compile_while_statement(&mut self, wh: WhileStatement) -> Result<(), String> {
+        let condition_pos = self.current_instructions().data.len();
+        self.compile_expression(wh.condition)?;
+
+        let jump_not_truthy_pos = self.emit(Opcode::JumpNotTruthy, vec![9999]); // We emit a dummy value for the jump offset
+                                                                                // and we will fix it later
+        self.compile_block_statement(wh.body)?;
+
+        self.emit(Opcode::Jump, vec![condition_pos as i32]); // We emit a dummy value for the jump offset
+                                                             // and we will fix it later
+
+        let after_body_pos = self.current_instructions().data.len();
+        self.change_operand(jump_not_truthy_pos, after_body_pos as i32)?;
 
         Ok(())
     }

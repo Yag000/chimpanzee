@@ -1132,12 +1132,13 @@ mod tests {
                 input: r#"
                     let f = fn(a){
                         let a = 1;
+                        let a = a + 1;
                         a
                     };
                     f(1)
                     "#
                 .to_string(),
-                expected: Object::INTEGER(1),
+                expected: Object::INTEGER(2),
             },
             VmTestCase {
                 input: r#"
@@ -1182,6 +1183,19 @@ mod tests {
             VmTestCase {
                 input: r#"
                     let a = 10;
+                    let f = fn(a){
+                        let a = 1;
+                        let a = a + 1;
+                        a
+                    };
+                    f(1) + a
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(12),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 10;
                     let f = fn(){
                         let h = fn(){
                             let a = 2;
@@ -1199,6 +1213,7 @@ mod tests {
                     let a = 10;
                     let f = fn(){
                         let a = 1;
+                        let a = a + 1;
                         let h = fn(){
                             let a = 2;
                             a
@@ -1208,9 +1223,70 @@ mod tests {
                     f() + a
                     "#
                 .to_string(),
-                expected: Object::INTEGER(13),
+                expected: Object::INTEGER(14),
             },
         ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_while_statements_without_break_or_continue() {
+        let tests = vec![
+            VmTestCase {
+                input: r#"
+                    let a = 1;
+                    while (a < 100){
+                        let a = a + 1;
+                    }
+                    a
+                "#
+                .to_string(),
+                expected: Object::INTEGER(100),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 1;
+                    while (a < 0){
+                        let a = 100;
+                    }
+                    a
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: r#"
+                    let a = 1;
+                    while(false){
+                        let a = 100;
+                    }
+                    a
+                    "#
+                .to_string(),
+                expected: Object::INTEGER(1),
+            },
+        ];
+
+        run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_while_clean_up() {
+        // This tests makes sure that a while statement clears the stack correctly (which is
+        // different from the conditional behavior)
+        let tests = vec![VmTestCase {
+            input: r#"
+                    let a = 0;
+                    while (a < 10000){
+                        let a = a + 1;
+                        puts(a);
+                    }
+                    a
+                    "#
+            .to_string(),
+            expected: Object::INTEGER(10000),
+        }];
 
         run_vm_tests(tests);
     }
