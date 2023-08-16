@@ -288,7 +288,15 @@ if (a == 1) {
 
 #### Loops
 
-For now loops are not supported. To achieve the same result as a loop, use recursion. In the future loops might be supported.
+While loops have been implemented, but for now keywords such as `break` and `continue` have not yet been implemented.
+
+```monkey
+let a = 1;
+while (a < 4) {
+    puts(a);
+    let a = a + 1;
+}
+```
 
 ### Comments
 

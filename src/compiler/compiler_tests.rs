@@ -1188,4 +1188,40 @@ pub mod tests {
 
         run_compiler(tests);
     }
+
+    #[test]
+    fn test_while_statements() {
+        let input = r#"
+                    while (true){
+                        ("yes");
+                    }
+            "#
+        .to_string();
+
+        println!("{input}");
+        println!("{:?}", parse(&input));
+        println!("{}", parse(&input));
+
+        let tests = vec![CompilerTestCase {
+            input: r#"
+                    while (true){
+                        puts("yes");
+                    }
+                    "#
+            .to_string(),
+            expected_constants: vec![Object::STRING("yes".to_string())],
+            expected_instructions: flatten_instructions(vec![
+                Opcode::True.make(vec![]),            // 000
+                Opcode::JumpNotTruthy.make(vec![15]), // 001
+                Opcode::GetBuiltin.make(vec![5]),     // 004
+                Opcode::Constant.make(vec![0]),       // 006
+                Opcode::Call.make(vec![1]),           // 009
+                Opcode::Pop.make(vec![]),             // 011
+                Opcode::Jump.make(vec![0]),           // 012
+                                                      // 015
+            ]),
+        }];
+
+        run_compiler(tests);
+    }
 }
