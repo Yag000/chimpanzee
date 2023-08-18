@@ -89,4 +89,4 @@ In the directory `target/directory` the two executables will be now available: `
 
 ## Monkey language
 
-Information about the monkey language is available in the MONKEY file.
+Information about the monkey language is available in the [MONKEY file](docs/MONKEY.md).
