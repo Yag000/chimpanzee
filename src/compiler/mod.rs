@@ -237,6 +237,7 @@ impl Compiler {
 
                 self.emit(Opcode::Call, vec![args_length]);
             }
+            _ => unimplemented!(),
         }
 
         Ok(())

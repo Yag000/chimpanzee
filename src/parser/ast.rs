@@ -28,6 +28,7 @@ pub enum Expression {
     ArrayLiteral(ArrayLiteral),
     HashMapLiteral(HashMapLiteral),
     IndexExpression(IndexExpression),
+    ControlFlow(ControlFlow),
 }
 
 impl Display for Expression {
@@ -43,6 +44,7 @@ impl Display for Expression {
             Expression::ArrayLiteral(x) => write!(f, "{x}"),
             Expression::IndexExpression(x) => write!(f, "{x}"),
             Expression::HashMapLiteral(x) => write!(f, "{x}"),
+            Expression::ControlFlow(x) => write!(f, "{x}"),
         }
     }
 }
@@ -60,6 +62,10 @@ impl Expression {
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             Token::LSquare => ArrayLiteral::parse(parser).map(Expression::ArrayLiteral),
             Token::LSquirly => HashMapLiteral::parse(parser).map(Expression::HashMapLiteral),
+            Token::Break | Token::Continue => {
+                ControlFlow::parse(parser).map(Expression::ControlFlow)
+            }
+
             _ => Err(format!(
                 "There is no prefix parser for the token {}",
                 parser.current_token
@@ -583,6 +589,34 @@ impl HashMapLiteral {
         }
 
         Ok(HashMapLiteral { pairs })
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum ControlFlow {
+    Break,
+    Continue,
+}
+
+impl Display for ControlFlow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ControlFlow::Break => write!(f, "break;"),
+            ControlFlow::Continue => write!(f, "continue;"),
+        }
+    }
+}
+
+impl ControlFlow {
+    fn parse(parser: &mut Parser) -> Result<Self, String> {
+        match parser.current_token {
+            Token::Break => Ok(Self::Break),
+            Token::Continue => Ok(Self::Continue),
+            _ => Err(format!(
+                "Expected a control flow keyword (break, continue), got {}",
+                parser.current_token
+            )),
+        }
     }
 }
 

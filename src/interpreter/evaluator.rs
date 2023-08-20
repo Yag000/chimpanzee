@@ -139,6 +139,7 @@ impl Evaluator {
                 self.eval_index_expression(index_expression)
             }
             Expression::HashMapLiteral(hashmap) => self.eval_hashmap_literal(hashmap),
+            _ => unimplemented!(),
         }
     }
 

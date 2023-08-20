@@ -228,6 +228,7 @@ impl Formatter {
                 self.visit_expression(&index.index);
                 self.push("]");
             }
+            _ => {}
         }
 
         self.last_expression = Some(exp.clone());
