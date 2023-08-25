@@ -16,8 +16,8 @@ use crate::{
         {CompiledFunction, Object},
     },
     parser::ast::{
-        BlockStatement, Conditional, Expression, FunctionLiteral, InfixOperator, Primitive,
-        Program, Statement, WhileStatement,
+        BlockStatement, Conditional, ControlFlow, Expression, FunctionLiteral, InfixOperator,
+        LetStatement, Primitive, Program, Statement, WhileStatement,
     },
 };
 
@@ -34,6 +34,7 @@ struct CompilerScope {
     instructions: Instructions,
     last_instruction: Option<EmittedInstruction>,
     previous_instruction: Option<EmittedInstruction>,
+    loop_scope: Option<Rc<RefCell<LoopScope>>>,
 }
 
 impl Default for CompilerScope {
@@ -48,7 +49,50 @@ impl CompilerScope {
             instructions: Instructions::default(),
             last_instruction: None,
             previous_instruction: None,
+            loop_scope: None,
         }
+    }
+
+    fn enter_loop_scope(&mut self, start_position: usize) {
+        let loop_scope = LoopScope::new_enclosed(self.loop_scope.clone(), start_position);
+        self.loop_scope = Some(Rc::new(RefCell::new(loop_scope)));
+    }
+
+    fn leave_loop_scope(&mut self) -> Option<Rc<RefCell<LoopScope>>> {
+        let outer = self.loop_scope.clone();
+        self.loop_scope = self
+            .loop_scope
+            .clone()
+            .unwrap()
+            .as_ref()
+            .borrow()
+            .outer
+            .clone();
+        outer
+    }
+}
+
+struct LoopScope {
+    outer: Option<Rc<RefCell<LoopScope>>>,
+    start_position: usize,
+    breaks: Vec<usize>,
+}
+
+impl LoopScope {
+    pub fn new_enclosed(outer: Option<Rc<RefCell<LoopScope>>>, start_position: usize) -> Self {
+        Self {
+            outer,
+            start_position,
+            breaks: vec![],
+        }
+    }
+
+    pub fn add_break(&mut self, pos: usize) {
+        self.breaks.push(pos);
+    }
+
+    pub fn breaks(&self) -> Vec<usize> {
+        self.breaks.clone()
     }
 }
 
@@ -115,54 +159,7 @@ impl Compiler {
                 self.emit(Opcode::Pop, vec![]);
             }
             Statement::Let(s) => {
-                // This step is extremely important. If it is not done then when shadowing variables
-                // and using the previous value we get an error. Because we would have assigned
-                // a new index to the symbol and the GetGlobal instruction would get a NULL
-                // value instead of the previous value. (corresponds to issue #8)
-                let symbol = match self.symbol_table.resolve(&s.name.value) {
-                    Some(symbol) => match symbol.scope {
-                        SymbolScope::Global => {
-                            // A Local variable should never replace a global one
-                            if self.symbol_table.has_outer() {
-                                // This means that the symbol will
-                                // be local and not global, and thus not
-                                // replace the global one
-                                self.symbol_table.define(s.name.value)
-                            } else {
-                                symbol
-                            }
-                        }
-                        SymbolScope::Local => symbol,
-
-                        // We only want to do in in the case of "normal" variable assignation.
-                        // The special cases should not be touched, since the program should not
-                        // have access to them, only the compiler/vm
-                        _ => self.symbol_table.define(s.name.value),
-                    },
-                    None => self.symbol_table.define(s.name.value),
-                };
-
-                self.compile_expression(s.value)?;
-
-                match symbol.scope {
-                    SymbolScope::Global => {
-                        self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
-                    }
-                    SymbolScope::Local => {
-                        self.emit(Opcode::SetLocal, vec![symbol.index as i32]);
-                    }
-                    SymbolScope::Free => {
-                        unreachable!(
-                            "Free symbols should not be set, the compiler should panic before this"
-                        )
-                    }
-                    SymbolScope::Builtin => {
-                        unreachable!("Builtin symbols should not be set, the compiler should panic before this")
-                    }
-                    SymbolScope::Function => {
-                        unreachable!("Function symbols should not be set, the compiler should panic before this")
-                    }
-                }
+                self.compiler_let_statement(s)?;
             }
             Statement::Return(r) => {
                 self.compile_expression(r.return_value)?;
@@ -170,6 +167,65 @@ impl Compiler {
             }
             Statement::While(wh) => {
                 self.compile_while_statement(wh)?;
+            }
+
+            Statement::ControlFlow(ctrflow) => self.compile_control_flow_statement(ctrflow)?,
+        }
+
+        Ok(())
+    }
+
+    fn compiler_let_statement(&mut self, s: LetStatement) -> Result<(), String> {
+        // This step is extremely important. If it is not done then when shadowing variables
+        // and using the previous value we get an error. Because we would have assigned
+        // a new index to the symbol and the GetGlobal instruction would get a NULL
+        // value instead of the previous value. (corresponds to issue #8)
+        let symbol = match self.symbol_table.resolve(&s.name.value) {
+            Some(symbol) => match symbol.scope {
+                SymbolScope::Global => {
+                    // A Local variable should never replace a global one
+                    if self.symbol_table.has_outer() {
+                        // This means that the symbol will
+                        // be local and not global, and thus not
+                        // replace the global one
+                        self.symbol_table.define(s.name.value)
+                    } else {
+                        symbol
+                    }
+                }
+                SymbolScope::Local => symbol,
+
+                // We only want to do in in the case of "normal" variable assignation.
+                // The special cases should not be touched, since the program should not
+                // have access to them, only the compiler/vm
+                _ => self.symbol_table.define(s.name.value),
+            },
+            None => self.symbol_table.define(s.name.value),
+        };
+
+        self.compile_expression(s.value)?;
+
+        match symbol.scope {
+            SymbolScope::Global => {
+                self.emit(Opcode::SetGlobal, vec![symbol.index as i32]);
+            }
+            SymbolScope::Local => {
+                self.emit(Opcode::SetLocal, vec![symbol.index as i32]);
+            }
+            SymbolScope::Free => {
+                unreachable!(
+                    "Free symbols should not be set, the compiler should panic before this"
+                )
+            }
+            SymbolScope::Builtin => {
+                unreachable!(
+                    "Builtin symbols should not be set, the compiler should panic before this"
+                )
+            }
+            SymbolScope::Function => {
+                unreachable!(
+                    "Function symbols should not be set, the compiler should panic before this"
+                )
             }
         }
 
@@ -237,7 +293,6 @@ impl Compiler {
 
                 self.emit(Opcode::Call, vec![args_length]);
             }
-            _ => unimplemented!(),
         }
 
         Ok(())
@@ -386,6 +441,8 @@ impl Compiler {
 
     fn compile_while_statement(&mut self, wh: WhileStatement) -> Result<(), String> {
         let condition_pos = self.current_instructions().data.len();
+        self.scopes[self.scope_index].enter_loop_scope(condition_pos);
+
         self.compile_expression(wh.condition)?;
 
         let jump_not_truthy_pos = self.emit(Opcode::JumpNotTruthy, vec![9999]); // We emit a dummy value for the jump offset
@@ -397,6 +454,48 @@ impl Compiler {
 
         let after_body_pos = self.current_instructions().data.len();
         self.change_operand(jump_not_truthy_pos, after_body_pos as i32)?;
+
+        for break_pos in self.scopes[self.scope_index]
+            .loop_scope
+            .clone() // TODO: Improve this
+            .unwrap()
+            .as_ref()
+            .borrow()
+            .breaks()
+        {
+            self.change_operand(break_pos, after_body_pos as i32)?;
+        }
+
+        self.scopes[self.scope_index].leave_loop_scope();
+
+        Ok(())
+    }
+
+    fn compile_control_flow_statement(&mut self, ctrflow: ControlFlow) -> Result<(), String> {
+        match ctrflow {
+            ControlFlow::Break => {
+                let pos = self.emit(Opcode::Jump, vec![9999]); // We emit a dummy value for the jump offset
+                                                               // and we will fix it later
+                self.scopes[self.scope_index]
+                    .loop_scope
+                    .clone()
+                    .unwrap()
+                    .as_ref()
+                    .borrow_mut()
+                    .add_break(pos);
+            }
+            ControlFlow::Continue => {
+                let while_initial_pos = self.scopes[self.scope_index]
+                    .loop_scope
+                    .as_ref()
+                    .unwrap()
+                    .borrow()
+                    .start_position
+                    .clone();
+
+                self.emit(Opcode::Jump, vec![while_initial_pos as i32]);
+            }
+        }
 
         Ok(())
     }
