@@ -520,7 +520,7 @@ mod tests {
     fn test_integer_object(object: Object, expected: i64) {
         match object {
             Object::INTEGER(x) => assert_eq!(x, expected),
-            _ => panic!("The object is not an integer"),
+            x => panic!("The object is not an integer, it is {:#?}", x),
         }
     }
 

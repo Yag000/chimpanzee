@@ -84,6 +84,9 @@ impl Evaluator {
                 }
                 result
             }
+
+            _ => unimplemented!(), // I have decided not to implement the rest of the expressions,
+                                   // I will focus on the compiler
         }
     }
 
@@ -139,7 +142,8 @@ impl Evaluator {
                 self.eval_index_expression(index_expression)
             }
             Expression::HashMapLiteral(hashmap) => self.eval_hashmap_literal(hashmap),
-            _ => unimplemented!(),
+            _ => unimplemented!(), // I have decided not to implement the rest of the expressions,
+                                   // I will focus on the compiler
         }
     }
 

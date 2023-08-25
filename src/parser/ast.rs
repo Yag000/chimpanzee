@@ -28,7 +28,6 @@ pub enum Expression {
     ArrayLiteral(ArrayLiteral),
     HashMapLiteral(HashMapLiteral),
     IndexExpression(IndexExpression),
-    ControlFlow(ControlFlow),
 }
 
 impl Display for Expression {
@@ -44,7 +43,6 @@ impl Display for Expression {
             Expression::ArrayLiteral(x) => write!(f, "{x}"),
             Expression::IndexExpression(x) => write!(f, "{x}"),
             Expression::HashMapLiteral(x) => write!(f, "{x}"),
-            Expression::ControlFlow(x) => write!(f, "{x}"),
         }
     }
 }
@@ -62,9 +60,6 @@ impl Expression {
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             Token::LSquare => ArrayLiteral::parse(parser).map(Expression::ArrayLiteral),
             Token::LSquirly => HashMapLiteral::parse(parser).map(Expression::HashMapLiteral),
-            Token::Break | Token::Continue => {
-                ControlFlow::parse(parser).map(Expression::ControlFlow)
-            }
 
             _ => Err(format!(
                 "There is no prefix parser for the token {}",
@@ -413,6 +408,7 @@ pub enum Statement {
     Return(ReturnStatement),
     Expression(Expression),
     While(WhileStatement),
+    ControlFlow(ControlFlow),
 }
 
 impl Display for Statement {
@@ -422,6 +418,7 @@ impl Display for Statement {
             Statement::Return(statement) => write!(f, "{statement}"),
             Statement::Expression(expression) => write!(f, "{expression}"),
             Statement::While(statement) => write!(f, "{statement}"),
+            Statement::ControlFlow(statement) => write!(f, "{statement}"),
         }
     }
 }
@@ -608,7 +605,7 @@ impl Display for ControlFlow {
 }
 
 impl ControlFlow {
-    fn parse(parser: &mut Parser) -> Result<Self, String> {
+    pub fn parse(parser: &mut Parser) -> Result<Self, String> {
         match parser.current_token {
             Token::Break => Ok(Self::Break),
             Token::Continue => Ok(Self::Continue),

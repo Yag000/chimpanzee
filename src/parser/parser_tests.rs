@@ -663,14 +663,10 @@ mod tests {
                             right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(2))),
                         })),
                         consequence: BlockStatement {
-                            statements: vec![Statement::Expression(Expression::ControlFlow(
-                                ControlFlow::Break,
-                            ))],
+                            statements: vec![Statement::ControlFlow(ControlFlow::Break)],
                         },
                         alternative: Some(BlockStatement {
-                            statements: vec![Statement::Expression(Expression::ControlFlow(
-                                ControlFlow::Continue,
-                            ))],
+                            statements: vec![Statement::ControlFlow(ControlFlow::Continue)],
                         }),
                     },
                 ))],

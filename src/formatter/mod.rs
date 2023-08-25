@@ -122,6 +122,10 @@ impl Formatter {
                 self.push_indent();
                 self.push("}");
             }
+            Statement::ControlFlow(cf) => {
+                self.push(cf.to_string().as_str());
+                self.push(";");
+            }
         }
         self.push("\n");
         self.last_expression = None;
@@ -228,7 +232,6 @@ impl Formatter {
                 self.visit_expression(&index.index);
                 self.push("]");
             }
-            _ => {}
         }
 
         self.last_expression = Some(exp.clone());
