@@ -169,7 +169,7 @@ impl Compiler {
                 self.compile_while_statement(wh)?;
             }
 
-            Statement::ControlFlow(ctrflow) => self.compile_control_flow_statement(ctrflow)?,
+            Statement::ControlFlow(ctrflow) => self.compile_control_flow_statement(&ctrflow),
         }
 
         Ok(())
@@ -471,7 +471,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_control_flow_statement(&mut self, ctrflow: ControlFlow) -> Result<(), String> {
+    fn compile_control_flow_statement(&mut self, ctrflow: &ControlFlow) {
         match ctrflow {
             ControlFlow::Break => {
                 let pos = self.emit(Opcode::Jump, vec![9999]); // We emit a dummy value for the jump offset
@@ -490,14 +490,11 @@ impl Compiler {
                     .as_ref()
                     .unwrap()
                     .borrow()
-                    .start_position
-                    .clone();
+                    .start_position;
 
                 self.emit(Opcode::Jump, vec![while_initial_pos as i32]);
             }
         }
-
-        Ok(())
     }
 
     fn last_instruction_is(&self, opcode: Opcode) -> bool {

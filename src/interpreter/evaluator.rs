@@ -55,6 +55,7 @@ impl Evaluator {
         result
     }
 
+    #[allow(clippy::match_wildcard_for_single_variants, unreachable_patterns)]
     fn eval_statement(&mut self, statement: Statement) -> Object {
         match statement {
             Statement::Expression(x) => self.eval_expression(x),
@@ -90,6 +91,7 @@ impl Evaluator {
         }
     }
 
+    #[allow(clippy::match_wildcard_for_single_variants, unreachable_patterns)]
     fn eval_expression(&mut self, expression: Expression) -> Object {
         match expression {
             Expression::Primitive(x) => Self::eval_primitive_expression(x),
