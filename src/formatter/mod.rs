@@ -122,7 +122,7 @@ impl Formatter {
                 self.push_indent();
                 self.push("}");
             }
-            Statement::ControlFlow(cf) => {
+            Statement::LoopStatements(cf) => {
                 self.push(cf.to_string().as_str());
                 self.push(";");
             }

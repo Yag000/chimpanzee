@@ -10,7 +10,7 @@ use crate::{
 };
 
 use self::{
-    ast::{BlockStatement, ControlFlow, WhileStatement},
+    ast::{BlockStatement, LoopStatements, WhileStatement},
     parser_errors::ParserErrors,
 };
 
@@ -64,7 +64,7 @@ impl Parser {
             Token::While => self.parse_while_statement().map(Statement::While),
             Token::Break | Token::Continue => self
                 .parse_control_flow_statement()
-                .map(Statement::ControlFlow),
+                .map(Statement::LoopStatements),
             _ => self.parse_expression_statement().map(Statement::Expression),
         }
     }
@@ -145,8 +145,8 @@ impl Parser {
         Some(WhileStatement { condition, body })
     }
 
-    fn parse_control_flow_statement(&mut self) -> Option<ControlFlow> {
-        let ctrlflow = ControlFlow::parse(self).ok();
+    fn parse_control_flow_statement(&mut self) -> Option<LoopStatements> {
+        let ctrlflow = LoopStatements::parse(self).ok();
         self.next_token();
         ctrlflow
     }

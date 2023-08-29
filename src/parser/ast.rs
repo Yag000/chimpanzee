@@ -408,7 +408,7 @@ pub enum Statement {
     Return(ReturnStatement),
     Expression(Expression),
     While(WhileStatement),
-    ControlFlow(ControlFlow),
+    LoopStatements(LoopStatements),
 }
 
 impl Display for Statement {
@@ -418,7 +418,7 @@ impl Display for Statement {
             Statement::Return(statement) => write!(f, "{statement}"),
             Statement::Expression(expression) => write!(f, "{expression}"),
             Statement::While(statement) => write!(f, "{statement}"),
-            Statement::ControlFlow(statement) => write!(f, "{statement}"),
+            Statement::LoopStatements(statement) => write!(f, "{statement}"),
         }
     }
 }
@@ -590,21 +590,21 @@ impl HashMapLiteral {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum ControlFlow {
+pub enum LoopStatements {
     Break,
     Continue,
 }
 
-impl Display for ControlFlow {
+impl Display for LoopStatements {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ControlFlow::Break => write!(f, "break;"),
-            ControlFlow::Continue => write!(f, "continue;"),
+            LoopStatements::Break => write!(f, "break;"),
+            LoopStatements::Continue => write!(f, "continue;"),
         }
     }
 }
 
-impl ControlFlow {
+impl LoopStatements {
     pub fn parse(parser: &mut Parser) -> Result<Self, String> {
         match parser.current_token {
             Token::Break => Ok(Self::Break),
