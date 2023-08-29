@@ -60,6 +60,7 @@ impl Expression {
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             Token::LSquare => ArrayLiteral::parse(parser).map(Expression::ArrayLiteral),
             Token::LSquirly => HashMapLiteral::parse(parser).map(Expression::HashMapLiteral),
+
             _ => Err(format!(
                 "There is no prefix parser for the token {}",
                 parser.current_token
@@ -297,7 +298,7 @@ impl Display for BlockStatement {
 }
 
 impl BlockStatement {
-    fn parse(parser: &mut Parser) -> Self {
+    pub(crate) fn parse(parser: &mut Parser) -> Self {
         parser.next_token();
         let mut statements: Vec<Statement> = Vec::new();
         while !parser.current_token_is(&Token::RSquirly) && !parser.current_token_is(&Token::Eof) {
@@ -406,6 +407,8 @@ pub enum Statement {
     Let(LetStatement),
     Return(ReturnStatement),
     Expression(Expression),
+    While(WhileStatement),
+    LoopStatements(LoopStatement),
 }
 
 impl Display for Statement {
@@ -414,6 +417,8 @@ impl Display for Statement {
             Statement::Let(statement) => write!(f, "{statement}"),
             Statement::Return(statement) => write!(f, "{statement}"),
             Statement::Expression(expression) => write!(f, "{expression}"),
+            Statement::While(statement) => write!(f, "{statement}"),
+            Statement::LoopStatements(statement) => write!(f, "{statement}"),
         }
     }
 }
@@ -474,6 +479,18 @@ pub struct ReturnStatement {
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "return {};", &self.return_value)
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct WhileStatement {
+    pub condition: Expression,
+    pub body: BlockStatement,
+}
+
+impl Display for WhileStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "while {} {{\n{}}}", self.condition, self.body)
     }
 }
 
@@ -569,6 +586,34 @@ impl HashMapLiteral {
         }
 
         Ok(HashMapLiteral { pairs })
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum LoopStatement {
+    Break,
+    Continue,
+}
+
+impl Display for LoopStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoopStatement::Break => write!(f, "break"),
+            LoopStatement::Continue => write!(f, "continue"),
+        }
+    }
+}
+
+impl LoopStatement {
+    pub fn parse(parser: &mut Parser) -> Result<Self, String> {
+        match parser.current_token {
+            Token::Break => Ok(Self::Break),
+            Token::Continue => Ok(Self::Continue),
+            _ => Err(format!(
+                "Expected a loop statement keyword (break, continue), got {}",
+                parser.current_token
+            )),
+        }
     }
 }
 

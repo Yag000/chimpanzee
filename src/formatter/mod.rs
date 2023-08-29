@@ -112,6 +112,20 @@ impl Formatter {
                     self.push(";");
                 }
             }
+            Statement::While(wh) => {
+                self.push("while (");
+                self.visit_expression(&wh.condition);
+                self.push(") {\n");
+                self.indent += 1;
+                self.visit_block_statement(&wh.body);
+                self.indent -= 1;
+                self.push_indent();
+                self.push("}");
+            }
+            Statement::LoopStatements(cf) => {
+                self.push(cf.to_string().as_str());
+                self.push(";");
+            }
         }
         self.push("\n");
         self.last_expression = None;
