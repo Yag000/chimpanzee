@@ -4,7 +4,7 @@ mod tests {
 
     use crate::{
         object::Object,
-        vm::vm_tests::{run_vm_tests, VmTestCase},
+        vm::test_utils::{run_vm_tests, VmTestCase},
     };
 
     #[test]

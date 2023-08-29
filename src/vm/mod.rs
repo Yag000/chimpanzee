@@ -1,8 +1,8 @@
-mod vm_basic_tests;
-mod vm_functions_tests;
-mod vm_shadowinfg_tests;
+mod function_tests;
+mod shadowing_tests;
+mod test_utils;
 mod vm_tests;
-mod vm_while_statemets_tests;
+mod while_statemets_tests;
 
 use crate::{
     compiler::{

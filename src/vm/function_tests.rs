@@ -6,7 +6,7 @@ mod tests {
         object::Object,
         parser::parse,
         vm::{
-            vm_tests::{run_vm_tests, VmTestCase},
+            test_utils::{run_vm_tests, VmTestCase},
             VM,
         },
     };
