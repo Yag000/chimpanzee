@@ -11,4 +11,4 @@ format_lints(){
 }
 
 
-cargo clippy "$@" -- -W "clippy::pedantic"  $(format_lints)
+cargo clippy "$@" -- -W "clippy::pedantic" -D warnings $(format_lints)
