@@ -60,6 +60,7 @@ impl Expression {
             Token::Function => FunctionLiteral::parse(parser).map(Expression::FunctionLiteral),
             Token::LSquare => ArrayLiteral::parse(parser).map(Expression::ArrayLiteral),
             Token::LSquirly => HashMapLiteral::parse(parser).map(Expression::HashMapLiteral),
+
             _ => Err(format!(
                 "There is no prefix parser for the token {}",
                 parser.current_token
@@ -407,6 +408,7 @@ pub enum Statement {
     Return(ReturnStatement),
     Expression(Expression),
     While(WhileStatement),
+    LoopStatements(LoopStatement),
 }
 
 impl Display for Statement {
@@ -416,6 +418,7 @@ impl Display for Statement {
             Statement::Return(statement) => write!(f, "{statement}"),
             Statement::Expression(expression) => write!(f, "{expression}"),
             Statement::While(statement) => write!(f, "{statement}"),
+            Statement::LoopStatements(statement) => write!(f, "{statement}"),
         }
     }
 }
@@ -583,6 +586,34 @@ impl HashMapLiteral {
         }
 
         Ok(HashMapLiteral { pairs })
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum LoopStatement {
+    Break,
+    Continue,
+}
+
+impl Display for LoopStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoopStatement::Break => write!(f, "break"),
+            LoopStatement::Continue => write!(f, "continue"),
+        }
+    }
+}
+
+impl LoopStatement {
+    pub fn parse(parser: &mut Parser) -> Result<Self, String> {
+        match parser.current_token {
+            Token::Break => Ok(Self::Break),
+            Token::Continue => Ok(Self::Continue),
+            _ => Err(format!(
+                "Expected a loop statement keyword (break, continue), got {}",
+                parser.current_token
+            )),
+        }
     }
 }
 

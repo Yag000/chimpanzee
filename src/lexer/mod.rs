@@ -111,6 +111,8 @@ impl Lexer {
                     "else" => Token::Else,
                     "return" => Token::Return,
                     "while" => Token::While,
+                    "break" => Token::Break,
+                    "continue" => Token::Continue,
                     _ => Token::Ident(ident_string),
                 };
             }
@@ -225,6 +227,9 @@ mod tests {
             while (true) {
                 return false;
             }
+
+            break;
+            continue;
         "#;
 
         let mut lexer = Lexer::new(input);
@@ -350,6 +355,11 @@ mod tests {
             Token::False,
             Token::Semicolon,
             Token::RSquirly,
+            //
+            Token::Break,
+            Token::Semicolon,
+            Token::Continue,
+            Token::Semicolon,
             //
             Token::Eof,
         ];

@@ -553,7 +553,9 @@ puts(21);
         let a = 1;
         while (x > 0){
             let a = a * 2;
+      break;
         }
+    continue;
         a
     };
     a(12);
@@ -568,7 +570,9 @@ let a = fn (x) {
     let a = 1;
     while (x > 0) {
         let a = a * 2;
+        break;
     }
+    continue;
     a
 };
 a(12);

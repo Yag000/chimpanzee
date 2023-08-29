@@ -10,7 +10,7 @@ use crate::{
 };
 
 use self::{
-    ast::{BlockStatement, WhileStatement},
+    ast::{BlockStatement, LoopStatement, WhileStatement},
     parser_errors::ParserErrors,
 };
 
@@ -62,6 +62,9 @@ impl Parser {
             Token::Let => self.parse_let_statement().map(Statement::Let),
             Token::Return => self.parse_return_statement().map(Statement::Return),
             Token::While => self.parse_while_statement().map(Statement::While),
+            Token::Break | Token::Continue => self
+                .parse_loop_statement()
+                .map(Statement::LoopStatements),
             _ => self.parse_expression_statement().map(Statement::Expression),
         }
     }
@@ -140,6 +143,12 @@ impl Parser {
         let body = BlockStatement::parse(self);
 
         Some(WhileStatement { condition, body })
+    }
+
+    fn parse_loop_statement(&mut self) -> Option<LoopStatement> {
+        let smt = LoopStatement::parse(self).ok();
+        self.next_token();
+        smt
     }
 
     fn parse_expression_statement(&mut self) -> Option<Expression> {

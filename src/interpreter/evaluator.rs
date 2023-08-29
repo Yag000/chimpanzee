@@ -55,6 +55,7 @@ impl Evaluator {
         result
     }
 
+    #[allow(clippy::match_wildcard_for_single_variants, unreachable_patterns)]
     fn eval_statement(&mut self, statement: Statement) -> Object {
         match statement {
             Statement::Expression(x) => self.eval_expression(x),
@@ -84,9 +85,13 @@ impl Evaluator {
                 }
                 result
             }
+
+            _ => unimplemented!(), // I have decided not to implement the rest of the expressions,
+                                   // I will focus on the compiler
         }
     }
 
+    #[allow(clippy::match_wildcard_for_single_variants, unreachable_patterns)]
     fn eval_expression(&mut self, expression: Expression) -> Object {
         match expression {
             Expression::Primitive(x) => Self::eval_primitive_expression(x),
@@ -139,6 +144,8 @@ impl Evaluator {
                 self.eval_index_expression(index_expression)
             }
             Expression::HashMapLiteral(hashmap) => self.eval_hashmap_literal(hashmap),
+            _ => unimplemented!(), // I have decided not to implement the rest of the expressions,
+                                   // I will focus on the compiler
         }
     }
 

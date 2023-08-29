@@ -5,8 +5,9 @@ mod tests {
         lexer::{token::Token, Lexer},
         parser::{
             ast::{
-                BlockStatement, Expression, FunctionCall, Identifier, InfixOperator, LetStatement,
-                Primitive, Program, ReturnStatement, Statement, WhileStatement,
+                BlockStatement, Conditional, LoopStatement, Expression, FunctionCall, Identifier,
+                InfixOperator, LetStatement, Primitive, Program, ReturnStatement, Statement,
+                WhileStatement,
             },
             Parser,
         },
@@ -614,6 +615,61 @@ mod tests {
                         })],
                     })),
                 ],
+            },
+        };
+
+        println!("Input:\n{input}");
+        let program = generate_program(input);
+        println!("Parsed:\n{program}");
+
+        assert_eq!(program.statements.len(), 1);
+
+        match program.statements[0].clone() {
+            Statement::While(smt) => {
+                assert_eq!(smt, expected);
+            }
+            _ => panic!("It is not an expression"),
+        }
+    }
+
+    #[test]
+    fn test_parse_while_loop_statements() {
+        let input = "while(x < 3){
+        if (x == 2){
+            break;
+        } else {
+            continue;
+        }
+    }";
+
+        let expected = WhileStatement {
+            condition: Expression::Infix(InfixOperator {
+                token: Token::LT,
+                left: Box::new(Expression::Identifier(Identifier {
+                    token: Token::Ident("x".to_string()),
+                    value: "x".to_string(),
+                })),
+                right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(3))),
+            }),
+            body: BlockStatement {
+                statements: vec![Statement::Expression(Expression::Conditional(
+                    Conditional {
+                        condition: Box::new(Expression::Infix(InfixOperator {
+                            token: Token::Equal,
+                            left: Box::new(Expression::Identifier(Identifier {
+                                token: Token::Ident("x".to_string()),
+                                value: "x".to_string(),
+                            })),
+                            right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(2))),
+                        })),
+                        consequence: BlockStatement {
+                            statements: vec![Statement::LoopStatements(LoopStatement::Break)],
+                        },
+                        alternative: Some(BlockStatement {
+                            statements: vec![Statement::LoopStatements(LoopStatement::Continue)],
+                        }),
+                    },
+                ))],
             },
         };
 

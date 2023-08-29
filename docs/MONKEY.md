@@ -222,11 +222,24 @@ if (a == 1) {
 
 ### Loops
 
-While loops have been implemented, but for now keywords such as `break` and `continue` have not yet been implemented.
+While loops have been implemented.
 
 ```monkey
 let a = 1;
 while (a < 4) {
+    puts(a);
+    let a = a + 1;
+}
+```
+
+You can also use `break` and `continue` inside a loop.
+
+```monkey
+let a = 1;
+while (a < 4) {
+    if (a == 2) {
+        break;
+    }
     puts(a);
     let a = a + 1;
 }
