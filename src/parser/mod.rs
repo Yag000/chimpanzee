@@ -10,7 +10,7 @@ use crate::{
 };
 
 use self::{
-    ast::{BlockStatement, LoopStatements, WhileStatement},
+    ast::{BlockStatement, LoopStatement, WhileStatement},
     parser_errors::ParserErrors,
 };
 
@@ -145,10 +145,10 @@ impl Parser {
         Some(WhileStatement { condition, body })
     }
 
-    fn parse_loop_statement(&mut self) -> Option<LoopStatements> {
-        let ctrlflow = LoopStatements::parse(self).ok();
+    fn parse_loop_statement(&mut self) -> Option<LoopStatement> {
+        let smt = LoopStatement::parse(self).ok();
         self.next_token();
-        ctrlflow
+        smt
     }
 
     fn parse_expression_statement(&mut self) -> Option<Expression> {

@@ -17,7 +17,7 @@ use crate::{
     },
     parser::ast::{
         BlockStatement, Conditional, Expression, FunctionLiteral, InfixOperator, LetStatement,
-        LoopStatements, Primitive, Program, Statement, WhileStatement,
+        LoopStatement, Primitive, Program, Statement, WhileStatement,
     },
 };
 
@@ -169,7 +169,7 @@ impl Compiler {
                 self.compile_while_statement(wh)?;
             }
 
-            Statement::LoopStatements(ctrflow) => self.compile_loop_statement(&ctrflow),
+            Statement::LoopStatements(smt) => self.compile_loop_statement(&smt),
         }
 
         Ok(())
@@ -471,9 +471,9 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_loop_statement(&mut self, ctrflow: &LoopStatements) {
-        match ctrflow {
-            LoopStatements::Break => {
+    fn compile_loop_statement(&mut self, smt: &LoopStatement) {
+        match smt {
+            LoopStatement::Break => {
                 let pos = self.emit(Opcode::Jump, vec![9999]); // We emit a dummy value for the jump offset
                                                                // and we will fix it later
                 self.scopes[self.scope_index]
@@ -484,7 +484,7 @@ impl Compiler {
                     .borrow_mut()
                     .add_break(pos);
             }
-            LoopStatements::Continue => {
+            LoopStatement::Continue => {
                 let while_initial_pos = self.scopes[self.scope_index]
                     .loop_scope
                     .as_ref()

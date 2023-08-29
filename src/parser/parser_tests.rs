@@ -5,7 +5,7 @@ mod tests {
         lexer::{token::Token, Lexer},
         parser::{
             ast::{
-                BlockStatement, Conditional, LoopStatements, Expression, FunctionCall, Identifier,
+                BlockStatement, Conditional, LoopStatement, Expression, FunctionCall, Identifier,
                 InfixOperator, LetStatement, Primitive, Program, ReturnStatement, Statement,
                 WhileStatement,
             },
@@ -663,10 +663,10 @@ mod tests {
                             right: Box::new(Expression::Primitive(Primitive::IntegerLiteral(2))),
                         })),
                         consequence: BlockStatement {
-                            statements: vec![Statement::LoopStatements(LoopStatements::Break)],
+                            statements: vec![Statement::LoopStatements(LoopStatement::Break)],
                         },
                         alternative: Some(BlockStatement {
-                            statements: vec![Statement::LoopStatements(LoopStatements::Continue)],
+                            statements: vec![Statement::LoopStatements(LoopStatement::Continue)],
                         }),
                     },
                 ))],

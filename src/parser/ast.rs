@@ -408,7 +408,7 @@ pub enum Statement {
     Return(ReturnStatement),
     Expression(Expression),
     While(WhileStatement),
-    LoopStatements(LoopStatements),
+    LoopStatements(LoopStatement),
 }
 
 impl Display for Statement {
@@ -590,21 +590,21 @@ impl HashMapLiteral {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum LoopStatements {
+pub enum LoopStatement {
     Break,
     Continue,
 }
 
-impl Display for LoopStatements {
+impl Display for LoopStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LoopStatements::Break => write!(f, "break"),
-            LoopStatements::Continue => write!(f, "continue"),
+            LoopStatement::Break => write!(f, "break"),
+            LoopStatement::Continue => write!(f, "continue"),
         }
     }
 }
 
-impl LoopStatements {
+impl LoopStatement {
     pub fn parse(parser: &mut Parser) -> Result<Self, String> {
         match parser.current_token {
             Token::Break => Ok(Self::Break),
