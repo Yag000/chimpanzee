@@ -9,11 +9,11 @@ fn run_test(input: &str) {
 
     let formatted_input = Formatter::format(input);
 
-    println!("{}", formatted_input);
+    println!("{formatted_input}");
 
     let formatted_evaluation = run_input(formatted_input.as_str());
 
-    println!("{}", formatted_evaluation);
+    println!("{formatted_evaluation}");
 
     assert_eq!(input_evaluation, formatted_evaluation);
 }

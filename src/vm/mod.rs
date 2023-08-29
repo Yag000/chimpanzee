@@ -1,4 +1,8 @@
+mod function_tests;
+mod shadowing_tests;
+mod test_utils;
 mod vm_tests;
+mod while_statemets_tests;
 
 use crate::{
     compiler::{
