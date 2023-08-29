@@ -598,8 +598,8 @@ pub enum LoopStatements {
 impl Display for LoopStatements {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LoopStatements::Break => write!(f, "break;"),
-            LoopStatements::Continue => write!(f, "continue;"),
+            LoopStatements::Break => write!(f, "break"),
+            LoopStatements::Continue => write!(f, "continue"),
         }
     }
 }
@@ -610,7 +610,7 @@ impl LoopStatements {
             Token::Break => Ok(Self::Break),
             Token::Continue => Ok(Self::Continue),
             _ => Err(format!(
-                "Expected a control flow keyword (break, continue), got {}",
+                "Expected a loop statement keyword (break, continue), got {}",
                 parser.current_token
             )),
         }

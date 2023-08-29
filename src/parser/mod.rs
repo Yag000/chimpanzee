@@ -63,7 +63,7 @@ impl Parser {
             Token::Return => self.parse_return_statement().map(Statement::Return),
             Token::While => self.parse_while_statement().map(Statement::While),
             Token::Break | Token::Continue => self
-                .parse_control_flow_statement()
+                .parse_loop_statement()
                 .map(Statement::LoopStatements),
             _ => self.parse_expression_statement().map(Statement::Expression),
         }
@@ -145,7 +145,7 @@ impl Parser {
         Some(WhileStatement { condition, body })
     }
 
-    fn parse_control_flow_statement(&mut self) -> Option<LoopStatements> {
+    fn parse_loop_statement(&mut self) -> Option<LoopStatements> {
         let ctrlflow = LoopStatements::parse(self).ok();
         self.next_token();
         ctrlflow

@@ -16,8 +16,8 @@ use crate::{
         {CompiledFunction, Object},
     },
     parser::ast::{
-        BlockStatement, Conditional, LoopStatements, Expression, FunctionLiteral, InfixOperator,
-        LetStatement, Primitive, Program, Statement, WhileStatement,
+        BlockStatement, Conditional, Expression, FunctionLiteral, InfixOperator, LetStatement,
+        LoopStatements, Primitive, Program, Statement, WhileStatement,
     },
 };
 
@@ -169,7 +169,7 @@ impl Compiler {
                 self.compile_while_statement(wh)?;
             }
 
-            Statement::LoopStatements(ctrflow) => self.compile_control_flow_statement(&ctrflow),
+            Statement::LoopStatements(ctrflow) => self.compile_loop_statement(&ctrflow),
         }
 
         Ok(())
@@ -471,7 +471,7 @@ impl Compiler {
         Ok(())
     }
 
-    fn compile_control_flow_statement(&mut self, ctrflow: &LoopStatements) {
+    fn compile_loop_statement(&mut self, ctrflow: &LoopStatements) {
         match ctrflow {
             LoopStatements::Break => {
                 let pos = self.emit(Opcode::Jump, vec![9999]); // We emit a dummy value for the jump offset

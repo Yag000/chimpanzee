@@ -633,7 +633,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_while_control_flow_statements() {
+    fn test_parse_while_loop_statements() {
         let input = "while(x < 3){
         if (x == 2){
             break;
