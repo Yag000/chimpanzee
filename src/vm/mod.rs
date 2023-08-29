@@ -1,4 +1,8 @@
+mod function_tests;
+mod shadowing_tests;
+mod test_utils;
 mod vm_tests;
+mod while_statemets_tests;
 
 use crate::{
     compiler::{
@@ -493,7 +497,7 @@ impl VM {
             Object::COMPILEDFUNCTION(func) => {
                 let mut closure = Closure::new(func);
 
-                for obj in self.stack[self.sp - num_free..self.sp].iter() {
+                for obj in &self.stack[self.sp - num_free..self.sp] {
                     closure.add_free_variable(obj.as_ref().clone());
                 }
 

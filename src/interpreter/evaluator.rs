@@ -126,7 +126,9 @@ impl Evaluator {
             }
             Expression::FunctionCall(x) => {
                 let function = self.eval_expression(*x.function);
-                if Self::is_error(&function) {}
+                if Self::is_error(&function) {
+                    return function;
+                }
                 let args = self.eval_expressions(x.arguments);
                 if args.len() == 1 && Self::is_error(&args[0]) {
                     return args[0].clone();

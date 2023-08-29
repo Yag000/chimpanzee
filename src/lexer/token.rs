@@ -50,7 +50,7 @@ pub enum Token {
     Return,
     While,
     Break,
-    Continue
+    Continue,
 }
 
 impl Display for Token {
@@ -91,7 +91,7 @@ impl Display for Token {
             Token::Return => write!(f, "return"),
             Token::While => write!(f, "while"),
             Token::Break => write!(f, "break"),
-            Token::Continue => write!(f, "continue")
+            Token::Continue => write!(f, "continue"),
         }
     }
 }
