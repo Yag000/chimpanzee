@@ -1,7 +1,9 @@
 pub mod code;
 mod compiler_tests;
+mod function_tests;
 pub mod symbol_table;
 mod test_utils;
+mod while_tests;
 
 use std::{cell::RefCell, rc::Rc};
 
