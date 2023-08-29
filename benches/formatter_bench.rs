@@ -1,7 +1,6 @@
 use chimpanzee::formatter::Formatter;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-
 pub fn long_formatter_benchmark(c: &mut Criterion) {
     let input = r#"
 let fibonacci_it = fn (x) {
