@@ -5,8 +5,8 @@ mod tests {
         lexer::{token::Token, Lexer},
         parser::{
             ast::{
-                BlockStatement, Conditional, LoopStatement, Expression, FunctionCall, Identifier,
-                InfixOperator, LetStatement, Primitive, Program, ReturnStatement, Statement,
+                BlockStatement, Conditional, Expression, FunctionCall, Identifier, InfixOperator,
+                LetStatement, LoopStatement, Primitive, Program, ReturnStatement, Statement,
                 WhileStatement,
             },
             Parser,
