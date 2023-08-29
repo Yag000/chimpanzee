@@ -1,7 +1,7 @@
 name: Rust
-
-push:
-  branches: ["master"]
+on:
+  push:
+    branches: ["master"]
   pull_request:
 
 env:
