@@ -1,6 +1,6 @@
 [package]
 name = "chimpanzee"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["Yago Iglesias <yagoiglesias7@gmail.com>"]
 license = "MIT OR Apache-2.0"
