@@ -337,6 +337,7 @@ impl Compiler {
             Token::NotEqual => self.emit(Opcode::NotEqual, vec![]),
             Token::Or => self.emit(Opcode::Or, vec![]),
             Token::And => self.emit(Opcode::And, vec![]),
+            Token::Modulo => self.emit(Opcode::Modulo, vec![]),
             _ => return Err(format!("Unknown operator: {operator}")),
         };
         Ok(())

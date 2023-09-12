@@ -5,7 +5,7 @@ mod tests {
 
     use crate::{
         object::Object,
-        vm::test_utils::{run_vm_tests, VmTestCase},
+        vm::test_utils::{run_vm_tests, run_vm_with_error_output, VmTestCase},
     };
 
     #[test]
@@ -67,8 +67,34 @@ mod tests {
                 input: "(5 + 10 * 2 + 15 / 3) * 2 + -10".to_string(),
                 expected: Object::INTEGER(50),
             },
+            VmTestCase {
+                input: "5 % 5".to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: "5 % 1".to_string(),
+                expected: Object::INTEGER(0),
+            },
+            VmTestCase {
+                input: "5 % 2".to_string(),
+                expected: Object::INTEGER(1),
+            },
+            VmTestCase {
+                input: "4 % 5".to_string(),
+                expected: Object::INTEGER(4),
+            },
         ];
         run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_division_by_zero() {
+        let tests = vec!["1 / 0", "1 % 0"];
+
+        for test in tests {
+            let result = run_vm_with_error_output(test);
+            assert!(result.is_err());
+        }
     }
 
     #[test]

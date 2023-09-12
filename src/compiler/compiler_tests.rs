@@ -72,6 +72,16 @@ pub mod tests {
                     Opcode::Pop.make(vec![]),
                 ]),
             },
+            CompilerTestCase {
+                input: "1 % 2".to_string(),
+                expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
+                expected_instructions: flatten_instructions(vec![
+                    Opcode::Constant.make(vec![0]),
+                    Opcode::Constant.make(vec![1]),
+                    Opcode::Modulo.make(vec![]),
+                    Opcode::Pop.make(vec![]),
+                ]),
+            },
         ];
 
         run_compiler(tests);
