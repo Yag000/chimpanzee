@@ -37,3 +37,14 @@ pub(crate) fn run_vm_tests(tests: Vec<VmTestCase>) {
         check_constants(&vec![test.expected], &vec![got]);
     }
 }
+
+#[allow(dead_code)]
+pub(crate) fn run_vm_with_error_output(input: &str) -> Result<(), String> {
+    let program = parse(input);
+    let mut compiler = Compiler::new();
+    compiler.compile(program).unwrap();
+    let bytecode = compiler.bytecode();
+
+    let mut vm = VM::new(bytecode);
+    vm.run()
+}

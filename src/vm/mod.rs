@@ -111,6 +111,7 @@ impl VM {
                 | Opcode::Sub
                 | Opcode::Mul
                 | Opcode::Div
+                | Opcode::Modulo
                 | Opcode::Or
                 | Opcode::And => {
                     self.execute_binary_operation(op)?;
@@ -305,7 +306,20 @@ impl VM {
             Opcode::Add => left + right,
             Opcode::Sub => left - right,
             Opcode::Mul => left * right,
-            Opcode::Div => left / right,
+            Opcode::Div => {
+                if right == 0 {
+                    Err("Division by zero".to_string())?
+                } else {
+                    left / right
+                }
+            }
+            Opcode::Modulo => {
+                if right == 0 {
+                    Err("Division by zero".to_string())?
+                } else {
+                    left % right
+                }
+            }
             _ => unreachable!(),
         };
 
