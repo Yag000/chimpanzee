@@ -27,6 +27,7 @@ pub enum Token {
     NotEqual,
     And,
     Or,
+    Modulo,
 
     // Delimiters
     Comma,
@@ -92,6 +93,7 @@ impl Display for Token {
             Token::While => write!(f, "while"),
             Token::Break => write!(f, "break"),
             Token::Continue => write!(f, "continue"),
+            Token::Modulo => write!(f, "%"),
         }
     }
 }

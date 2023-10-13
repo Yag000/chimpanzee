@@ -28,6 +28,7 @@ Integers support the following operators:
 - `-`: subtraction
 - `*`: multiplication
 - `/`: division (integer division)
+- `%`: modulo
 - `==`: equality
 - `!=`: inequality
 - `<`: less than

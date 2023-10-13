@@ -53,7 +53,7 @@ pub(crate) fn run_compiler(tests: Vec<CompilerTestCase>) {
         let mut compiler = Compiler::new();
 
         match compiler.compile(program) {
-            Ok(_) => {
+            Ok(()) => {
                 let bytecode = compiler.bytecode();
                 println!(
                     "want {}, got {}",

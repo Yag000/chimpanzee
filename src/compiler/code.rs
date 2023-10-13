@@ -87,6 +87,7 @@ pub enum Opcode {
     NotEqual,
     Or,
     And,
+    Modulo,
 
     // Prefix operators
     Minus,
@@ -142,6 +143,7 @@ impl Display for Opcode {
             Opcode::Or => "OpOr",
             Opcode::And => "OpAnd",
             Opcode::Minus => "OpMinus",
+            Opcode::Modulo => "OpModulo",
             Opcode::Bang => "OpBang",
             Opcode::JumpNotTruthy => "OpJumpNotTruthy",
             Opcode::Jump => "OpJump",

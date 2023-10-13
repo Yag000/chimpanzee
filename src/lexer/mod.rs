@@ -86,6 +86,7 @@ impl Lexer {
                     Token::Illegal("|".to_string())
                 }
             }
+            '%' => Token::Modulo,
             ';' => Token::Semicolon,
             '(' => Token::LParen,
             ')' => Token::RParen,
@@ -230,6 +231,7 @@ mod tests {
 
             break;
             continue;
+            42%13==20;
         "#;
 
         let mut lexer = Lexer::new(input);
@@ -359,6 +361,13 @@ mod tests {
             Token::Break,
             Token::Semicolon,
             Token::Continue,
+            Token::Semicolon,
+            //
+            Token::Int(String::from("42")),
+            Token::Modulo,
+            Token::Int(String::from("13")),
+            Token::Equal,
+            Token::Int(String::from("20")),
             Token::Semicolon,
             //
             Token::Eof,
