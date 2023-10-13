@@ -147,7 +147,7 @@ fn test_filter_integrity() {
             iter(arr, []);
         };
         let a = [1, 2, 3, 4,5,6,7,8,9,11,100];
-        let is_even = fn(x) { (x/2)*2 == x };
+            let is_even = fn(x) { x % 2 == 0 };
         filter(a, is_even);
     "#;
 
