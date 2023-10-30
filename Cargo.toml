@@ -18,7 +18,7 @@ path = "src/lib.rs"
 
 
 [dependencies]
-clap = "4.4.6"
+clap = "4.4.7"
 clap_derive = "4.4.7"
 criterion = "0.5.1"
 byteorder = "1.5.0"
