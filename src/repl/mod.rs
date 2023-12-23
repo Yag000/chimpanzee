@@ -192,7 +192,7 @@ impl ReplCli {
     }
 
     fn greeting_message(&self) {
-        let greeting = r#"
+        let greeting = r"
                                   @@@@@@@@@@@@
                                 @@%#+-:...:-=*@@@
                               @@*:    .:::.    -%@
@@ -232,7 +232,7 @@ impl ReplCli {
                        @@@@%*+-:              ..-=*#@@@@
                            @@@@@@@%##*****##%@@@@@@@
                                   @@@@@@@@@@@     
-"#;
+";
         if self.logo {
             println!("{greeting}");
         }
