@@ -109,6 +109,7 @@ dependencies = [
  "clap",
  "clap_derive",
  "criterion",
+ "enum_stringify",
  "num-derive",
  "num-traits",
  "rustyline",
@@ -275,6 +276,17 @@ name = "endian-type"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
+
+[[package]]
+name = "enum_stringify"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c187746a2c96635d1d908a186ce6b698135c58ed1baca73860ad9cd44d80e32"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "errno"
