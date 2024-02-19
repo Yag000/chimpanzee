@@ -119,7 +119,7 @@ impl ReplCli {
         self.greeting_message();
         ReplCli::print_entry_header();
         let mut evaluator = Evaluator::new();
-        for line in std::io::stdin().lines().flatten() {
+        for line in std::io::stdin().lines().map_while(Result::ok) {
             match interpret(&mut evaluator, &line) {
                 Ok(str) => {
                     if str != Object::NULL.to_string() {
@@ -146,7 +146,7 @@ impl ReplCli {
             (0..GLOBALS_SIZE).for_each(|_| v.push(Rc::new(NULL)));
             v
         };
-        for line in std::io::stdin().lines().flatten() {
+        for line in std::io::stdin().lines().map_while(Result::ok) {
             let lexer = Lexer::new(&line);
             let mut parser = Parser::new(lexer);
             let program = parser.parse_program();
