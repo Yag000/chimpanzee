@@ -17,7 +17,7 @@ use crate::{
 };
 
 use clap_derive::{Parser, ValueEnum};
-use std::io::{self, Write};
+use rustyline::{error::ReadlineError, DefaultEditor};
 use std::rc::Rc;
 use std::{error::Error, fs};
 
@@ -63,79 +63,100 @@ impl ReplCli {
     }
 
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
+        let mut rl = DefaultEditor::new()?;
         match &self.get_input_type() {
-            InputType::Repl => match self.get_mode() {
-                Mode::Lexer => Ok(self.rlpl()?),
-                Mode::Parser => Ok(self.rppl()?),
-                Mode::Interpreter => self.interpreter(),
-                Mode::Compiler => self.compiler(),
-            },
+            InputType::Repl => {
+                self.greeting_message();
+                match self.get_mode() {
+                    Mode::Lexer => Ok(self.rlpl(&mut rl)?),
+                    Mode::Parser => Ok(self.rppl(&mut rl)?),
+                    Mode::Interpreter => self.interpreter(&mut rl),
+                    Mode::Compiler => self.compiler(&mut rl),
+                }
+            }
             InputType::File(filename) => self.run_file(filename),
         }
     }
 
-    fn rlpl(&self) -> Result<(), LexerErrors> {
-        self.greeting_message();
-        ReplCli::print_entry_header();
+    fn rlpl(&self, rl: &mut DefaultEditor) -> Result<(), LexerErrors> {
         let mut errors = LexerErrors::new();
-        std::io::stdin().lines().for_each(|line| {
-            if let Ok(line) = line {
-                let new_error = lex(&line);
-                if let Err(err) = new_error {
-                    errors.add_errors(err);
-                }
-            }
-            ReplCli::print_entry_header();
-        });
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
-
-    pub fn rppl(&self) -> Result<(), ParserErrors> {
-        self.greeting_message();
-        ReplCli::print_entry_header();
-        let mut errors = ParserErrors::new();
-        std::io::stdin().lines().for_each(|line| {
-            if let Ok(line) = line {
-                let new_error = parse(&line);
-                if let Err(err) = new_error {
-                    errors.add_errors(err.errors);
-                }
-            }
-            ReplCli::print_entry_header();
-        });
-
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
-    }
-
-    pub fn interpreter(&self) -> Result<(), Box<dyn Error>> {
-        self.greeting_message();
-        ReplCli::print_entry_header();
-        let mut evaluator = Evaluator::new();
-        for line in std::io::stdin().lines().map_while(Result::ok) {
-            match interpret(&mut evaluator, &line) {
-                Ok(str) => {
-                    if str != Object::NULL.to_string() {
-                        println!("{str}");
+        loop {
+            match rl.readline(self.get_prompt().as_str()) {
+                Ok(line) => {
+                    let new_error = lex(&line);
+                    if let Err(err) = new_error {
+                        errors.add_errors(err);
                     }
                 }
-                Err(err) => eprintln!("{err}",),
+                Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {err:?}");
+                    break;
+                }
             }
-            ReplCli::print_entry_header();
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    pub fn rppl(&self, rl: &mut DefaultEditor) -> Result<(), ParserErrors> {
+        let mut errors = ParserErrors::new();
+        loop {
+            match rl.readline(self.get_prompt().as_str()) {
+                Ok(line) => {
+                    let new_error = parse(&line);
+                    if let Err(err) = new_error {
+                        errors.add_errors(err.errors);
+                    }
+                }
+                Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {err:?}");
+                    break;
+                }
+            }
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    pub fn interpreter(&self, rl: &mut DefaultEditor) -> Result<(), Box<dyn Error>> {
+        let mut evaluator = Evaluator::new();
+        loop {
+            match rl.readline(self.get_prompt().as_str()) {
+                Ok(line) => match interpret(&mut evaluator, &line) {
+                    Ok(str) => {
+                        if str != Object::NULL.to_string() {
+                            println!("{str}");
+                        }
+                    }
+                    Err(err) => eprintln!("{err}",),
+                },
+                Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {err:?}");
+                    break;
+                }
+            }
         }
         Ok(())
     }
 
-    pub fn compiler(&self) -> Result<(), Box<dyn Error>> {
-        self.greeting_message();
-        ReplCli::print_entry_header();
+    pub fn compiler(&self, rl: &mut DefaultEditor) -> Result<(), Box<dyn Error>> {
         let mut symbol_table = SymbolTable::new();
         for (i, builtin) in BuiltinFunction::get_builtins_names().iter().enumerate() {
             symbol_table.define_builtin(i, builtin.clone());
@@ -146,47 +167,60 @@ impl ReplCli {
             (0..GLOBALS_SIZE).for_each(|_| v.push(Rc::new(NULL)));
             v
         };
-        for line in std::io::stdin().lines().map_while(Result::ok) {
-            let lexer = Lexer::new(&line);
-            let mut parser = Parser::new(lexer);
-            let program = parser.parse_program();
-            if !parser.errors.is_empty() {
-                eprintln!("{}", parser.errors);
-            }
-            let mut compiler = Compiler::new_with_state(symbol_table.clone(), constants.clone());
-            if let Err(err) = compiler.compile(program) {
-                let err = CompilerError::new(err);
-                eprintln!("{err}",);
-            }
 
-            let mut vm = VM::new_with_global_store(compiler.bytecode(), globals.clone());
-            if let Err(err) = vm.run() {
-                eprintln!("{err}",);
-            }
-            constants = compiler.constants;
-            symbol_table = compiler.symbol_table;
+        loop {
+            match rl.readline(self.get_prompt().as_str()) {
+                Ok(line) => {
+                    let lexer = Lexer::new(&line);
+                    let mut parser = Parser::new(lexer);
+                    let program = parser.parse_program();
+                    if !parser.errors.is_empty() {
+                        eprintln!("{}", parser.errors);
+                    }
+                    let mut compiler =
+                        Compiler::new_with_state(symbol_table.clone(), constants.clone());
+                    if let Err(err) = compiler.compile(program) {
+                        let err = CompilerError::new(err);
+                        eprintln!("{err}",);
+                    }
 
-            let vm_result: Result<String, Box<dyn Error>> = match vm.last_popped_stack_element() {
-                Ok(obj) => match obj.as_ref() {
-                    Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
-                    x => Ok(x.to_string()),
-                },
-                Err(_) => Err(Box::new(RuntimeError::new(String::from(
-                    "No object returned from VM",
-                )))),
-            };
+                    let mut vm = VM::new_with_global_store(compiler.bytecode(), globals.clone());
+                    if let Err(err) = vm.run() {
+                        eprintln!("{err}",);
+                    }
+                    constants = compiler.constants;
+                    symbol_table = compiler.symbol_table;
 
-            globals = vm.globals;
-            match vm_result {
-                Ok(str) => {
-                    if str != Object::NULL.to_string() {
-                        println!("{str}");
+                    let vm_result: Result<String, Box<dyn Error>> = match vm
+                        .last_popped_stack_element()
+                    {
+                        Ok(obj) => match obj.as_ref() {
+                            Object::ERROR(error) => Err(Box::new(RuntimeError::new(error.clone()))),
+                            x => Ok(x.to_string()),
+                        },
+                        Err(_) => Err(Box::new(RuntimeError::new(String::from(
+                            "No object returned from VM",
+                        )))),
+                    };
+
+                    globals = vm.globals;
+                    match vm_result {
+                        Ok(str) => {
+                            if str != Object::NULL.to_string() {
+                                println!("{str}");
+                            }
+                        }
+                        Err(err) => eprintln!("{err}",),
                     }
                 }
-                Err(err) => eprintln!("{err}",),
+                Err(ReadlineError::Interrupted | ReadlineError::Eof) => {
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {err:?}");
+                    break;
+                }
             }
-
-            ReplCli::print_entry_header();
         }
         Ok(())
     }
@@ -240,9 +274,8 @@ impl ReplCli {
         println!("Feel free to type in commands\n");
     }
 
-    fn print_entry_header() {
-        print!(">> ");
-        io::stdout().flush().unwrap();
+    fn get_prompt(&self) -> String {
+        String::from(">>")
     }
 
     fn run_file(&self, file_path: &str) -> Result<(), Box<dyn Error>> {
