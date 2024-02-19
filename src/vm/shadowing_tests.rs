@@ -102,7 +102,7 @@ mod tests {
                     let x = fn() { 1 };
                     let x = fn() { 2 };
                     x()"
-                    .to_string(),
+                .to_string(),
                 expected: Object::INTEGER(2),
             },
         ];

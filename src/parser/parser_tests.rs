@@ -496,9 +496,11 @@ mod tests {
             Statement::Expression(exp) => match exp {
                 Expression::HashMapLiteral(h) => {
                     assert_eq!(h.pairs.len(), 3);
-                    let expected = [("\"one\"", "(1 + 34)"),
+                    let expected = [
+                        ("\"one\"", "(1 + 34)"),
                         ("\"two\"", "(2 / 5)"),
-                        ("\"three\"", "(3 - 1)")];
+                        ("\"three\"", "(3 - 1)"),
+                    ];
                     for (i, (key, value)) in expected.iter().enumerate() {
                         let pair = h.pairs.get(i).unwrap();
                         assert_eq!(pair.0.to_string(), **key);

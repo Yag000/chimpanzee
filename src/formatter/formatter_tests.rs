@@ -172,7 +172,8 @@ puts(fib);
 
     #[test]
     fn format_implicit_return() {
-        let inputs = [r"
+        let inputs = [
+            r"
             let fibonacci = fn(x) {
                 if (x < 2) {
                     x
@@ -207,7 +208,8 @@ puts(fib);
                 else{
                     return fibonacci(x - 1) + fibonacci(x - 2);
                 }
-            }"];
+            }",
+        ];
 
         let expected_values = vec![
             r"let fibonacci = fn (x) {
