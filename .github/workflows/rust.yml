@@ -45,13 +45,3 @@ jobs:
           components: clippy
       - name: Linting
         run: ./run_linter.sh
-
-  coverage:
-    name: Code coverage
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Generate code coverage
-        run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
