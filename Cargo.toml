@@ -23,7 +23,7 @@ clap_derive = "4.4.7"
 byteorder = "1.5.0"
 num-derive = "0.4.1"
 num-traits = "0.2.17"
-strum = "0.25.0"
+strum = "0.26.1"
 strum_macros = "0.26.1"
 rustyline = "13.0.0"
 
