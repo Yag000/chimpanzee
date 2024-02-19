@@ -63,11 +63,14 @@ impl ReplCli {
     }
 
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
+        //TODO: Implement our own editor for competition
         let mut rl = DefaultEditor::new()?;
         match &self.get_input_type() {
             InputType::Repl => {
                 self.greeting_message();
                 match self.get_mode() {
+                    // TODO: Simplify this handling, its always more or less the same,
+                    // we should have an abstraction for this
                     Mode::Lexer => Ok(self.rlpl(&mut rl)?),
                     Mode::Parser => Ok(self.rppl(&mut rl)?),
                     Mode::Interpreter => self.interpreter(&mut rl),
