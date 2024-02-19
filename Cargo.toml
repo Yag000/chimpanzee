@@ -24,7 +24,7 @@ byteorder = "1.5.0"
 num-derive = "0.4.1"
 num-traits = "0.2.17"
 strum = "0.25.0"
-strum_macros = "0.25.3"
+strum_macros = "0.26.1"
 
 [dev-dependencies]
 criterion = "0.5.1"
