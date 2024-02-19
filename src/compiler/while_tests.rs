@@ -38,11 +38,11 @@ pub mod tests {
     #[test]
     fn test_break_in_while() {
         let tests = vec![CompilerTestCase {
-            input: r#"
+            input: r"
                     while (true){
                         break;
                     }
-                    "#
+                    "
             .to_string(),
             expected_constants: vec![],
             expected_instructions: flatten_instructions(vec![
@@ -60,14 +60,14 @@ pub mod tests {
     #[test]
     fn test_nested_breaks_in_while() {
         let tests = vec![CompilerTestCase {
-            input: r#"
+            input: r"
                     while (true){
                         while (true){
                             break;
                         }
                         break;
                     }
-                    "#
+                    "
             .to_string(),
             expected_constants: vec![],
             expected_instructions: flatten_instructions(vec![
@@ -88,11 +88,11 @@ pub mod tests {
     #[test]
     fn test_continue_in_while() {
         let tests = vec![CompilerTestCase {
-            input: r#"
+            input: r"
                         while (true){
                             continue;
                         }
-                        "#
+                        "
             .to_string(),
             expected_constants: vec![],
             expected_instructions: flatten_instructions(vec![
@@ -110,14 +110,14 @@ pub mod tests {
     #[test]
     fn test_nested_continue_in_while() {
         let tests = vec![CompilerTestCase {
-            input: r#"
+            input: r"
                     while (true){
                         while (true){
                             continue;
                         }
                         continue;
                     }
-                    "#
+                    "
             .to_string(),
             expected_constants: vec![],
             expected_instructions: flatten_instructions(vec![
@@ -139,14 +139,14 @@ pub mod tests {
     #[test]
     fn test_continue_and_break_in_while() {
         let tests = vec![CompilerTestCase {
-            input: r#"
+            input: r"
                     while (true){
                         while (true){
                             continue;
                         }
                         break;
                     }
-                    "#
+                    "
             .to_string(),
             expected_constants: vec![],
             expected_instructions: flatten_instructions(vec![

@@ -145,13 +145,13 @@ mod tests {
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
             (
-                r#"
+                r"
                 if (10 > 1) {
                     if (10 > 1) {
                         return true + false;
                     }
                     return 1;
-                }"#,
+                }",
                 "unknown operator: BOOLEAN + BOOLEAN",
             ),
             ("foobar", "identifier not found: foobar"),
@@ -224,13 +224,13 @@ mod tests {
 
     #[test]
     fn test_closures() {
-        let input = r#"
+        let input = r"
         let newAdder = fn(x) {
             fn(y) { x + y };
         };
 
         let addTwo = newAdder(2);
-        addTwo(2);"#;
+        addTwo(2);";
 
         test_integer_object(test_eval(input), 4);
     }
@@ -259,7 +259,7 @@ mod tests {
             (r#"len("")"#, 0),
             (r#"len("four")"#, 4),
             (r#"len("hello world")"#, 11),
-            (r#"len([1,2,3,4,5])"#, 5),
+            (r"len([1,2,3,4,5])", 5),
         ];
 
         for (input, expected) in tests_striung {
@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_builttin_len_function_errors() {
         let tests_striung = vec![
-            (r#"len(1)"#, "argument to `len` not supported, got INTEGER"),
+            (r"len(1)", "argument to `len` not supported, got INTEGER"),
             (
                 r#"len("one", "two")"#,
                 "wrong number of arguments. got=2, want=1",
@@ -409,7 +409,7 @@ mod tests {
 
     #[test]
     fn test_array_functions_together() {
-        let input = r#"
+        let input = r"
         let map = fn(arr, f) {
             let iter = fn(arr, accumulated) {
                 if (len(arr) == 0) {
@@ -423,7 +423,7 @@ mod tests {
         let a = [1, 2, 3, 4];
         let double = fn(x) { x * 2 };
         map(a, double);
-        "#;
+        ";
 
         let expected = vec![2, 4, 6, 8];
 
@@ -475,9 +475,9 @@ mod tests {
             (r#"{"foo": 5}["bar"]"#, None),
             (r#"let key = "foo"; {"foo": 5}[key]"#, Some(5)),
             (r#"{}["foo"]"#, None),
-            (r#"{5: 5}[5]"#, Some(5)),
-            (r#"{true: 5}[true]"#, Some(5)),
-            (r#"{false: 5}[false]"#, Some(5)),
+            (r"{5: 5}[5]", Some(5)),
+            (r"{true: 5}[true]", Some(5)),
+            (r"{false: 5}[false]", Some(5)),
         ];
 
         for (input, expected) in tests {

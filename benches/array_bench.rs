@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use chimpanzee::utils::{compile_program, execute_interpreter, execute_vm, parse_program};
 
-const ARRAY_APPEND: &str = r#"
+const ARRAY_APPEND: &str = r"
 let push_n = fn (arr, n) {
     if (n < 0) {
         arr
@@ -13,20 +13,20 @@ let push_n = fn (arr, n) {
 };
 let a = [];
 push_n(a, 500);
-"#;
+";
 
 pub fn array_append_compiler_benchmark(c: &mut Criterion) {
     let program = parse_program(ARRAY_APPEND);
     let compiler = compile_program(program);
     c.bench_function("Array append 100000 compiler", |b| {
-        b.iter(|| execute_vm(black_box(&compiler)))
+        b.iter(|| execute_vm(black_box(&compiler)));
     });
 }
 
 pub fn array_append_interpreter_benchmark(c: &mut Criterion) {
     let program = parse_program(ARRAY_APPEND);
     c.bench_function("Array append 100000 interpreter", |b| {
-        b.iter(|| execute_interpreter(black_box(&program)))
+        b.iter(|| execute_interpreter(black_box(&program)));
     });
 }
 

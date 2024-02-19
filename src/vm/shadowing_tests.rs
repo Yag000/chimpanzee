@@ -11,23 +11,23 @@ mod tests {
     fn test_use_same_varaible_multiple_times() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 1;
                     let b = a;
                     let c = a + b + 1;
-                    c"#
+                    c"
                 .to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 1;
                     let b = a;
                     let c = a + b + 1;
                     let a = 2;
                     let b = a;
                     let c = a + b + 1;
-                    c"#
+                    c"
                 .to_string(),
                 expected: Object::INTEGER(5),
             },
@@ -50,18 +50,18 @@ mod tests {
     fn test_array_multiple_ussage() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                 let array = [1,2,3];
                 let value =  array[1] + array[2];
-                value"#
+                value"
                     .to_string(),
                 expected: Object::INTEGER(5),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let array = [1,2,3];
                 let array = push(array, 4);
-                array"#
+                array"
                     .to_string(),
                 expected: Object::ARRAY(vec![
                     Object::INTEGER(1),
@@ -78,18 +78,18 @@ mod tests {
     fn test_shadowing_same_type() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let x = 4;
                     let x = 5;
-                    x"#
+                    x"
                 .to_string(),
                 expected: Object::INTEGER(5),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let x = [1,2,3];
                     let x = [4,5,6];
-                    x"#
+                    x"
                 .to_string(),
                 expected: Object::ARRAY(vec![
                     Object::INTEGER(4),
@@ -98,10 +98,10 @@ mod tests {
                 ]),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let x = fn() { 1 };
                     let x = fn() { 2 };
-                    x()"#
+                    x()"
                     .to_string(),
                 expected: Object::INTEGER(2),
             },
@@ -130,18 +130,18 @@ mod tests {
                 expected: Object::INTEGER(1),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let x = fn() { 1 };
                     let x = 5,
-                    x"#
+                    x"
                 .to_string(),
                 expected: Object::INTEGER(5),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let x = 5;
                     let x = [1,2,3];
-                    x"#
+                    x"
                 .to_string(),
                 expected: Object::ARRAY(vec![
                     Object::INTEGER(1),
@@ -150,10 +150,10 @@ mod tests {
                 ]),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let x = [1,2,3];
                     let x = 5;
-                    x"#
+                    x"
                 .to_string(),
                 expected: Object::INTEGER(5),
             },
@@ -166,46 +166,46 @@ mod tests {
     fn test_shadowing_using_previous_value() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 1;
                     let b = a * a + 2
-                    b"#
+                    b"
                 .to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 1;
                     let a = a + 1;
-                    a"#
+                    a"
                 .to_string(),
                 expected: Object::INTEGER(2),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = fn() { 
                         let a = 1;
                         a
                     };
                     a()
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(1),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let f = fn(a){
                         let a = 1;
                         let a = a + 1;
                         a
                     };
                     f(1)
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(2),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let f = fn(){
                         let a = 1;
                         let h = fn(){
@@ -215,37 +215,37 @@ mod tests {
                         h() + a
                     };
                     f()
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(3),
             },
             // Addition of a global variable a with 10 as its value
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 10;
                     let a = fn() { 
                         let a = 1;
                         a
                     };
                     a()
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(1),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 10;
                     let f = fn(a){
                         let a = 1;
                         a
                     };
                     f(1) + a
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(11),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 10;
                     let f = fn(a){
                         let a = 1;
@@ -253,12 +253,12 @@ mod tests {
                         a
                     };
                     f(1) + a
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(12),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 10;
                     let f = fn(){
                         let h = fn(){
@@ -268,12 +268,12 @@ mod tests {
                         h()
                     };
                     f() + a
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(12),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = 10;
                     let f = fn(){
                         let a = 1;
@@ -285,7 +285,7 @@ mod tests {
                         h() + a
                     };
                     f() + a
-                    "#
+                    "
                 .to_string(),
                 expected: Object::INTEGER(14),
             },

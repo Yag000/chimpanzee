@@ -15,26 +15,26 @@ mod tests {
     fn test_calling_functions_without_arguments() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let fivePlusTen = fn() { 5 + 10; };
-                    fivePlusTen();"#
+                    fivePlusTen();"
                     .to_string(),
                 expected: Object::INTEGER(15),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let one = fn() { 1; };
                     let two = fn() { 2; };
-                    one() + two()"#
+                    one() + two()"
                     .to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let a = fn() { 1 };
                     let b = fn() { a() + 1 };
                     let c = fn() { b() + 1 };
-                    c();"#
+                    c();"
                     .to_string(),
                 expected: Object::INTEGER(3),
             },
@@ -47,16 +47,16 @@ mod tests {
     fn test_functions_with_return_statements() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let earlyExit = fn() { return 99; 100; };
-                    earlyExit();"#
+                    earlyExit();"
                     .to_string(),
                 expected: Object::INTEGER(99),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let earlyExit = fn() { return 99; return 100; };
-                    earlyExit();"#
+                    earlyExit();"
                     .to_string(),
                 expected: Object::INTEGER(99),
             },
@@ -68,18 +68,18 @@ mod tests {
     fn test_functions_without_return_value() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let noReturn = fn() { };
-                    noReturn();"#
+                    noReturn();"
                     .to_string(),
                 expected: Object::NULL,
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let noReturn = fn() { };
                     let noReturnTwo = fn() { noReturn(); };
                     noReturn();
-                    noReturnTwo();"#
+                    noReturnTwo();"
                     .to_string(),
                 expected: Object::NULL,
             },
@@ -92,20 +92,20 @@ mod tests {
     fn test_first_class_functions() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                 let returnsOne = fn() { 1; };
                 let returnsOneReturner = fn() { returnsOne; };
-                returnsOneReturner()();"#
+                returnsOneReturner()();"
                     .to_string(),
                 expected: Object::INTEGER(1),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let returnsOneReturner = fn() {
                         let returnsOne = fn() { 1; };
                         returnsOne;
                     };
-                    returnsOneReturner()();"#
+                    returnsOneReturner()();"
                     .to_string(),
                 expected: Object::INTEGER(1),
             },
@@ -118,37 +118,37 @@ mod tests {
     fn test_calling_function_with_bindings() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let one = fn() { let one = 1; one };
-                    one();"#
+                    one();"
                     .to_string(),
                 expected: Object::INTEGER(1),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
-                    oneAndTwo();"#
+                    oneAndTwo();"
                     .to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let oneAndTwo = fn() { let one = 1; let two = 2; one + two; };
                     let threeAndFour = fn() { let three = 3; let four = 4; three + four; };
-                    oneAndTwo() + threeAndFour();"#
+                    oneAndTwo() + threeAndFour();"
                     .to_string(),
                 expected: Object::INTEGER(10),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let firstFoobar = fn() { let foobar = 50; foobar; };
                     let secondFoobar = fn() { let foobar = 100; foobar; };
-                    firstFoobar() + secondFoobar();"#
+                    firstFoobar() + secondFoobar();"
                     .to_string(),
                 expected: Object::INTEGER(150),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let globalSeed = 50;
                     let minusOne = fn() {
                         let num = 1;
@@ -158,7 +158,7 @@ mod tests {
                         let num = 2;
                         globalSeed - num;
                     }
-                    minusOne() + minusTwo();"#
+                    minusOne() + minusTwo();"
                     .to_string(),
                 expected: Object::INTEGER(97),
             },
@@ -171,41 +171,41 @@ mod tests {
     fn test_calling_functions_with_arguments_and_bindings() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                     let identity = fn(a) { a; };
-                    identity(4);"#
+                    identity(4);"
                     .to_string(),
                 expected: Object::INTEGER(4),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let sum = fn(a, b) { a + b; };
-                    sum(1, 2);"#
+                    sum(1, 2);"
                     .to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let sum = fn(a, b) {
                         let c = a + b;
                         c;
                     };
-                    sum(1, 2);"#
+                    sum(1, 2);"
                     .to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let sum = fn(a, b) {
                         let c = a + b;
                         c;
                     };
-                    sum(1, 2) + sum(3, 4);"#
+                    sum(1, 2) + sum(3, 4);"
                     .to_string(),
                 expected: Object::INTEGER(10),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let sum = fn(a, b) {
                         let c = a + b;
                         c;
@@ -213,12 +213,12 @@ mod tests {
                     let outer = fn() {
                         sum(1, 2) + sum(3, 4);
                     };
-                    outer();"#
+                    outer();"
                     .to_string(),
                 expected: Object::INTEGER(10),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                     let globalNum = 10;
                     let sum = fn(a, b) {
                         let c = a + b;
@@ -227,7 +227,7 @@ mod tests {
                     let outer = fn() {
                         sum(1, 2) + sum(3, 4) + globalNum;
                     };
-                    outer() + globalNum;"#
+                    outer() + globalNum;"
                     .to_string(),
                 expected: Object::INTEGER(50),
             },
@@ -240,20 +240,20 @@ mod tests {
     fn test_calling_functions_with_wrong_arguments() {
         let tests = vec![
             VmTestCase {
-                input: r#"
-                    fn() { 1; }(1);"#
+                input: r"
+                    fn() { 1; }(1);"
                     .to_string(),
                 expected: Object::ERROR("Wrong number of arguments: want=0, got=1".to_string()),
             },
             VmTestCase {
-                input: r#"
-                    fn(a) { a; }();"#
+                input: r"
+                    fn(a) { a; }();"
                     .to_string(),
                 expected: Object::ERROR("Wrong number of arguments: want=1, got=0".to_string()),
             },
             VmTestCase {
-                input: r#"
-                    fn(a, b) { a + b; }(1);"#
+                input: r"
+                    fn(a, b) { a + b; }(1);"
                     .to_string(),
                 expected: Object::ERROR("Wrong number of arguments: want=2, got=1".to_string()),
             },
@@ -268,7 +268,7 @@ mod tests {
 
             let mut vm = VM::new(bytecode);
             match vm.run() {
-                Ok(_) => {
+                Ok(()) => {
                     panic!("Expected error, but got no error");
                 }
                 Err(e) => match test.expected {
@@ -299,7 +299,7 @@ mod tests {
                 expected: Object::INTEGER(11),
             },
             VmTestCase {
-                input: r#"len(1)"#.to_string(),
+                input: r"len(1)".to_string(),
                 expected: Object::ERROR("argument to `len` not supported, got INTEGER".to_string()),
             },
             VmTestCase {
@@ -307,59 +307,59 @@ mod tests {
                 expected: Object::ERROR("wrong number of arguments. got=2, want=1".to_string()),
             },
             VmTestCase {
-                input: r#"len([1, 2, 3])"#.to_string(),
+                input: r"len([1, 2, 3])".to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"len([])"#.to_string(),
+                input: r"len([])".to_string(),
                 expected: Object::INTEGER(0),
             },
             VmTestCase {
-                input: r#"len([1, 2, 3], [4, 5, 6])"#.to_string(),
+                input: r"len([1, 2, 3], [4, 5, 6])".to_string(),
                 expected: Object::ERROR("wrong number of arguments. got=2, want=1".to_string()),
             },
             VmTestCase {
-                input: r#"first([1, 2, 3])"#.to_string(),
+                input: r"first([1, 2, 3])".to_string(),
                 expected: Object::INTEGER(1),
             },
             VmTestCase {
-                input: r#"first([])"#.to_string(),
+                input: r"first([])".to_string(),
                 expected: Object::NULL,
             },
             VmTestCase {
-                input: r#"first(1)"#.to_string(),
+                input: r"first(1)".to_string(),
                 expected: Object::ERROR(
                     "argument to `first` not supported, must be ARRAY, got INTEGER".to_string(),
                 ),
             },
             VmTestCase {
-                input: r#"last([1, 2, 3])"#.to_string(),
+                input: r"last([1, 2, 3])".to_string(),
                 expected: Object::INTEGER(3),
             },
             VmTestCase {
-                input: r#"last([])"#.to_string(),
+                input: r"last([])".to_string(),
                 expected: Object::NULL,
             },
             VmTestCase {
-                input: r#"last(1)"#.to_string(),
+                input: r"last(1)".to_string(),
                 expected: Object::ERROR(
                     "argument to `last` not supported, must be ARRAY, got INTEGER".to_string(),
                 ),
             },
             VmTestCase {
-                input: r#"rest([1, 2, 3])"#.to_string(),
+                input: r"rest([1, 2, 3])".to_string(),
                 expected: Object::ARRAY(vec![Object::INTEGER(2), Object::INTEGER(3)]),
             },
             VmTestCase {
-                input: r#"rest([])"#.to_string(),
+                input: r"rest([])".to_string(),
                 expected: Object::NULL,
             },
             VmTestCase {
-                input: r#"push([], 1)"#.to_string(),
+                input: r"push([], 1)".to_string(),
                 expected: Object::ARRAY(vec![Object::INTEGER(1)]),
             },
             VmTestCase {
-                input: r#"push(1, 1)"#.to_string(),
+                input: r"push(1, 1)".to_string(),
                 expected: Object::ERROR(
                     "argument to `push` not supported, must be ARRAY, got INTEGER".to_string(),
                 ),
@@ -373,38 +373,38 @@ mod tests {
     fn test_closures() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                 let newClosure = fn(a) {
                     fn() { a; };
                 };
                 let closure = newClosure(99);
-                closure();"#
+                closure();"
                     .to_string(),
                 expected: Object::INTEGER(99),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let newAdder = fn(a, b) {
                     fn(c) { a + b + c };
                 };
                 let adder = newAdder(1, 2);
-                adder(8);"#
+                adder(8);"
                     .to_string(),
                 expected: Object::INTEGER(11),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let newAdder = fn(a, b) {
                     let c = a + b;
                     fn(d) { c + d };
                 };
                 let adder = newAdder(1, 2);
-                adder(8);"#
+                adder(8);"
                     .to_string(),
                 expected: Object::INTEGER(11),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let newAdderOuter = fn(a, b) {
                     let c = a + b;
                     fn(d) {
@@ -414,12 +414,12 @@ mod tests {
                 };
                 let newAdderInner = newAdderOuter(1, 2)
                 let adder = newAdderInner(3);
-                adder(8);"#
+                adder(8);"
                     .to_string(),
                 expected: Object::INTEGER(14),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let a = 1;
                 let newAdderOuter = fn(b) {
                     fn(c) {
@@ -428,19 +428,19 @@ mod tests {
                 };
                 let newAdderInner = newAdderOuter(2)
                 let adder = newAdderInner(3);
-                adder(8);"#
+                adder(8);"
                     .to_string(),
                 expected: Object::INTEGER(14),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let newClosure = fn(a, b) {
                     let one = fn() { a; };
                     let two = fn() { b; };
                     fn() { one() + two(); };
                 };
                 let closure = newClosure(9, 90);
-                closure();"#
+                closure();"
                     .to_string(),
                 expected: Object::INTEGER(99),
             },
@@ -453,7 +453,7 @@ mod tests {
     fn test_recursive_functions() {
         let tests = vec![
             VmTestCase {
-                input: r#"
+                input: r"
                 let countDown = fn(x) {
                     if (x == 0) {
                         return 0;
@@ -461,12 +461,12 @@ mod tests {
                         countDown(x - 1);
                     }
                 };
-                countDown(1);"#
+                countDown(1);"
                     .to_string(),
                 expected: Object::INTEGER(0),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let countDown = fn(x) {
                     if (x == 0) {
                         return 0;
@@ -477,12 +477,12 @@ mod tests {
                 let wrapper = fn() {
                     countDown(1);
                 };
-                wrapper();"#
+                wrapper();"
                     .to_string(),
                 expected: Object::INTEGER(0),
             },
             VmTestCase {
-                input: r#"
+                input: r"
                 let wrapper = fn() {
                     let countDown = fn(x) {
                         if (x == 0) {
@@ -493,7 +493,7 @@ mod tests {
                     };
                     countDown(1);
                 };
-                wrapper();"#
+                wrapper();"
                     .to_string(),
                 expected: Object::INTEGER(0),
             },
@@ -505,7 +505,7 @@ mod tests {
     #[test]
     fn test_recursive_fibonacci() {
         let tests = vec![VmTestCase {
-            input: r#"
+            input: r"
                 let fibonacci = fn(x) {
                     if (x == 0) {
                         return 0;
@@ -517,7 +517,7 @@ mod tests {
                         }
                     }
                 };
-                fibonacci(15);"#
+                fibonacci(15);"
                 .to_string(),
             expected: Object::INTEGER(610),
         }];

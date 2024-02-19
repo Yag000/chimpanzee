@@ -192,7 +192,7 @@ let map = fn(arr, f) {let iter = fn(arr, accumulated) {
         "#;
 
     c.bench_function("Long format", |b| {
-        b.iter(|| Formatter::format(black_box(input)))
+        b.iter(|| Formatter::format(black_box(input)));
     });
 }
 

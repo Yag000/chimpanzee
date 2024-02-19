@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use chimpanzee::utils::{compile_program, execute_interpreter, execute_vm, parse_program};
 
-const FIBONACCI_20: &str = r#"
+const FIBONACCI_20: &str = r"
         let fibonacci = fn(x) {
             if (x == 0) {
                 0
@@ -15,20 +15,20 @@ const FIBONACCI_20: &str = r#"
             }
         };
         fibonacci(20);
-        "#;
+        ";
 
 pub fn compiler_benchmark(c: &mut Criterion) {
     let program = parse_program(FIBONACCI_20);
     let compiler = compile_program(program);
     c.bench_function("fibonacci 20 compiler", |b| {
-        b.iter(|| execute_vm(black_box(&compiler)))
+        b.iter(|| execute_vm(black_box(&compiler)));
     });
 }
 
 pub fn interpreter_benchmark(c: &mut Criterion) {
     let program = parse_program(FIBONACCI_20);
     c.bench_function("fibonacci 20 interpreter", |b| {
-        b.iter(|| execute_interpreter(black_box(&program)))
+        b.iter(|| execute_interpreter(black_box(&program)));
     });
 }
 

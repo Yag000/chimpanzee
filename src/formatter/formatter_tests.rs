@@ -15,7 +15,7 @@ mod tests {
 
     #[test]
     fn test_basic_format() {
-        let input = r#"
+        let input = r"
         let x = 5;
         let y = 10;
         let foobar = 838383;
@@ -27,10 +27,10 @@ mod tests {
             return true;
         } else {return false;
         }
-        "#;
+        ";
 
         let formatted = format(input);
-        let expected = r#"let x = 5;
+        let expected = r"let x = 5;
 let y = 10;
 let foobar = 838383;
 let add = fn (x, y) {
@@ -42,7 +42,7 @@ if (5 < 10) {
 } else {
     return false;
 }
-"#;
+";
         println!("{formatted}");
         assert_eq!(formatted, expected);
     }
@@ -79,7 +79,7 @@ let f = {"one": 1, "two": 2}["one"] * 2 + 3;
 
     #[test]
     fn test_prefix_formatting() {
-        let input = r#"let x = -5;
+        let input = r"let x = -5;
         let y = !true;
         let a = -5 + 10;
         let b = !(true == false);
@@ -91,10 +91,10 @@ let f = {"one": 1, "two": 2}["one"] * 2 + 3;
         let c = ---(5 + 10);
         let d = !!true;
         let d = !(!true);
-        "#;
+        ";
 
         let formatted = format(input);
-        let expected = r#"let x = -5;
+        let expected = r"let x = -5;
 let y = !true;
 let a = -5 + 10;
 let b = !(true == false);
@@ -106,7 +106,7 @@ let c = --(5 + 10);
 let c = ---(5 + 10);
 let d = !!true;
 let d = !!true;
-"#;
+";
         println!("{formatted}");
         assert_eq!(formatted, expected);
     }
@@ -126,7 +126,7 @@ let d = !!true;
 
     #[test]
     fn test_fibonacci_it_formatting() {
-        let input = r#"
+        let input = r"
             let fibonacci_it= fn(x) {
                 if (x < 2){
                     return x;
@@ -144,11 +144,11 @@ let d = !!true;
 
         let fib = fibonacci_it(20);
 
-        puts(fib);"#;
+        puts(fib);";
 
         let formatted = format(input);
 
-        let expected = r#"let fibonacci_it = fn (x) {
+        let expected = r"let fibonacci_it = fn (x) {
     if (x < 2) {
         return x;
     }
@@ -164,7 +164,7 @@ let d = !!true;
 };
 let fib = fibonacci_it(20);
 puts(fib);
-"#;
+";
         println!("{formatted}");
 
         assert_eq!(formatted, expected);
@@ -172,8 +172,7 @@ puts(fib);
 
     #[test]
     fn format_implicit_return() {
-        let inputs = vec![
-            r#"
+        let inputs = [r"
             let fibonacci = fn(x) {
                 if (x < 2) {
                     x
@@ -185,8 +184,8 @@ puts(fib);
 
 
         puts(fibonacci(30));
-        "#,
-            r#"
+        ",
+            r"
             let fibonacci = fn(x) {
                 puts(x);
                 if (x < 2) {
@@ -199,8 +198,8 @@ puts(fib);
 
 
         puts(fibonacci(30));
-        "#,
-            r#"
+        ",
+            r"
             let fibonacci = fn(x) {
                 if (x < 2) {
                     x
@@ -208,11 +207,10 @@ puts(fib);
                 else{
                     return fibonacci(x - 1) + fibonacci(x - 2);
                 }
-            }"#,
-        ];
+            }"];
 
         let expected_values = vec![
-            r#"let fibonacci = fn (x) {
+            r"let fibonacci = fn (x) {
     if (x < 2) {
         x
     } else {
@@ -220,8 +218,8 @@ puts(fib);
     }
 };
 puts(fibonacci(30));
-"#,
-            r#"let fibonacci = fn (x) {
+",
+            r"let fibonacci = fn (x) {
     puts(x);
     if (x < 2) {
         x
@@ -230,15 +228,15 @@ puts(fibonacci(30));
     }
 };
 puts(fibonacci(30));
-"#,
-            r#"let fibonacci = fn (x) {
+",
+            r"let fibonacci = fn (x) {
     if (x < 2) {
         x
     } else {
         return fibonacci(x - 1) + fibonacci(x - 2);
     }
 };
-"#,
+",
         ];
         for (input, expected) in inputs.iter().zip(expected_values) {
             let formatted = format(input);
@@ -250,7 +248,7 @@ puts(fibonacci(30));
 
     #[test]
     fn format_nested_functions() {
-        let input = r#"
+        let input = r"
             let counter = fn(x) {
                 puts(x);
                 let count = fn(y) {
@@ -299,11 +297,11 @@ puts(fibonacci(30));
             let c = counter(1);
             let d = second_counter(2);
             puts(c(2));
-        "#;
+        ";
 
         let formatted = format(input);
 
-        let expected = r#"let counter = fn (x) {
+        let expected = r"let counter = fn (x) {
     puts(x);
     let count = fn (y) {
         puts(x + y);
@@ -348,7 +346,7 @@ let fourth = fn (x) {
 let c = counter(1);
 let d = second_counter(2);
 puts(c(2));
-"#;
+";
         println!("{formatted}");
 
         assert_eq!(formatted, expected);
@@ -356,21 +354,21 @@ puts(c(2));
 
     #[test]
     fn test_integer_and_variable_declaration() {
-        let input = r#"
+        let input = r"
             let a = 10;
             let b = 20;
-        "#;
+        ";
 
-        let expected = r#"let a = 10;
+        let expected = r"let a = 10;
 let b = 20;
-"#;
+";
 
         assert_eq!(format(input), expected);
     }
 
     #[test]
     fn test_basic_operators() {
-        let input = r#"
+        let input = r"
             let result = a + b;
             let result = a - b;
             let result = a * b;
@@ -381,9 +379,9 @@ let b = 20;
             let result = a > b;
             let result = a <= b;
             let result = a >= b;
-        "#;
+        ";
 
-        let expected = r#"let result = a + b;
+        let expected = r"let result = a + b;
 let result = a - b;
 let result = a * b;
 let result = a / b;
@@ -393,7 +391,7 @@ let result = a < b;
 let result = a > b;
 let result = a <= b;
 let result = a >= b;
-"#;
+";
 
         println!("{}", format(input));
 
@@ -402,35 +400,35 @@ let result = a >= b;
 
     #[test]
     fn test_array_declaration_and_indexing() {
-        let input = r#"
+        let input = r"
             let arr = [1, 2, 3];
             let firstElement = arr[0];
-        "#;
+        ";
 
-        let expected = r#"let arr = [1, 2, 3];
+        let expected = r"let arr = [1, 2, 3];
 let firstElement = arr[0];
-"#;
+";
 
         assert_eq!(format(input), expected);
     }
 
     #[test]
     fn test_array_builtin_functions() {
-        let input = r#" let arr = [1, 2, 3];
+        let input = r" let arr = [1, 2, 3];
         let length = len(arr);
         let first = first(arr);
         let last = last(arr);
         let restArr = rest(arr);
         let newArr = push(arr, 4);
-        "#;
+        ";
 
-        let expected = r#"let arr = [1, 2, 3];
+        let expected = r"let arr = [1, 2, 3];
 let length = len(arr);
 let first = first(arr);
 let last = last(arr);
 let restArr = rest(arr);
 let newArr = push(arr, 4);
-"#;
+";
 
         assert_eq!(format(input), expected);
     }
@@ -451,19 +449,19 @@ let value = hash["key1"];
 
     #[test]
     fn test_function_declaration_and_invocation() {
-        let input = r#"
+        let input = r"
             let add = fn(a, b) {
                 return a + b;
             };
 
             let result = add(5, 10);
-        "#;
+        ";
 
-        let expected = r#"let add = fn (a, b) {
+        let expected = r"let add = fn (a, b) {
     return a + b;
 };
 let result = add(5, 10);
-"#;
+";
 
         assert_eq!(format(input), expected);
     }
@@ -492,35 +490,35 @@ if (num < 10) {
 
     #[test]
     fn test_function_as_first_class_citizen() {
-        let input = r#"
+        let input = r"
             let double = fn(x) {
                 return x * 2;
             };
 
             let arr = [1, 2, 3, 4];
             let mappedArr = map(arr, double);
-        "#;
+        ";
 
-        let expected = r#"let double = fn (x) {
+        let expected = r"let double = fn (x) {
     return x * 2;
 };
 let arr = [1, 2, 3, 4];
 let mappedArr = map(arr, double);
-"#;
+";
 
         assert_eq!(format(input), expected);
     }
 
     #[test]
     fn test_shadowing() {
-        let input = r#"
+        let input = r"
             let a = 5;
             let a = 10;
-        "#;
+        ";
 
-        let expected = r#"let a = 5;
+        let expected = r"let a = 5;
 let a = 10;
-"#;
+";
 
         assert_eq!(format(input), expected);
     }
@@ -543,7 +541,7 @@ let length = len(arr);
 
     #[test]
     fn test_while() {
-        let input = r#"
+        let input = r"
         let a = 1;
     while (a<3){
 let a = a + 1,
@@ -559,9 +557,9 @@ puts(21);
         a
     };
     a(12);
-        "#;
+        ";
 
-        let expected = r#"let a = 1;
+        let expected = r"let a = 1;
 while (a < 3) {
     let a = a + 1;
     puts(21);
@@ -576,7 +574,7 @@ let a = fn (x) {
     a
 };
 a(12);
-"#;
+";
 
         assert_eq!(format(input), expected);
     }

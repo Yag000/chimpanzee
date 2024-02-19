@@ -388,7 +388,7 @@ mod tests {
         let mut second_local =
             SymbolTable::new_enclosed(Rc::new(RefCell::new(first_local.clone())));
 
-        for table in vec![&mut global, &mut first_local, &mut second_local] {
+        for table in [&mut global, &mut first_local, &mut second_local] {
             for sym in expected.clone() {
                 let result = table.resolve(&sym.name);
 

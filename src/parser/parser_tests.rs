@@ -15,10 +15,10 @@ mod tests {
 
     #[test]
     fn test_let_statements() {
-        let input = r#"let x = 5;
+        let input = r"let x = 5;
         let y = true;
         let foobar = y;
-        "#;
+        ";
 
         let program = generate_program(input);
         let expected_statemets = vec![
@@ -58,11 +58,11 @@ mod tests {
 
     #[test]
     fn test_return_statements() {
-        let input = r#"
+        let input = r"
         return 5;
         return true;
         return y;
-        "#;
+        ";
 
         let program = generate_program(input);
         let expected = vec![
@@ -99,12 +99,12 @@ mod tests {
 
     #[test]
     fn test_errors() {
-        let input = r#"
+        let input = r"
         let x 5;
         let = 10;
         let 838383;
         let x = 838383;
-        "#;
+        ";
 
         let lexer = Lexer::new(input);
         let mut parser = Parser::new(lexer);
@@ -455,7 +455,7 @@ mod tests {
             Statement::Expression(exp) => match exp {
                 Expression::HashMapLiteral(h) => {
                     assert_eq!(h.pairs.len(), 3);
-                    let expected = vec![("one", "1"), ("two", "2"), ("three", "3")];
+                    let expected = [("one", "1"), ("two", "2"), ("three", "3")];
                     for (i, (key, value)) in expected.iter().enumerate() {
                         let pair = h.pairs.get(i).unwrap();
                         check_primitive_literal(&pair.0, key);
@@ -496,11 +496,9 @@ mod tests {
             Statement::Expression(exp) => match exp {
                 Expression::HashMapLiteral(h) => {
                     assert_eq!(h.pairs.len(), 3);
-                    let expected = vec![
-                        ("\"one\"", "(1 + 34)"),
+                    let expected = [("\"one\"", "(1 + 34)"),
                         ("\"two\"", "(2 / 5)"),
-                        ("\"three\"", "(3 - 1)"),
-                    ];
+                        ("\"three\"", "(3 - 1)")];
                     for (i, (key, value)) in expected.iter().enumerate() {
                         let pair = h.pairs.get(i).unwrap();
                         assert_eq!(pair.0.to_string(), **key);
@@ -524,7 +522,7 @@ mod tests {
             Statement::Expression(exp) => match exp {
                 Expression::HashMapLiteral(h) => {
                     assert_eq!(h.pairs.len(), 3);
-                    let expected = vec![("1", "true"), ("2", "\"Hi\""), ("\"three\"", "(3 - 1)")];
+                    let expected = [("1", "true"), ("2", "\"Hi\""), ("\"three\"", "(3 - 1)")];
                     for (i, (key, value)) in expected.iter().enumerate() {
                         let pair = h.pairs.get(i).unwrap();
                         assert_eq!(pair.0.to_string(), **key);

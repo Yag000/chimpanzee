@@ -239,9 +239,9 @@ pub mod tests {
     fn test_let_statements_scope() {
         let tests = vec![
             CompilerTestCase {
-                input: r#"
+                input: r"
                 let num = 55;
-                fn() { num }"#
+                fn() { num }"
                     .to_string(),
                 expected_constants: vec![
                     Object::INTEGER(55),
@@ -262,11 +262,11 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                 fn() { 
                     let num = 55;
                     num
-                }"#
+                }"
                 .to_string(),
                 expected_constants: vec![
                     Object::INTEGER(55),
@@ -287,12 +287,12 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                 fn() { 
                     let a = 55;
                     let b = 77;
                     a + b
-                }"#
+                }"
                 .to_string(),
                 expected_constants: vec![
                     Object::INTEGER(55),
@@ -366,12 +366,12 @@ pub mod tests {
     fn test_closures() {
         let tests = vec![
             CompilerTestCase {
-                input: r#"
+                input: r"
                 fn(a){
                     fn(b){
                         a + b
                     }
-                }"#
+                }"
                 .to_string(),
                 expected_constants: vec![
                     Object::COMPILEDFUNCTION(CompiledFunction {
@@ -400,14 +400,14 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                     fn(a) {
                         fn(b) {
                             fn(c) {
                                 a + b + c
                             }
                         }
-                    };"#
+                    };"
                 .to_string(),
 
                 expected_constants: vec![
@@ -449,7 +449,7 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                     let global = 55;
                    fn() {
                         let a = 66;
@@ -461,7 +461,7 @@ pub mod tests {
                             }
                         }
                     }
-                    "#
+                    "
                 .to_string(),
                 expected_constants: vec![
                     Object::INTEGER(55),
@@ -524,11 +524,11 @@ pub mod tests {
     fn test_recursive_functions() {
         let tests = vec![
             CompilerTestCase {
-                input: r#"
+                input: r"
                 let countDown = fn(x){
                     countDown(x - 1);
                 };
-                countDown(1);"#
+                countDown(1);"
                     .to_string(),
                 expected_constants: vec![
                     Object::INTEGER(1),
@@ -556,7 +556,7 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                 let wrapper = fn() {
                     let countDown = fn(x) {
                         countDown(x - 1);
@@ -564,7 +564,7 @@ pub mod tests {
                     countDown(1);
                 };
                 wrapper();
-                "#
+                "
                 .to_string(),
                 expected_constants: vec![
                     Object::INTEGER(1),

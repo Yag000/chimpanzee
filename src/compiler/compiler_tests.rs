@@ -276,8 +276,8 @@ pub mod tests {
     fn test_let_statements() {
         let tests = vec![
             CompilerTestCase {
-                input: r#"
-                let one = 1;"#
+                input: r"
+                let one = 1;"
                     .to_string(),
                 expected_constants: vec![Object::INTEGER(1)],
                 expected_instructions: flatten_instructions(vec![
@@ -286,9 +286,9 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                 let one = 1;    
-                let two = 2"#
+                let two = 2"
                     .to_string(),
                 expected_constants: vec![Object::INTEGER(1), Object::INTEGER(2)],
                 expected_instructions: flatten_instructions(vec![
@@ -299,9 +299,9 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                 let one = 1;
-                one;"#
+                one;"
                     .to_string(),
                 expected_constants: vec![Object::INTEGER(1)],
                 expected_instructions: flatten_instructions(vec![
@@ -312,10 +312,10 @@ pub mod tests {
                 ]),
             },
             CompilerTestCase {
-                input: r#"
+                input: r"
                 let one = 1;
                 let two = one;
-                two;"#
+                two;"
                     .to_string(),
                 expected_constants: vec![Object::INTEGER(1)],
                 expected_instructions: flatten_instructions(vec![
@@ -527,9 +527,9 @@ pub mod tests {
     #[test]
     fn test_shadowing_with_itself() {
         let tests = vec![CompilerTestCase {
-            input: r#"
+            input: r"
                 let a = 1;
-                let a = a + 1;"#
+                let a = a + 1;"
                 .to_string(),
 
             expected_constants: vec![Object::INTEGER(1), Object::INTEGER(1)],
