@@ -8,7 +8,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  test:
   coverage:
     name: Code coverage
     runs-on: ubuntu-latest
