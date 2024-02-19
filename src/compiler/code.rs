@@ -39,12 +39,7 @@ impl Instructions {
         Instructions { data }
     }
 
-    pub fn format_instruction(
-        &self,
-        operand: Opcode,
-        widths: &Vec<u32>,
-        operands: &Vec<i32>,
-    ) -> String {
+    pub fn format_instruction(&self, operand: Opcode, widths: &[u32], operands: &[i32]) -> String {
         let operand_count = widths.len();
         if operands.len() != operand_count {
             return format!(

@@ -34,7 +34,7 @@ pub(crate) fn run_vm_tests(tests: Vec<VmTestCase>) {
         let mut vm = VM::new(bytecode);
         vm.run().unwrap();
         let got = vm.last_popped_stack_element().unwrap();
-        check_constants(&vec![test.expected], &vec![got]);
+        check_constants(&[test.expected], &vec![got]);
     }
 }
 

@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use crate::object::Object;
 
-pub fn check_constants(constants: &Vec<Object>, expected: &Vec<Rc<Object>>) {
+#[allow(clippy::useless_vec, clippy::ptr_arg)] // TODO: Make this cleaner
+pub fn check_constants(constants: &[Object], expected: &Vec<Rc<Object>>) {
     assert_eq!(
         constants.len(),
         expected.len(),
