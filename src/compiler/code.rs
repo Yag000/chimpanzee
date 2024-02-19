@@ -1,4 +1,5 @@
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
+use enum_stringify::EnumStringify;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::FromPrimitive;
 use std::fmt::Display;
@@ -62,7 +63,8 @@ impl Instructions {
     }
 }
 
-#[derive(Debug, PartialEq, FromPrimitive, ToPrimitive, Clone, Copy)]
+#[derive(Debug, PartialEq, FromPrimitive, ToPrimitive, Clone, Copy, EnumStringify)]
+#[enum_stringify(prefix = "Op")]
 pub enum Opcode {
     // Constants
     Constant,
@@ -119,48 +121,6 @@ pub enum Opcode {
 
     // Stack
     Pop,
-}
-
-impl Display for Opcode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let op = match self {
-            Opcode::Constant => "OpConstant",
-            Opcode::Add => "OpAdd",
-            Opcode::Sub => "OpSub",
-            Opcode::Mul => "OpMul",
-            Opcode::Div => "OpDiv",
-            Opcode::True => "OpTrue",
-            Opcode::False => "OpFalse",
-            Opcode::GreaterThan => "OpGreaterThan",
-            Opcode::GreaterEqualThan => "OpGreaterEqualThan",
-            Opcode::Equal => "OpEqual",
-            Opcode::NotEqual => "OpNotEqual",
-            Opcode::Or => "OpOr",
-            Opcode::And => "OpAnd",
-            Opcode::Minus => "OpMinus",
-            Opcode::Modulo => "OpModulo",
-            Opcode::Bang => "OpBang",
-            Opcode::JumpNotTruthy => "OpJumpNotTruthy",
-            Opcode::Jump => "OpJump",
-            Opcode::Null => "OpNull",
-            Opcode::SetGlobal => "OpSetGlobal",
-            Opcode::GetGlobal => "OpGetGlobal",
-            Opcode::SetLocal => "OpSetLocal",
-            Opcode::GetLocal => "OpGetLocal",
-            Opcode::GetFree => "OpGetFree",
-            Opcode::CurrentClosure => "OpCurrentClosure",
-            Opcode::Array => "OpArray",
-            Opcode::HashMap => "OpHashMap",
-            Opcode::Index => "OpIndex",
-            Opcode::Call => "OpCall",
-            Opcode::ReturnValue => "OpReturnValue",
-            Opcode::Return => "OpReturn",
-            Opcode::GetBuiltin => "OpBuiltIn",
-            Opcode::Closure => "OpClosure",
-            Opcode::Pop => "OpPop",
-        };
-        write!(f, "{op}")
-    }
 }
 
 impl Opcode {

@@ -1,12 +1,14 @@
+use enum_stringify::EnumStringify;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::FromPrimitive;
-use std::{cmp::Ordering, fmt::Display};
+use std::cmp::Ordering;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
 use crate::object::{Object, NULL};
 
-#[derive(Debug, PartialEq, Clone, FromPrimitive, ToPrimitive, EnumIter)]
+#[derive(Debug, PartialEq, Clone, FromPrimitive, ToPrimitive, EnumIter, EnumStringify)]
+#[enum_stringify(case = "lower")]
 pub enum BuiltinFunction {
     LEN,
     FIRST,
@@ -16,31 +18,10 @@ pub enum BuiltinFunction {
     PUTS,
 }
 
-impl Display for BuiltinFunction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BuiltinFunction::LEN => write!(f, "len"),
-            BuiltinFunction::FIRST => write!(f, "first"),
-            BuiltinFunction::LAST => write!(f, "last"),
-            BuiltinFunction::REST => write!(f, "rest"),
-            BuiltinFunction::PUSH => write!(f, "push"),
-            BuiltinFunction::PUTS => write!(f, "puts"),
-        }
-    }
-}
-
 #[allow(clippy::needless_pass_by_value)] // false positive
 impl BuiltinFunction {
     pub fn get_builtin(name: &str) -> Option<Object> {
-        match name {
-            "len" => Some(Object::BUILTIN(BuiltinFunction::LEN)),
-            "first" => Some(Object::BUILTIN(BuiltinFunction::FIRST)),
-            "last" => Some(Object::BUILTIN(BuiltinFunction::LAST)),
-            "rest" => Some(Object::BUILTIN(BuiltinFunction::REST)),
-            "push" => Some(Object::BUILTIN(BuiltinFunction::PUSH)),
-            "puts" => Some(Object::BUILTIN(BuiltinFunction::PUTS)),
-            _ => None,
-        }
+        Self::try_from(name).ok().map(Object::BUILTIN)
     }
 
     pub fn get_builtin_by_id(id: usize) -> Option<Object> {

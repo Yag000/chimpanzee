@@ -1,3 +1,5 @@
+use enum_stringify::EnumStringify;
+
 use crate::{lexer::token::Token, parser::Parser};
 use std::fmt::Display;
 
@@ -590,19 +592,11 @@ impl HashMapLiteral {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, EnumStringify)]
+#[enum_stringify(case = "lower")]
 pub enum LoopStatement {
     Break,
     Continue,
-}
-
-impl Display for LoopStatement {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LoopStatement::Break => write!(f, "break"),
-            LoopStatement::Continue => write!(f, "continue"),
-        }
-    }
 }
 
 impl LoopStatement {
