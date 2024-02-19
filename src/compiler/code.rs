@@ -64,6 +64,7 @@ impl Instructions {
 }
 
 #[derive(Debug, PartialEq, FromPrimitive, ToPrimitive, Clone, Copy, EnumStringify)]
+#[enum_stringify(prefix = "Op")]
 pub enum Opcode {
     // Constants
     Constant,
