@@ -285,9 +285,9 @@ checksum = "c34f04666d835ff5d62e058c3995147c06f42fe86ff053337632bca83e42702d"
 
 [[package]]
 name = "enum_stringify"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee381173553f10a459501fa2bd5e61b908e672f7343c41008e9268ce73fad133"
+checksum = "da25cb2d9cc7399d01211e0cfc85109d61f1456d5b3cbaf58ce02127df7b0c9e"
 dependencies = [
  "proc-macro2",
  "quote",
