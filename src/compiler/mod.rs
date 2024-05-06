@@ -62,14 +62,8 @@ impl CompilerScope {
 
     fn leave_loop_scope(&mut self) -> Option<Rc<RefCell<LoopScope>>> {
         let outer = self.loop_scope.clone();
-        self.loop_scope = self
-            .loop_scope
-            .clone()
-            .unwrap()
-            .as_ref()
-            .borrow()
-            .outer
-            .clone();
+        self.loop_scope
+            .clone_from(&self.loop_scope.clone().unwrap().as_ref().borrow().outer);
         outer
     }
 }
