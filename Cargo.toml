@@ -26,7 +26,7 @@ num-traits = "0.2.19"
 strum = "0.26.2"
 strum_macros = "0.26.2"
 rustyline = "14.0.0"
-enum_stringify = "0.4.1"
+enum_stringify = "0.4.2"
 
 [dev-dependencies]
 criterion = "0.5.1"
