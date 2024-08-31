@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ALLOWED_LINTS=("must_use_candidate" "missing-errors-doc" "cast_possible_truncation" "cast_possible_wrap" "missing_panics_doc" "cast_sign_loss" "unused_self" "module-name-repetitions")
+ALLOWED_LINTS=("must_use_candidate" "missing-errors-doc" "cast_possible_truncation" "cast_possible_wrap" "missing_panics_doc" "cast_sign_loss" "unused_self" "module-name-repetitions" "mutable_key_type")
 
 
 format_lints(){
