@@ -244,9 +244,8 @@ impl Display for Conditional {
             self.condition.as_ref(),
             self.consequence
         ));
-        match &self.alternative {
-            Some(alternative) => exp.push_str(&format!(" else {{\n{alternative}}}")),
-            None => (),
+        if let Some(alternative) = &self.alternative {
+            exp.push_str(&format!(" else {{\n{alternative}}}"))
         }
         write!(f, "{exp}")
     }
