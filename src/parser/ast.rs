@@ -245,7 +245,7 @@ impl Display for Conditional {
             self.consequence
         ));
         if let Some(alternative) = &self.alternative {
-            exp.push_str(&format!(" else {{\n{alternative}}}"))
+            exp.push_str(&format!(" else {{\n{alternative}}}"));
         }
         write!(f, "{exp}")
     }
