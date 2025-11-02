@@ -51,7 +51,7 @@ pub struct Formatter {
     last_expression: Option<Expression>,
 
     /// The current formatter function scope.
-    formatter_function_scope: Option<Box<FormatterFunctionScope>>,
+    function_scope: Option<Box<FormatterFunctionScope>>,
 
     /// The output buffer.
     output: String,
@@ -63,7 +63,7 @@ impl Formatter {
             indent: 0,
             preference: Precedence::Lowest,
             last_expression: None,
-            formatter_function_scope: None,
+            function_scope: None,
             output: String::new(),
         }
     }
@@ -104,8 +104,8 @@ impl Formatter {
             Statement::Expression(exp_stmt) => {
                 self.visit_expression(exp_stmt);
                 if let Some(Expression::Conditional(_)) = self.last_expression {
-                } else if self.formatter_function_scope.is_some() {
-                    if !self.formatter_function_scope.clone().unwrap().is_end() {
+                } else if self.function_scope.is_some() {
+                    if !self.function_scope.clone().unwrap().is_end() {
                         self.push(";");
                     }
                 } else {
@@ -253,7 +253,7 @@ impl Formatter {
         self.enter_function(func);
         for stmt in &func.body.statements {
             self.visit_statement(stmt);
-            self.formatter_function_scope.as_mut().unwrap().next();
+            self.function_scope.as_mut().unwrap().next();
         }
         self.leave_function();
 
@@ -276,8 +276,8 @@ impl Formatter {
     }
 
     fn enter_function(&mut self, function: &FunctionLiteral) {
-        self.formatter_function_scope = Some(Box::new(FormatterFunctionScope::new(
-            self.formatter_function_scope.clone(),
+        self.function_scope = Some(Box::new(FormatterFunctionScope::new(
+            self.function_scope.clone(),
             function.body.statements.len(),
         )));
 
@@ -286,8 +286,8 @@ impl Formatter {
 
     fn leave_function(&mut self) {
         self.indent -= 1;
-        if let Some(ref mut scope) = self.formatter_function_scope {
-            self.formatter_function_scope = scope.leave_scope();
+        if let Some(ref mut scope) = self.function_scope {
+            self.function_scope = scope.leave_scope();
         }
     }
 

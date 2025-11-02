@@ -10,11 +10,10 @@ pub struct Program {
 
 impl Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut program = String::new();
         for statement in &self.statements {
-            program.push_str(&format!("{statement}\n"));
+            writeln!(f, "{statement}")?;
         }
-        write!(f, "{program}")
+        Ok(())
     }
 }
 
@@ -238,16 +237,16 @@ pub struct Conditional {
 
 impl Display for Conditional {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut exp = String::new();
-        exp.push_str(&format!(
+        write!(
+            f,
             "if {}{{\n{}}}",
             self.condition.as_ref(),
-            self.consequence
-        ));
+            self.consequence,
+        )?;
         if let Some(alternative) = &self.alternative {
-            exp.push_str(&format!(" else {{\n{alternative}}}"));
+            write!(f, " else {{\n{alternative}}}")?;
         }
-        write!(f, "{exp}")
+        Ok(())
     }
 }
 
@@ -291,11 +290,10 @@ pub struct BlockStatement {
 
 impl Display for BlockStatement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut statements = String::new();
         for statement in &self.statements {
-            statements.push_str(&format!("{statement}\n"));
+            writeln!(f, "{statement}")?;
         }
-        write!(f, "{statements}")
+        Ok(())
     }
 }
 

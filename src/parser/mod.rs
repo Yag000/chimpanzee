@@ -98,7 +98,7 @@ impl Parser {
 
         if let Expression::FunctionLiteral(literal) = &mut value {
             literal.name = Some(name.token.to_string());
-        };
+        }
 
         if self.peek_token_is(&Token::Semicolon) {
             self.next_token();
