@@ -51,7 +51,7 @@ pub struct ReplCli {
 impl ReplCli {
     fn get_input_type(&self) -> InputType {
         match &self.filename {
-            Some(filename) => InputType::File(filename.to_string()),
+            Some(filename) => InputType::File(filename.clone()),
             None => InputType::Repl,
         }
     }

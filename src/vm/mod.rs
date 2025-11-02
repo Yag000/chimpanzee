@@ -280,7 +280,7 @@ impl VM {
             }
             (Object::STRING(s1), Object::STRING(s2)) => {
                 let result = match op {
-                    Opcode::Add => s1.to_string() + s2,
+                    Opcode::Add => s1.clone() + s2,
                     _ => {
                         return Err("Unsupported types for binary operation".to_string());
                     }

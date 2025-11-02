@@ -112,7 +112,7 @@ impl Compiler {
         let main_scope = CompilerScope::default();
         let mut symbol_table = SymbolTable::new();
         for (i, builtin) in BuiltinFunction::get_builtins_names().iter().enumerate() {
-            symbol_table.define_builtin(i, builtin.to_string());
+            symbol_table.define_builtin(i, builtin.clone());
         }
 
         Compiler {
